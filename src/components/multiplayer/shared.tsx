@@ -5,6 +5,15 @@ import { useEffect, useState } from "react";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
+export function Spinner({ className }: { className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("inline-block size-5 animate-spin rounded-full border-[3px] border-current border-t-transparent", className)}
+    />
+  );
+}
+
 /** Re-renders every `intervalMs` with the server-corrected time. */
 export function useServerNow(now: () => number, intervalMs = 250): number {
   const [value, setValue] = useState(0);

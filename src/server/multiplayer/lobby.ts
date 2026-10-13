@@ -43,8 +43,27 @@ function validName(raw: unknown): string {
   return checked.name;
 }
 
-export async function createRoom(userId: string, rawName: unknown) {
+function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown }) {
+  const levels = input.maxLevels === undefined ? DEFAULT_LEVELS : Number(input.maxLevels);
+  if (!Number.isInteger(levels) || levels < 1 || levels > MAX_ROOM_LEVELS) {
+    throw new ApiError(400, `Pick 1 to ${MAX_ROOM_LEVELS} levels.`);
+  }
+  const difficulty = input.difficulty ?? DEFAULT_DIFFICULTY;
+  if (difficulty !== "easy" && difficulty !== "medium" && difficulty !== "hard") {
+    throw new ApiError(400, "Pick easy, medium or hard.");
+  }
+  const pacing = input.pacing ?? DEFAULT_PACING;
+  if (pacing !== "manual" && pacing !== "auto") throw new ApiError(400, "Pick manual or auto.");
+  return { levels, difficulty: difficulty as Difficulty, pacing: pacing as Pacing };
+}
+
+export async function createRoom(
+  userId: string,
+  rawName: unknown,
+  rawSettings: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown } = {},
+) {
   const name = validName(rawName);
+  const settings = validSettings(rawSettings);
   const since = new Date(Date.now() - 3_600_000).toISOString();
   const { count } = await db()
     .from("rooms")
@@ -59,9 +78,9 @@ export async function createRoom(userId: string, rawName: unknown) {
       .insert({
         code: randomCode(),
         admin_user_id: userId,
-        max_levels: DEFAULT_LEVELS,
-        difficulty: DEFAULT_DIFFICULTY,
-        pacing: DEFAULT_PACING,
+        max_levels: settings.levels,
+        difficulty: settings.difficulty,
+        pacing: settings.pacing,
         expires_at: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
       })
       .select()

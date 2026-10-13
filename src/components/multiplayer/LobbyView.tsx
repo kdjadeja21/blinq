@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { callMp, shareUrl } from "@/lib/multiplayer/api";
 import { MAX_PLAYERS, MIN_HUMANS } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
-import { ErrorNote, PlayerChip } from "./shared";
+import { ErrorNote, PlayerChip, Spinner } from "./shared";
 import { GameStartOverlay } from "./GameStartOverlay";
 
 export function useAction() {
@@ -128,7 +128,15 @@ export function LobbyView({ state }: { state: RoomState }) {
               disabled={busy || humans < MIN_HUMANS}
               onClick={() => run("create_teams", { roomId: room.id })}
             >
-              {humans < MIN_HUMANS ? `Waiting for ${MIN_HUMANS - humans} more` : "Create teams"}
+              {busy ? (
+                <>
+                  <Spinner /> Creating teams...
+                </>
+              ) : humans < MIN_HUMANS ? (
+                `Waiting for ${MIN_HUMANS - humans} more`
+              ) : (
+                "Create teams"
+              )}
             </Button>
           </>
         ) : (
@@ -176,10 +184,10 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
         <div className="mt-auto flex flex-col gap-2">
           <ErrorNote message={error} />
           <Button variant="game" className="h-14 rounded-3xl text-lg" disabled={busy || starting} onClick={startGame}>
-            Start game
+            {starting && <Spinner />} Start game
           </Button>
           <Button variant="secondary" className="h-12 rounded-2xl" disabled={busy} onClick={() => run("create_teams", { roomId: room.id })}>
-            Shuffle teams again
+            {busy && <Spinner className="size-4" />} Shuffle teams again
           </Button>
         </div>
       ) : (

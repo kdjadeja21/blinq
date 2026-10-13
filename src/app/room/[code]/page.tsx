@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { RoomLoading } from "@/components/multiplayer/RoomLoading";
 import { RoomView } from "@/components/multiplayer/RoomView";
 
 export const metadata: Metadata = { title: "Room - Blinq" };
@@ -11,7 +12,7 @@ async function RoomWithCode({ params }: Pick<PageProps<"/room/[code]">, "params"
 
 export default function RoomPage({ params }: PageProps<"/room/[code]">) {
   return (
-    <Suspense fallback={null}>
+    <Suspense fallback={<RoomLoading />}>
       <RoomWithCode params={params} />
     </Suspense>
   );

@@ -46,7 +46,7 @@ function str(body: Body, key: string): string {
 export async function runUserAction(action: UserAction, userId: string, body: Body): Promise<unknown> {
   switch (action) {
     case "create_room":
-      return createRoom(userId, body.name);
+      return createRoom(userId, body.name, body);
     case "join_room":
       return joinRoom(userId, body.code, body.name);
     case "create_teams":
