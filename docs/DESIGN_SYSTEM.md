@@ -5,7 +5,7 @@ The single source of truth for how Blinq looks and moves. Tokens live in [`src/a
 ## Principles
 
 1. **Playful, never noisy.** Rounded shapes, saturated violet, soft glow.
-2. **Readable at a glance.** The game lasts 90 seconds. Numbers, timers and state must be understood instantly.
+2. **Readable at a glance.** Each round is a short memorize-and-recall burst. Numbers, timers and state must be understood instantly.
 3. **Mobile and one-handed first.** Single column, large tap targets, primary action at the thumb.
 4. **Motion is feedback.** Animate to confirm an action or celebrate an outcome. Never animate only for decoration, and always honor reduced motion.
 5. **Tokens over values.** No raw hex, hard-coded colors or one-off radii in components.
@@ -128,6 +128,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 | `PlayScreen` | Memorize, hide and recall phases | `round`, `now`, `dispatch`, `onSkipTraining` |
 | `ResultScreen` | Stars, score count-up, share, next actions | `round`, `stats`, `onRetry`, `onNextLevel`, `onHome`, `onStartPlaying` |
 | `TrainingIntro` | Onboarding steps | `step`, `onNext`, `onSkip` |
+| `TrainingPrompt` | First-visit practice offer. Training starts only from its primary button | `onStart`, `onSkip` |
 | `Board` | Grid of items to memorize | `items`, `mode`, `recalledIds` |
 | `ChoiceGrid` | Answer options with correct and wrong feedback | `choices`, `recalledIds`, `wrongIds`, `hintId`, `onPick` |
 | `TimerRing` | Circular countdown, pulses at 5s or less | `seconds`, `progress`, `label`, `hidden` |
