@@ -12,6 +12,8 @@ import {
 export type Mode = "training" | "level" | "daily";
 export type Phase = "intro" | "memorize" | "hide" | "recall" | "result";
 
+export const INTRO_STEPS = 3;
+
 export const HIDE_MS = 700;
 
 const TRAINING_TIMINGS = { memorizeMs: 15_000, recallMs: 20_000 };
@@ -130,7 +132,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
   switch (action.type) {
     case "introNext": {
       if (round.phase !== "intro") return round;
-      if (round.introStep < 1) return { ...round, introStep: round.introStep + 1 };
+      if (round.introStep < INTRO_STEPS - 1) return { ...round, introStep: round.introStep + 1 };
       return beginMemorize(round, action.now);
     }
     case "tick": {
@@ -186,7 +188,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         key: action.key,
       });
       if (!fresh) return fresh;
-      return beginMemorize({ ...fresh, attempt: round.attempt + 1, introStep: 1 }, action.now);
+      return beginMemorize({ ...fresh, attempt: round.attempt + 1, introStep: INTRO_STEPS - 1 }, action.now);
     }
     default: {
       const unreachable: never = action;

@@ -64,7 +64,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
     : phase === "memorize"
       ? "Tip: watch the timer above, then try to picture each item."
       : phase === "recall"
-        ? "Tip: tap the items that were on the table. Lookalikes are traps, and in real rounds each wrong tap costs time!"
+        ? "Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training. Stuck? Use Hint."
         : null;
 
   return (
