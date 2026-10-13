@@ -21,9 +21,9 @@ select cron.schedule(
   $$
 );
 
--- Rooms expire 24 hours after creation; children are removed by ON DELETE CASCADE.
+-- Hourly: deletes rooms older than 1 hour with no player seen in 15 minutes (24h hard cap). Defined in migration 20261013030000_room_cleanup.sql.
 select cron.schedule(
   'blinq-room-cleanup',
   '17 * * * *',
-  $$ delete from public.rooms where expires_at < now(); $$
+  $$ select public.cleanup_inactive_rooms(); $$
 );
