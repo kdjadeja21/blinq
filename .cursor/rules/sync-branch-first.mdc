@@ -1,8 +1,15 @@
 ---
-description: Always sync the working branch with its remote before starting work
+description: Always sync the working branch with remote and latest main before starting work
 alwaysApply: true
 ---
 
 # Sync branch first
 
-Before making any change, run `git fetch origin` and pull the latest commits of the branch you are working on (`git pull origin <current-branch>`). If the branch has no remote yet, fetch and update from the base branch instead. Resolve any conflicts before editing files.
+Before making any change:
+
+1. Run `git fetch origin`.
+2. Pull the branch you are on: `git pull origin <current-branch>` (or set upstream and `git pull`).
+3. If the branch is not `main` and targets `main`, integrate the latest base: `git merge origin/main` (or rebase if the team prefers). There must be **zero commits on `origin/main` that are missing from your branch** before you edit files.
+4. Resolve any merge conflicts before editing files.
+
+If the branch has no remote yet, branch from the latest `origin/main` instead of an stale local `main`.
