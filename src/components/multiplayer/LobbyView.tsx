@@ -48,23 +48,32 @@ function ShareCard({ code }: { code: string }) {
     setTimeout(() => setCopied(false), 2000);
   }
   return (
-    <section className="flex items-center gap-3 rounded-3xl border-2 bg-card p-3 shadow-lg" aria-label="Room code">
-      <div className="shrink-0 rounded-2xl bg-white p-2">
-        <QRCodeSVG value={shareUrl(code)} size={112} level="M" title={`Scan to join room ${code}`} />
+    <section
+      className="flex flex-col items-center gap-3 rounded-3xl border-2 bg-gradient-to-b from-primary/25 to-card p-4 shadow-lg"
+      aria-label="Room code"
+    >
+      <div className="rounded-3xl border-b-4 border-primary/60 bg-[#f4efff] p-3 shadow-lg shadow-primary/30">
+        <QRCodeSVG
+          value={shareUrl(code)}
+          size={200}
+          level="Q"
+          fgColor="#2b1566"
+          bgColor="#f4efff"
+          title={`Scan to join room ${code}`}
+          className="block size-[min(52vw,200px)]"
+        />
       </div>
-      <div className="flex min-w-0 flex-1 flex-col gap-2 text-center">
-        <div>
-          <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Scan or enter code</p>
-          <p className="font-mono text-3xl font-extrabold tracking-[0.2em]">{code}</p>
-        </div>
-        <div className="grid grid-cols-2 gap-1.5">
-          <Button variant="secondary" className="h-11 rounded-xl px-2" onClick={copyCode}>
-            {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied" : "Copy"}
-          </Button>
-          <Button variant="secondary" className="h-11 rounded-xl px-2" onClick={share}>
-            <Share2 className="size-4" /> Share
-          </Button>
-        </div>
+      <div className="text-center">
+        <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Scan or enter code</p>
+        <p className="font-mono text-3xl font-extrabold tracking-[0.25em]">{code}</p>
+      </div>
+      <div className="grid w-full grid-cols-2 gap-2">
+        <Button variant="secondary" className="h-11 rounded-2xl" onClick={copyCode}>
+          {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied" : "Copy code"}
+        </Button>
+        <Button variant="secondary" className="h-11 rounded-2xl" onClick={share}>
+          <Share2 className="size-4" /> Share link
+        </Button>
       </div>
     </section>
   );
