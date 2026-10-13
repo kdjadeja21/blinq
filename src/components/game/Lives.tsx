@@ -11,7 +11,7 @@ export function Lives({ lives, max }: { lives: number; max: number }) {
         const alive = i < lives;
         return (
           <motion.span
-            key={alive ? "alive" : "lost"}
+            key={`${i}-${alive ? "alive" : "lost"}`}
             initial={alive ? false : { scale: 1.6, rotate: -20 }}
             animate={{ scale: 1, rotate: 0 }}
             transition={{ type: "spring", stiffness: 500, damping: 14 }}
