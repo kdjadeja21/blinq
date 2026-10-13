@@ -1,13 +1,12 @@
 "use client";
 
-import { ArrowLeft, Shuffle } from "lucide-react";
+import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { DEFAULT_DIFFICULTY, DEFAULT_LEVELS, DEFAULT_PACING, DIFFICULTIES, MAX_ROOM_LEVELS, NAME_MAX } from "@/lib/multiplayer/config";
-import { randomPlayerName } from "@/lib/multiplayer/names";
 import type { Difficulty, Pacing } from "@/lib/multiplayer/types";
 import { ErrorNote, Segmented, TextField } from "./shared";
 
@@ -23,9 +22,6 @@ const PACING_OPTIONS: { value: Pacing; label: string }[] = [
 export function CreateRoom() {
   const router = useRouter();
   const [name, setName] = useState("");
-  useEffect(() => {
-    setName(randomPlayerName());
-  }, []);
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
@@ -53,26 +49,7 @@ export function CreateRoom() {
       </Link>
       <h1 className="text-3xl font-extrabold tracking-tight">Create a room</h1>
       <form onSubmit={submit} className="flex flex-col gap-5 rounded-3xl border-2 bg-card p-4 shadow-lg">
-        <TextField
-          label="Room name"
-          hint="Shown in the lobby as your name."
-          value={name}
-          onChange={setName}
-          maxLength={NAME_MAX}
-          autoComplete="off"
-          required
-          suffix={
-            <Button
-              type="button"
-              variant="secondary"
-              className="h-12 shrink-0 rounded-2xl px-3"
-              onClick={() => setName(randomPlayerName())}
-              aria-label="Pick a random room name"
-            >
-              <Shuffle className="size-4" /> Random
-            </Button>
-          }
-        />
+        <TextField label="Your name" value={name} onChange={setName} maxLength={NAME_MAX} autoComplete="nickname" required />
         <div className="flex flex-col gap-1.5">
           <label htmlFor="levels" className="text-sm font-semibold">
             Levels: <span className="tabular-nums">{levels}</span>
