@@ -1,5 +1,4 @@
 import { levelItemCount } from "@/lib/scoring";
-import { roundTimings } from "@/lib/game";
 import type { Difficulty, Pacing } from "./types";
 
 export const MAX_PLAYERS = 12;
@@ -44,9 +43,14 @@ export function duelItemCount(difficulty: Difficulty, level: number): number {
   return Math.min(MAX_ITEMS, d.start + d.perLevel * (level - 1));
 }
 
-/** Same timings as a single-player level with that many items, so a duel feels like solo play. */
+export const DUEL_BASE_MS = 7_000;
+export const DUEL_PER_ITEM_MS = 1_500;
+export const DUEL_MAX_PHASE_MS = 30_000;
+
+/** Both phases start at 7s and add 1.5s per item, capped at 30s. */
 export function duelTimings(itemCount: number): { memorizeMs: number; recallMs: number } {
-  return roundTimings("level", itemCount);
+  const ms = Math.min(DUEL_MAX_PHASE_MS, DUEL_BASE_MS + DUEL_PER_ITEM_MS * itemCount);
+  return { memorizeMs: ms, recallMs: ms };
 }
 
 export function autoResultMs(phase: "duel_result" | "level_result"): number {

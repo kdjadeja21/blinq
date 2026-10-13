@@ -137,3 +137,8 @@ The plan was adapted to the code we already have.
 ## Instant tap feedback
 
 During memorize each duel player already receives the table (RLS only exposes `duel_items` in that phase). `useRoom` keeps those keys as `memorizedKeys`, and `useDuelPicks` judges taps against them locally with the shared `scoreRecall` rules, exactly like single-player. Taps are queued and sent to `submit_guess` in order in the background. The server stays authoritative: if its answer differs, or it rejects a tap, the local state is corrected. A client that joined late (no memorized table) falls back to waiting for the server's answer.
+
+## Avatars and timers
+
+- Every player gets an emoji avatar, assigned server-side when they join. It is unique within a room (partial unique index on `players(room_id, avatar)`); bots use 🤖. Older rows without one fall back to a stable hash of the player id (`avatarFor`).
+- Duel timers: memorize and recall each last `7s + 1.5s per item`, capped at 30s (`duelTimings` in `src/lib/multiplayer/config.ts`). Duels already created keep their stored durations.

@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { useEffect, useState } from "react";
+import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
 /** Re-renders every `intervalMs` with the server-corrected time. */
@@ -91,14 +92,30 @@ export function ErrorNote({ message }: { message: string | null }) {
   );
 }
 
+export function Avatar({ player, className }: { player: PlayerRow | undefined; className?: string }) {
+  return (
+    <span
+      aria-hidden
+      className={cn("inline-flex size-8 shrink-0 items-center justify-center rounded-full bg-primary/20 text-lg leading-none", className)}
+    >
+      {player ? avatarFor(player) : "?"}
+    </span>
+  );
+}
+
 export function PlayerChip({ player, online, you }: { player: PlayerRow; online?: boolean; you?: boolean }) {
   return (
     <span className="inline-flex items-center gap-2 rounded-full border-2 bg-card px-3 py-1.5 text-sm font-semibold">
-      <span
-        aria-label={player.is_bot ? "Computer player" : online ? "Online" : "Offline"}
-        className={cn("size-2.5 rounded-full", player.is_bot || online ? "bg-success" : "bg-muted-foreground/40")}
-      />
-      {player.is_bot ? "🤖 " : ""}
+      <span className="relative">
+        <Avatar player={player} className="size-7 text-base" />
+        <span
+          aria-label={player.is_bot ? "Computer player" : online ? "Online" : "Offline"}
+          className={cn(
+            "absolute -bottom-0.5 -right-0.5 size-2.5 rounded-full ring-2 ring-card",
+            player.is_bot || online ? "bg-success" : "bg-muted-foreground/40",
+          )}
+        />
+      </span>
       {player.name}
       {you && <span className="text-xs text-muted-foreground">(you)</span>}
     </span>

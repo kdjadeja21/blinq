@@ -42,6 +42,7 @@ export interface PlayerRow {
   room_id: string;
   user_id: string | null;
   name: string;
+  avatar: string | null;
   is_bot: boolean;
   team_id: string | null;
   seat: number | null;

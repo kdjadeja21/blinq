@@ -14,6 +14,7 @@ import {
   ROOM_TTL_MS,
   autoResultMs,
 } from "@/lib/multiplayer/config";
+import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
 import type { Difficulty, Pacing, PlayerRow, RoomRow } from "@/lib/multiplayer/types";
@@ -67,7 +68,7 @@ export async function createRoom(userId: string, rawName: unknown) {
       .single<RoomRow>();
     if (isUniqueViolation(error)) continue;
     const room = must({ data, error });
-    must(await db().from("players").insert({ room_id: room.id, user_id: userId, name }));
+    must(await db().from("players").insert({ room_id: room.id, user_id: userId, name, avatar: pickAvatar([]) }));
     return { roomId: room.id, code: room.code };
   }
   throw new ApiError(503, "Could not generate a room code. Try again.");
@@ -86,14 +87,22 @@ export async function joinRoom(userId: string, rawCode: unknown, rawName: unknow
   }
   const name = validName(rawName);
   if (room.phase !== "lobby") throw new ApiError(409, "That game already started.");
-  const players = await listPlayers(room.id);
-  if (players.length >= MAX_PLAYERS) throw new ApiError(409, `The room is full (${MAX_PLAYERS} players).`);
-
-  const { error } = await db().from("players").insert({ room_id: room.id, user_id: userId, name });
-  if (isUniqueViolation(error)) throw new ApiError(409, "That name is taken in this room.");
-  must({ data: null, error });
-  return { roomId: room.id, code: room.code, rejoined: false };
+  for (let attempt = 0; attempt < 4; attempt++) {
+    const players = await listPlayers(room.id);
+    if (players.length >= MAX_PLAYERS) throw new ApiError(409, `The room is full (${MAX_PLAYERS} players).`);
+    if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
+      throw new ApiError(409, "That name is taken in this room.");
+    }
+    const avatar = pickAvatar(players.map((p) => p.avatar));
+    const { error } = await db().from("players").insert({ room_id: room.id, user_id: userId, name, avatar });
+    // Another player may have grabbed the same avatar or name at the same moment: look again.
+    if (isUniqueViolation(error)) continue;
+    must({ data: null, error });
+    return { roomId: room.id, code: room.code, rejoined: false };
+  }
+  throw new ApiError(409, "That name is taken in this room.");
 }
+
 
 async function removeBots(roomId: string) {
   must(await db().from("players").delete().eq("room_id", roomId).eq("is_bot", true));
@@ -136,7 +145,7 @@ export async function createTeams(userId: string, roomId: string) {
     const bot = must(
       await db()
         .from("players")
-        .insert({ room_id: room.id, user_id: null, name: BOT_NAME, is_bot: true })
+        .insert({ room_id: room.id, user_id: null, name: BOT_NAME, avatar: BOT_AVATAR, is_bot: true })
         .select()
         .single<PlayerRow>(),
     );

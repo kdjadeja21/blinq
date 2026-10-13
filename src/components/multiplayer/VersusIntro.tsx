@@ -1,5 +1,6 @@
 "use client";
 
+import { avatarFor } from "@/lib/multiplayer/avatars";
 import { cn } from "cn";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { PlayerRow } from "@/lib/multiplayer/types";
@@ -38,12 +39,12 @@ function Fighter({ player, team, from, you }: FighterProps) {
         animate={reduce ? undefined : { rotate: [0, -6, 6, 0], scale: [1, 1.06, 1] }}
         transition={{ duration: 2.4, repeat: Infinity, delay: 1.2 }}
         className={cn(
-          "flex size-16 shrink-0 items-center justify-center rounded-full border-4 text-3xl font-black uppercase shadow-inner",
+          "flex size-16 shrink-0 items-center justify-center rounded-full border-4 text-4xl shadow-inner",
           left ? "border-white/70 bg-black/25" : "border-black/60 bg-white/40",
         )}
         aria-hidden
       >
-        {(player?.name ?? "?").slice(0, 1)}
+        {player ? avatarFor(player) : "?"}
       </motion.span>
       <div className={cn("min-w-0 flex-1", left ? "text-left" : "text-right")}>
         <p className="truncate text-2xl font-black leading-tight tracking-tight">{player?.name ?? "?"}</p>
