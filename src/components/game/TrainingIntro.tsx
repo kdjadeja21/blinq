@@ -1,6 +1,7 @@
 "use client";
 
 import { SkipForward } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 
 const CARDS = [
@@ -26,14 +27,27 @@ export function TrainingIntro({ step, onNext, onSkip }: TrainingIntroProps) {
           <SkipForward className="size-4" /> Skip
         </Button>
       </div>
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl border bg-card p-8 text-center">
-        <p className="text-7xl" aria-hidden>
-          {card.emoji}
-        </p>
-        <h2 className="text-2xl font-bold">{card.title}</h2>
-        <p className="text-muted-foreground">{card.body}</p>
-      </div>
-      <Button className="h-12 text-base" onClick={onNext}>
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={step}
+          initial={{ x: 60, opacity: 0 }}
+          animate={{ x: 0, opacity: 1 }}
+          exit={{ x: -60, opacity: 0 }}
+          className="flex flex-1 flex-col items-center justify-center gap-3 rounded-3xl border-2 bg-card p-8 text-center shadow-xl"
+        >
+          <motion.p
+            className="text-8xl"
+            aria-hidden
+            animate={{ y: [0, -10, 0] }}
+            transition={{ duration: 2, repeat: Infinity }}
+          >
+            {card.emoji}
+          </motion.p>
+          <h2 className="text-3xl font-extrabold">{card.title}</h2>
+          <p className="text-lg text-muted-foreground">{card.body}</p>
+        </motion.div>
+      </AnimatePresence>
+      <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={onNext}>
         {step < CARDS.length - 1 ? "Next" : "Let's go"}
       </Button>
     </div>

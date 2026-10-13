@@ -10,6 +10,7 @@ import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
 import { PlayScreen } from "./PlayScreen";
 import { ResultScreen } from "./ResultScreen";
+import { SoundToggle } from "./SoundToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
 
@@ -119,8 +120,11 @@ export function Game() {
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-6">
       <header className="flex h-14 items-center justify-between">
-        <span className="font-bold tracking-tight">Blinq</span>
-        <ThemeToggle />
+        <span className="text-xl font-extrabold tracking-tight">Blinq</span>
+        <div className="flex">
+          <SoundToggle />
+          <ThemeToggle />
+        </div>
       </header>
       <main className="flex flex-1 flex-col">{body}</main>
     </div>
