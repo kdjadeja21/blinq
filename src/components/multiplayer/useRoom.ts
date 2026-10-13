@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { HEARTBEAT_MS } from "@/lib/multiplayer/config";
 import { callMp, withTimeout } from "@/lib/multiplayer/api";
 import type {
@@ -82,9 +82,27 @@ export function useRoom(code: string): RoomState {
   const roomIdRef = useRef<string | null>(null);
   const memorizedRef = useRef<{ duelId: string; keys: string[] } | null>(null);
 
+  const epochRef = useRef(0);
+
+  // Next keeps a visited room mounted but hidden (Activity). Drop everything we learned when it is hidden, so a
+  // re-shown instance starts from "loading" and re-reads, instead of acting on a stale "not_member" and
+  // redirecting before any fresh read. The epoch also discards reads that were still in flight when it hid.
+  useLayoutEffect(() => {
+    return () => {
+      epochRef.current += 1;
+      roomIdRef.current = null;
+      memorizedRef.current = null;
+      setStatus(EMPTY.status);
+      setError(null);
+      setData(EMPTY_DATA);
+      setOnline(EMPTY.online);
+    };
+  }, [code]);
+
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
   const refresh = useCallback(async () => {
+    const epoch = epochRef.current;
     const client = supabase();
     const lookup = async () => client.from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>();
     let { data: room, error: roomError } = await lookup();
@@ -93,6 +111,7 @@ export function useRoom(code: string): RoomState {
       await new Promise((resolve) => window.setTimeout(resolve, 400));
       ({ data: room, error: roomError } = await lookup());
     }
+    if (epoch !== epochRef.current) return;
     if (roomError) throw new Error(roomError.message);
     if (!room) {
       setStatus("not_member");
@@ -118,6 +137,7 @@ export function useRoom(code: string): RoomState {
         ? client.from("duel_choices").select("item_key, position").eq("duel_id", current.id).order("position")
         : null,
     ]);
+    if (epoch !== epochRef.current) return;
     const itemKeys = (items?.data ?? []).map((r: { item_key: string }) => r.item_key);
     if (current && itemKeys.length > 0) memorizedRef.current = { duelId: current.id, keys: itemKeys };
     const memorized = memorizedRef.current;
