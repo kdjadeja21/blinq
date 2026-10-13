@@ -5,7 +5,8 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
-import { playCue, startMusic, stopMusic, useFeedbackEnabled } from "@/lib/feedback";
+import { playCue } from "@/lib/feedback";
+import { musicHit } from "@/lib/music";
 import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
@@ -42,19 +43,12 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
     if (ticking) playCue("tick");
   }, [ticking, seconds]);
 
-  const soundOn = useFeedbackEnabled();
-  const musicPlaying = phase === "memorize" || phase === "hide" || phase === "recall";
-  useEffect(() => {
-    if (!musicPlaying || !soundOn) return;
-    startMusic();
-    return stopMusic;
-  }, [musicPlaying, soundOn]);
-
   const lastRecalled = round.recalled[round.recalled.length - 1];
 
   function pick(id: string) {
     const correct = round.items.some((i) => i.id === id);
-    playCue(correct ? "correct" : "wrong");
+    if (!correct) playCue("wrong");
+    else if (!musicHit(round.combo)) playCue("correct");
     dispatch({ type: "pick", id, now: Date.now() });
   }
 
