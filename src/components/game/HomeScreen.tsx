@@ -1,13 +1,15 @@
 "use client";
 
-import { Flame, GraduationCap, Play, Share2 } from "lucide-react";
+import { Flame, GraduationCap, Play, Share2, Swords } from "lucide-react";
+import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
 import { levelItemCount } from "@/lib/scoring";
 import type { Stats } from "@/lib/storage";
+import { StatTile } from "./StatTile";
 
 interface HomeScreenProps {
   stats: Stats;
@@ -109,6 +111,14 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
         </Button>
       </motion.div>
 
+      <Link
+        href="/multiplayer"
+        className={buttonVariants({ variant: "secondary", className: "h-14 w-full rounded-3xl text-lg font-bold" })}
+      >
+        <Swords className="size-5" /> Multiplayer
+        <span className="text-sm font-normal opacity-80">(team battle)</span>
+      </Link>
+
       <section
         className="rounded-3xl border-2 bg-card p-4 shadow-lg"
         aria-labelledby="daily-title"
@@ -150,23 +160,14 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
       </section>
 
       <dl className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="Best level" value={String(stats.bestLevel)} />
-        <Stat label="Accuracy" value={accuracy === null ? "–" : `${accuracy}%`} />
-        <Stat label="Best score" value={String(stats.bestScore)} />
+        <StatTile label="Best level" value={String(stats.bestLevel)} />
+        <StatTile label="Accuracy" value={accuracy === null ? "–" : `${accuracy}%`} />
+        <StatTile label="Best score" value={String(stats.bestScore)} />
       </dl>
 
       <Button variant="ghost" className="mt-auto h-11" onClick={onTraining}>
-        <GraduationCap className="size-4" /> Replay training
+        <GraduationCap className="size-4" /> {stats.trainingDone ? "Replay training" : "Practice round"}
       </Button>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border-2 bg-card p-3 shadow-sm">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-xl font-bold tabular-nums">{value}</dd>
     </div>
   );
 }

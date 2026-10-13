@@ -1,0 +1,58 @@
+import { levelItemCount } from "@/lib/scoring";
+import type { Difficulty, Pacing } from "./types";
+
+export const MAX_PLAYERS = 12;
+export const MIN_HUMANS = 2;
+export const MAX_ROOM_LEVELS = 10;
+export const DEFAULT_LEVELS = 3;
+export const DEFAULT_DIFFICULTY: Difficulty = "medium";
+export const DEFAULT_PACING: Pacing = "manual";
+export const MAX_ITEMS = 14;
+
+export const ROOM_CODE_LENGTH = 6;
+/** No 0/O/1/I look-alikes. */
+export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+export const ROOM_TTL_MS = 24 * 60 * 60 * 1000;
+export const ROOMS_PER_HOUR = 5;
+
+export const DUEL_INTRO_MS = 5_000;
+export const AUTO_DUEL_RESULT_MS = 8_000;
+export const AUTO_LEVEL_RESULT_MS = 10_000;
+
+export const GUESS_GRACE_MS = 1_000;
+export const GUESSES_PER_SECOND = 3;
+
+export const HEARTBEAT_MS = 20_000;
+export const ONLINE_WITHIN_MS = 45_000;
+export const ADMIN_OFFLINE_MS = 60_000;
+
+export const NAME_MIN = 2;
+export const NAME_MAX = 16;
+export const BOT_NAME = "Botty";
+
+export const DIFFICULTIES: Record<Difficulty, { label: string; start: number; perLevel: number }> = {
+  easy: { label: "Easy", start: 4, perLevel: 1 },
+  medium: { label: "Medium", start: 6, perLevel: 2 },
+  hard: { label: "Hard", start: 8, perLevel: 2 },
+};
+
+/** Medium matches the single-player ramp (`levelItemCount`), the others shift it. */
+export function duelItemCount(difficulty: Difficulty, level: number): number {
+  const d = DIFFICULTIES[difficulty];
+  if (difficulty === "medium") return levelItemCount(level);
+  return Math.min(MAX_ITEMS, d.start + d.perLevel * (level - 1));
+}
+
+export const DUEL_BASE_MS = 7_000;
+export const DUEL_PER_ITEM_MS = 1_500;
+export const DUEL_MAX_PHASE_MS = 30_000;
+
+/** Both phases start at 7s and add 1.5s per item, capped at 30s. */
+export function duelTimings(itemCount: number): { memorizeMs: number; recallMs: number } {
+  const ms = Math.min(DUEL_MAX_PHASE_MS, DUEL_BASE_MS + DUEL_PER_ITEM_MS * itemCount);
+  return { memorizeMs: ms, recallMs: ms };
+}
+
+export function autoResultMs(phase: "duel_result" | "level_result"): number {
+  return phase === "duel_result" ? AUTO_DUEL_RESULT_MS : AUTO_LEVEL_RESULT_MS;
+}

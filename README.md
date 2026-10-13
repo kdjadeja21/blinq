@@ -20,6 +20,13 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Contributing
+
+- Branching, commits and releases: [docs/BRANCHING.md](docs/BRANCHING.md)
+- Visual language, tokens and components: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
+- Multiplayer design and rules: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)
+- Connect Supabase (multiplayer backend): [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:

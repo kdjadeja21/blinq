@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { roundReducer, type Mode } from "@/lib/game";
 import { ITEMS_BY_ID, TRAINING_ITEM_IDS, type Item } from "@/lib/items";
@@ -14,10 +15,14 @@ import { ResultScreen } from "./ResultScreen";
 import { SoundToggle } from "./SoundToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
+import { TrainingPrompt } from "./TrainingPrompt";
+import { useGameMusic } from "./useGameMusic";
 
 const TRAINING_ITEMS = TRAINING_ITEM_IDS.map((id) => ITEMS_BY_ID.get(id)).filter(
   (item): item is Item => item !== undefined,
 );
+
+const TRAINING_PROMPT_DELAY_MS = 2000;
 
 function subscribeNever() {
   return () => {};
@@ -44,7 +49,8 @@ export function Game() {
   const [now, setNow] = useState(0);
   const keyRef = useRef(0);
   const committedRef = useRef(-1);
-  const autoTrainingRef = useRef(false);
+
+  useGameMusic(round, now);
 
   const timed = round?.phase === "memorize" || round?.phase === "hide" || round?.phase === "recall";
   const phaseEndsAt = round?.phaseEndsAt ?? 0;
@@ -80,13 +86,6 @@ export function Game() {
     dispatch({ type: "start", mode, items, choices, level, now: t, key: keyRef.current });
   }, []);
 
-  useEffect(() => {
-    if (stats && !stats.trainingDone && !round && !autoTrainingRef.current) {
-      autoTrainingRef.current = true;
-      start("training");
-    }
-  }, [stats, round, start]);
-
   const finishTraining = useCallback(() => {
     saveStats({ ...loadStats(), trainingDone: true });
     dispatch({ type: "quit" });
@@ -94,8 +93,14 @@ export function Game() {
 
   const retry = useCallback(() => {
     keyRef.current += 1;
-    dispatch({ type: "retry", now: Date.now(), key: keyRef.current });
-  }, []);
+    const now = Date.now();
+    if (round?.mode === "level") {
+      const items = pickItems(round.items.length);
+      dispatch({ type: "retry", now, key: keyRef.current, items, choices: buildChoices(items, Math.random) });
+      return;
+    }
+    dispatch({ type: "retry", now, key: keyRef.current });
+  }, [round]);
 
   let body: React.ReactNode;
   if (!stats) {
@@ -134,16 +139,33 @@ export function Game() {
     body = <PlayScreen key={round.key} round={round} now={now} dispatch={dispatch} onSkipTraining={finishTraining} />;
   }
 
+  const eligibleForTraining = Boolean(stats && !stats.trainingDone && !round);
+  const [promptDelayDone, setPromptDelayDone] = useState(false);
+  useEffect(() => {
+    if (!eligibleForTraining) return;
+    const id = window.setTimeout(() => setPromptDelayDone(true), TRAINING_PROMPT_DELAY_MS);
+    return () => {
+      window.clearTimeout(id);
+      setPromptDelayDone(false);
+    };
+  }, [eligibleForTraining]);
+  const offerTraining = eligibleForTraining && promptDelayDone;
+
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-6">
-      <header className="flex h-14 items-center justify-between">
-        <span className="text-xl font-extrabold tracking-tight">Blinq</span>
-        <div className="flex">
-          <SoundToggle />
-          <ThemeToggle />
-        </div>
-      </header>
-      <main className="flex flex-1 flex-col">{body}</main>
+      <div className="flex flex-1 flex-col" inert={offerTraining ? true : undefined}>
+        <header className="flex h-14 items-center justify-between">
+          <span className="text-xl font-extrabold tracking-tight">Blinq</span>
+          <div className="flex">
+            <SoundToggle />
+            <ThemeToggle />
+          </div>
+        </header>
+        <main className="flex flex-1 flex-col">{body}</main>
+      </div>
+      <AnimatePresence>
+        {offerTraining ? <TrainingPrompt key="training" onStart={() => start("training")} onSkip={finishTraining} /> : null}
+      </AnimatePresence>
     </div>
   );
 }

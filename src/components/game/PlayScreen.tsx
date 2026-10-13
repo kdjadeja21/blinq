@@ -6,9 +6,11 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
-import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
+import { musicHit } from "@/lib/music";
+import { WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { Lives } from "./Lives";
 import { TimerRing } from "./TimerRing";
 
 interface PlayScreenProps {
@@ -46,7 +48,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
 
   function pick(id: string) {
     const correct = round.items.some((i) => i.id === id);
-    playCue(correct ? "correct" : "wrong");
+    if (!correct) playCue("wrong");
+    else if (!musicHit(round.combo)) playCue("correct");
     dispatch({ type: "pick", id, now: Date.now() });
   }
 
@@ -117,6 +120,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             recalledIds={round.recalled.map((r) => r.id)}
             wrongIds={round.wrong}
             hintId={hintId}
+            disabled={round.lives <= 0}
             onPick={pick}
           />
         ) : (
@@ -160,9 +164,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             {round.recalled.length}/{total} found
           </span>
           {!training && (
-            <span className="text-xl" role="img" aria-label={`${round.lives} mistakes left`}>
-              {Array.from({ length: MAX_LIVES }, (_, i) => (i < round.lives ? "❤️" : "🖤")).join(" ")}
-            </span>
+            <Lives lives={round.lives} />
           )}
           <div className="flex gap-2">
             {training && (

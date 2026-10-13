@@ -12,6 +12,7 @@ import { levelItemCount } from "@/lib/scoring";
 import type { Stats } from "@/lib/storage";
 import { Board } from "./Board";
 import { Confetti } from "./Confetti";
+import { StatTile } from "./StatTile";
 import { useCountUp } from "./useCountUp";
 
 interface ResultScreenProps {
@@ -108,9 +109,9 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
       </div>
 
       <dl className="grid grid-cols-3 gap-2 text-center">
-        <Stat label="Recalled" value={`${result.correct}/${result.total}`} />
-        <Stat label="Score" value={String(score)} />
-        <Stat label="Wrong" value={String(result.wrongCount)} />
+        <StatTile label="Recalled" value={`${result.correct}/${result.total}`} />
+        <StatTile label="Score" value={String(score)} />
+        <StatTile label="Wrong" value={String(result.wrongCount)} />
       </dl>
 
       <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
@@ -172,15 +173,6 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
           </>
         )}
       </div>
-    </div>
-  );
-}
-
-function Stat({ label, value }: { label: string; value: string }) {
-  return (
-    <div className="rounded-2xl border-2 bg-card p-3 shadow-sm">
-      <dt className="text-xs text-muted-foreground">{label}</dt>
-      <dd className="text-xl font-bold tabular-nums">{value}</dd>
     </div>
   );
 }
