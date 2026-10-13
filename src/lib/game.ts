@@ -1,30 +1,11 @@
+import type { RoundSpec } from "@/lib/engine";
 import type { Item } from "./items";
-import {
-  MAX_LIVES,
-  WRONG_PENALTY_MS,
-  WIN_RATIO,
-  nextCombo,
-  pointsForCombo,
-  starsFor,
-} from "./scoring";
+import { WIN_RATIO, nextCombo, pointsForCombo, starsFor } from "./scoring";
 
 export type Mode = "training" | "level" | "daily";
 export type Phase = "intro" | "memorize" | "hide" | "recall" | "result";
 
 export const INTRO_STEPS = 3;
-
-export const HIDE_MS = 700;
-
-const TRAINING_TIMINGS = { memorizeMs: 15_000, recallMs: 20_000 };
-
-/** Memorize 4s + 2s per item, recall 8s + 1.5s per item, both capped at 30s. */
-export function roundTimings(mode: Mode, itemCount: number): { memorizeMs: number; recallMs: number } {
-  if (mode === "training") return TRAINING_TIMINGS;
-  return {
-    memorizeMs: Math.min(30_000, 4_000 + 2_000 * itemCount),
-    recallMs: Math.min(30_000, 8_000 + 1_500 * itemCount),
-  };
-}
 
 export interface Recalled {
   id: string;
@@ -48,11 +29,10 @@ export interface Round {
   mode: Mode;
   level: number;
   attempt: number;
+  spec: RoundSpec;
   items: Item[];
   choices: Item[];
   lives: number;
-  memorizeMs: number;
-  recallMs: number;
   phase: Phase;
   introStep: number;
   phaseEndsAt: number;
@@ -66,7 +46,7 @@ export interface Round {
 }
 
 export type Action =
-  | { type: "start"; mode: Mode; items: Item[]; choices: Item[]; level: number; now: number; key: number }
+  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; level: number; now: number; key: number }
   | { type: "introNext"; now: number }
   | { type: "tick"; now: number }
   | { type: "pick"; id: string; now: number }
@@ -75,7 +55,7 @@ export type Action =
   | { type: "quit" };
 
 function beginMemorize(round: Round, now: number): Round {
-  return { ...round, phase: "memorize", phaseEndsAt: now + round.memorizeMs };
+  return { ...round, phase: "memorize", phaseEndsAt: now + round.spec.memorizeMs };
 }
 
 function finish(round: Round, now: number, early: boolean): Round {
@@ -109,10 +89,10 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       mode: action.mode,
       level: action.level,
       attempt: 1,
+      spec: action.spec,
       items: action.items,
       choices: action.choices,
-      lives: MAX_LIVES,
-      ...roundTimings(action.mode, action.items.length),
+      lives: action.spec.rules.lives,
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
       phaseEndsAt: 0,
@@ -137,10 +117,10 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
     case "tick": {
       if (action.now < round.phaseEndsAt) return round;
       if (round.phase === "memorize") {
-        return { ...round, phase: "hide", phaseEndsAt: round.phaseEndsAt + HIDE_MS };
+        return { ...round, phase: "hide", phaseEndsAt: round.phaseEndsAt + round.spec.hideMs };
       }
       if (round.phase === "hide") {
-        const recallEndsAt = action.now + round.recallMs;
+        const recallEndsAt = action.now + round.spec.recallMs;
         return { ...round, phase: "recall", phaseEndsAt: recallEndsAt, recallEndsAt };
       }
       if (round.phase === "recall") return finish(round, action.now, false);
@@ -149,6 +129,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
     case "pick": {
       if (round.phase !== "recall") return round;
       if (round.recalled.some((r) => r.id === action.id) || round.wrong.includes(action.id)) return round;
+      const { rules } = round.spec;
       if (!round.items.some((i) => i.id === action.id)) {
         const wrong = [...round.wrong, action.id];
         if (round.mode === "training") return { ...round, wrong, combo: 0 };
@@ -157,12 +138,12 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
           wrong,
           combo: 0,
           lives: round.lives - 1,
-          phaseEndsAt: round.phaseEndsAt - WRONG_PENALTY_MS,
-          recallEndsAt: round.recallEndsAt - WRONG_PENALTY_MS,
+          phaseEndsAt: round.phaseEndsAt - rules.wrongPenaltyMs,
+          recallEndsAt: round.recallEndsAt - rules.wrongPenaltyMs,
         };
         return next.lives <= 0 || action.now >= next.phaseEndsAt ? finish(next, action.now, false) : next;
       }
-      const combo = nextCombo(round.combo, round.lastCorrectAt, action.now);
+      const combo = nextCombo(round.combo, round.lastCorrectAt, action.now, rules.comboWindowMs);
       const points = pointsForCombo(combo);
       const next: Round = {
         ...round,
@@ -178,6 +159,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       const fresh = roundReducer(null, {
         type: "start",
         mode: round.mode,
+        spec: round.spec,
         items: action.items ?? round.items,
         choices: action.choices ?? round.choices,
         level: round.level,

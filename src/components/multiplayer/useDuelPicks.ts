@@ -5,7 +5,7 @@ import { playCue } from "@/lib/feedback";
 import { callMp, MpError } from "@/lib/multiplayer/api";
 import type { DuelRow } from "@/lib/multiplayer/types";
 import { musicHit } from "@/lib/music";
-import { MAX_LIVES, nextCombo, pointsForCombo, scoreRecall } from "@/lib/scoring";
+import { nextCombo, pointsForCombo, scoreRecall } from "@/lib/scoring";
 
 interface Pick {
   id: string;
@@ -51,12 +51,13 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
   const known = useMemo(() => new Set(memorized), [memorized]);
 
   const judged = useMemo(() => picks.flatMap((p) => (p.correct === null ? [] : [{ correct: p.correct, at: p.at }])), [picks]);
-  const score = useMemo(() => scoreRecall(judged, duel.item_count, duel.recall_ms), [judged, duel.item_count, duel.recall_ms]);
+  const { rules } = duel;
+  const score = useMemo(() => scoreRecall(judged, duel.item_count, duel.recall_ms, rules), [judged, duel.item_count, duel.recall_ms, rules]);
 
   const right = useMemo(() => picks.filter((p) => p.correct === true).map((p) => p.id), [picks]);
   const wrong = useMemo(() => picks.filter((p) => p.correct === false).map((p) => p.id), [picks]);
   const pending = useMemo(() => picks.filter((p) => p.correct === null).map((p) => p.id), [picks]);
-  const out = wrong.length >= MAX_LIVES;
+  const out = wrong.length >= rules.lives;
   const complete = right.length >= duel.item_count;
   const stopped = out || complete || finished;
 
@@ -101,7 +102,7 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
 
       if (correct === null) playCue("tap");
       else if (correct) {
-        const combo = nextCombo(score.combo, score.finishedMs, at);
+        const combo = nextCombo(score.combo, score.finishedMs, at, rules.comboWindowMs);
         if (!musicHit(combo)) playCue("correct");
         setPopup({ key: Date.now(), kind: "good", points: pointsForCombo(combo) });
       } else {
@@ -110,7 +111,7 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
       }
       queue.current = queue.current.then(() => send(id, t));
     },
-    [now, stopped, startedAt, score.deadlineMs, score.combo, score.finishedMs, known, send],
+    [now, stopped, startedAt, score.deadlineMs, score.combo, score.finishedMs, rules.comboWindowMs, known, send],
   );
 
   const finish = useCallback(() => {
@@ -129,7 +130,8 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
     right,
     wrong,
     pending,
-    lives: Math.max(0, MAX_LIVES - wrong.length),
+    lives: Math.max(0, rules.lives - wrong.length),
+    maxLives: rules.lives,
     out,
     complete,
     finished,

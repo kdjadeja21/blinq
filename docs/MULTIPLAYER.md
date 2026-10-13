@@ -30,13 +30,9 @@ Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 
 ### Difficulty and timers
 
-| Difficulty | Items at level 1 | Added per level |
-| --- | --- | --- |
-| Easy | 4 | 1 |
-| Medium | 6 | 2 |
-| Hard | 8 | 2 |
+Items, timers, decoys, lives, wrong-pick penalty and bot skill all come from the difficulty engine (`getRoundSpec({ mode: "duel", difficulty, level })`), the same one single player uses. See [GAME_ENGINE.md](GAME_ENGINE.md) for the curves and how to tune them.
 
-Items are capped at 14. Medium is exactly the single-player ramp (`levelItemCount`). Memorize and recall times come from the existing `roundTimings`, so a duel with N items takes as long as a solo level with N items. The server stores both durations on the duel, so every screen uses the same numbers. Tune both in `src/lib/multiplayer/config.ts`.
+When a level is built, the server stores the spec on each duel: item count and phase durations in their own columns, and lives, penalty, combo window, choice count, twists and engine version in `duels.rules`. The server, every client and the bot read those stored values, so a duel already in progress is never affected by retuning.
 
 ### Pacing
 
@@ -75,7 +71,7 @@ flowchart LR
 - **Time:** the server clock is the truth. Rooms store `phase_started_at` and `phase_duration_ms`; clients draw countdowns from them, corrected by a one-time server clock offset (`time` action).
 - **Hidden answers:** RLS lets players read `duel_items` only while the room is in `memorize` for that duel (or after the duel is done). `duel_choices` (targets mixed with decoys) opens from `memorize` and never says which are targets. `submissions` has no client access at all.
 - **Idempotent phases:** `advance_phase` takes the `phase_version` the caller saw and swaps with a compare-and-set on it. Any client, the admin or the sweeper may call it; only one wins. Level building uses server-secret seeded randomness and ignore-duplicate inserts, so concurrent callers produce the same rows.
-- **Bots:** a seeded `bot_plan` (recalls 70-90% of items, finishing between 60% and 90% of the recall time) is stored on the duel. The bot is scored by the same `scoreRecall` at resolve time, and clients animate its progress from the plan, so no live bot process exists.
+- **Bots:** a seeded `bot_plan` is stored on the duel. Its recall share and finish time come from the engine spec (`spec.bot`), which scales with difficulty and level. The bot is scored by the same `scoreRecall` at resolve time, and clients animate its progress from the plan, so no live bot process exists.
 
 ### Actions
 
@@ -107,7 +103,7 @@ The plan was adapted to the code we already have.
 | Plan | In this project | Why |
 | --- | --- | --- |
 | Typed guesses matched against an item catalog with synonyms | Players tap items from a choice grid; `submit_guess` takes an item key | That is how Blinq is played. No catalog table: items stay in `src/lib/items.ts`, the DB stores keys only. |
-| Timers of 5s per item, 20s minimum | The existing `roundTimings` | One source of truth for pacing, duels feel like solo levels. |
+| Timers of 5s per item, 20s minimum | The difficulty engine (`getRoundSpec`) | One source of truth for pacing, duels feel like solo levels. |
 | New scoring | `scoreRecall`, built from the same helpers the single-player reducer uses (`nextCombo`, `pointsForCombo`) | No second formula. Lives and time penalties carry over. |
 | Supabase Edge Functions | Next.js route handlers | The scoring, choices and RNG code is TypeScript in `src/lib` and is reused as-is, with no duplicate Deno copy. Same security model (service role, JWT check). |
 | Live progress via Broadcast | `duel_progress` table via Postgres Changes | Serverless functions cannot hold sockets, and the table gives free RLS and reconnect behavior. |
@@ -141,4 +137,4 @@ During memorize each duel player already receives the table (RLS only exposes `d
 ## Avatars and timers
 
 - Every player gets an emoji avatar, assigned server-side when they join. It is unique within a room (partial unique index on `players(room_id, avatar)`); bots use 🤖. Older rows without one fall back to a stable hash of the player id (`avatarFor`).
-- Duel timers: memorize and recall each last `7s + 1.5s per item`, capped at 30s (`duelTimings` in `src/lib/multiplayer/config.ts`). Duels already created keep their stored durations.
+- Duel timers come from the difficulty engine (see [GAME_ENGINE.md](GAME_ENGINE.md)). Duels already created keep their stored durations and rules.

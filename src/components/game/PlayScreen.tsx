@@ -4,10 +4,11 @@ import { Lightbulb, SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { MODIFIER_LABELS } from "@/lib/engine";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
-import { WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
+import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
 import { Lives } from "./Lives";
@@ -34,7 +35,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const training = round.mode === "training";
 
   const phase = round.phase;
-  const totalMs = phase === "memorize" ? round.memorizeMs : round.recallMs;
+  const totalMs = phase === "memorize" ? round.spec.memorizeMs : round.spec.recallMs;
   const remainingMs = Math.min(totalMs, Math.max(0, round.phaseEndsAt - now));
   const seconds = formatSeconds(remainingMs);
   const progress = phase === "hide" ? 0 : Math.min(1, remainingMs / totalMs);
@@ -76,6 +77,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}`}
+            {round.spec.modifiers.map((modifier) => ` · ${MODIFIER_LABELS[modifier]}`)}
           </p>
           <h2 className="text-xl font-bold">{label}</h2>
         </div>
@@ -152,7 +154,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
               transition={{ duration: 0.9 }}
               className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 text-3xl font-extrabold text-destructive drop-shadow-lg"
             >
-              -{WRONG_PENALTY_MS / 1000}s
+              -{round.spec.rules.wrongPenaltyMs / 1000}s
             </motion.div>
           )}
         </AnimatePresence>
@@ -164,7 +166,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             {round.recalled.length}/{total} found
           </span>
           {!training && (
-            <Lives lives={round.lives} />
+            <Lives lives={round.lives} max={round.spec.rules.lives} />
           )}
           <div className="flex gap-2">
             {training && (
