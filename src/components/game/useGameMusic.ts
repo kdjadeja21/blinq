@@ -21,9 +21,12 @@ function pickMood(round: Round | null, now: number): Mood {
 }
 
 export function useGameMusic(round: Round | null, now: number) {
+  useMoodMusic(pickMood(round, now));
+}
+
+export function useMoodMusic(mood: Mood) {
   const enabled = useFeedbackEnabled();
   const [unlocked, setUnlocked] = useState(false);
-  const mood = pickMood(round, now);
 
   useEffect(() => {
     if (unlocked) return;

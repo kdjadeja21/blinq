@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { roundReducer, type Mode } from "@/lib/game";
 import { ITEMS_BY_ID, TRAINING_ITEM_IDS, type Item } from "@/lib/items";
@@ -20,6 +21,8 @@ import { useGameMusic } from "./useGameMusic";
 const TRAINING_ITEMS = TRAINING_ITEM_IDS.map((id) => ITEMS_BY_ID.get(id)).filter(
   (item): item is Item => item !== undefined,
 );
+
+const TRAINING_PROMPT_DELAY_MS = 2000;
 
 function subscribeNever() {
   return () => {};
@@ -136,7 +139,17 @@ export function Game() {
     body = <PlayScreen key={round.key} round={round} now={now} dispatch={dispatch} onSkipTraining={finishTraining} />;
   }
 
-  const offerTraining = Boolean(stats && !stats.trainingDone && !round);
+  const eligibleForTraining = Boolean(stats && !stats.trainingDone && !round);
+  const [promptDelayDone, setPromptDelayDone] = useState(false);
+  useEffect(() => {
+    if (!eligibleForTraining) return;
+    const id = window.setTimeout(() => setPromptDelayDone(true), TRAINING_PROMPT_DELAY_MS);
+    return () => {
+      window.clearTimeout(id);
+      setPromptDelayDone(false);
+    };
+  }, [eligibleForTraining]);
+  const offerTraining = eligibleForTraining && promptDelayDone;
 
   return (
     <div className="mx-auto flex min-h-dvh w-full max-w-md flex-col px-4 pb-6">
@@ -150,7 +163,9 @@ export function Game() {
         </header>
         <main className="flex flex-1 flex-col">{body}</main>
       </div>
-      {offerTraining ? <TrainingPrompt onStart={() => start("training")} onSkip={finishTraining} /> : null}
+      <AnimatePresence>
+        {offerTraining ? <TrainingPrompt key="training" onStart={() => start("training")} onSkip={finishTraining} /> : null}
+      </AnimatePresence>
     </div>
   );
 }

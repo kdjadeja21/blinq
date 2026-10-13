@@ -9,10 +9,12 @@ interface ChoiceGridProps {
   recalledIds: string[];
   wrongIds: string[];
   hintId: string | null;
+  pendingIds?: string[];
+  disabled?: boolean;
   onPick: (id: string) => void;
 }
 
-export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: ChoiceGridProps) {
+export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds, disabled = false, onPick }: ChoiceGridProps) {
   const reduce = useReducedMotion();
   const cols = choices.length <= 12 ? "grid-cols-4" : "grid-cols-5";
   return (
@@ -20,7 +22,8 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: C
       {choices.map((item, index) => {
         const right = recalledIds.includes(item.id);
         const wrong = wrongIds.includes(item.id);
-        const used = right || wrong;
+        const pending = !right && !wrong && Boolean(pendingIds?.includes(item.id));
+        const used = right || wrong || pending;
         return (
           <motion.li
             key={item.id}
@@ -36,20 +39,22 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: C
           >
             <button
               type="button"
-              disabled={used}
+              disabled={used || disabled}
               onClick={() => onPick(item.id)}
               aria-label={`${item.name}${right ? ", correct" : wrong ? ", not on the table" : ""}`}
               className={cn(
                 "relative flex aspect-square w-full min-h-11 items-center justify-center rounded-2xl border-2 border-b-4 bg-card text-4xl shadow-md outline-none transition-colors",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 enabled:active:translate-y-0.5 enabled:active:border-b-2",
                 right && "border-success bg-success/20 shadow-success/40",
-                wrong && "border-destructive bg-destructive/15 opacity-60 grayscale",
-                hintId === item.id && !used && "animate-pulse border-gold",
+                pending && "scale-95 border-primary bg-primary/15",
+                wrong && "border-destructive bg-destructive/30 ring-2 ring-destructive/60",
+                disabled && !used && "opacity-40 grayscale",
+                hintId === item.id && !used && !disabled && "animate-pulse border-gold",
               )}
             >
               <span className="select-none leading-none">{item.emoji}</span>
               {right && <span className="absolute right-1 top-0.5 text-sm text-success">✓</span>}
-              {wrong && <span className="absolute right-1 top-0.5 text-sm text-destructive">✕</span>}
+              {wrong && <span className="absolute right-1 top-0 text-xl font-black text-destructive">✕</span>}
             </button>
           </motion.li>
         );
