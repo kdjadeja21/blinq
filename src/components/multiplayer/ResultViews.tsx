@@ -60,7 +60,7 @@ export function DuelResultView({ state }: { state: RoomState }) {
   }));
   const isLast = room.duel_index + 1 >= state.duels.filter((d) => d.level === room.level).length;
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
       <section className="rounded-3xl border-2 bg-card p-4 text-center shadow-lg" aria-live="polite">
         <p className="text-5xl" aria-hidden>
           {duel.winner_id ? "🏆" : "🤝"}
@@ -106,7 +106,7 @@ export function LevelResultView({ state }: { state: RoomState }) {
   const tie = !second || first.points === second.points;
   const last = room.level >= room.max_levels;
   return (
-    <div className="flex flex-col gap-5">
+    <div className="flex flex-col gap-3">
       <section className="rounded-3xl border-2 bg-card p-4 text-center shadow-lg">
         <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
           Level {room.level} of {room.max_levels}
@@ -136,8 +136,8 @@ export function FinalView({ state }: { state: RoomState }) {
   const tie = !second || first.score === second.score;
   const myTeam = players.find((p) => p.id === me?.id)?.team_id;
   return (
-    <div className="flex flex-col gap-5 text-center">
-      <section className="rounded-3xl border-2 bg-card p-6 shadow-lg">
+    <div className="flex flex-col gap-3 text-center">
+      <section className="rounded-3xl border-2 bg-card p-4 shadow-lg">
         <Trophy className="mx-auto size-14 text-gold" aria-hidden />
         <h2 className="mt-2 text-3xl font-extrabold">{tie ? "It's a tie!" : `${first.name} wins!`}</h2>
         {!tie && myTeam && (

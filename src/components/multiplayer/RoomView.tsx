@@ -3,12 +3,15 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
-import type { RoomPhase } from "@/lib/multiplayer/types";
+import { SoundToggle } from "@/components/game/SoundToggle";
+import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
 import { DuelView } from "./DuelView";
 import { LobbyView, TeamsReadyView, useAction } from "./LobbyView";
 import { DuelResultView, FinalView, LevelResultView } from "./ResultViews";
-import { Segmented, TeamScores } from "./shared";
+import { useServerNow } from "./shared";
+import { AdminDialog } from "./AdminDialog";
 import { useRoom, type RoomState } from "./useRoom";
+import { useRoomMusic } from "./useRoomMusic";
 
 const DUEL_PHASES: RoomPhase[] = ["duel_intro", "memorize", "recall", "duel_result"];
 
@@ -22,42 +25,42 @@ function MatchupBanner({ state }: { state: RoomState }) {
   return (
     <section
       aria-label="Current matchup"
-      className="flex items-center justify-between gap-2 rounded-3xl border-2 bg-gradient-to-r from-primary to-fuchsia-500 p-3 text-primary-foreground shadow-lg"
+      className="flex items-center justify-between gap-2 rounded-3xl border-2 bg-gradient-to-r from-primary to-fuchsia-500 px-3 py-2 text-primary-foreground shadow-lg"
     >
       <div className="min-w-0 flex-1 text-center">
-        <p className="truncate text-lg font-extrabold">{a?.name}{tag(duel.player_a)}</p>
+        <p className="truncate text-base font-extrabold">{a?.name}{tag(duel.player_a)}</p>
         <p className="text-xs opacity-80">{teamName(a?.team_id)}</p>
       </div>
       <span className="text-2xl font-black" aria-label="versus">
         X
       </span>
       <div className="min-w-0 flex-1 text-center">
-        <p className="truncate text-lg font-extrabold">{b?.name}{tag(duel.player_b)}</p>
+        <p className="truncate text-base font-extrabold">{b?.name}{tag(duel.player_b)}</p>
         <p className="text-xs opacity-80">{teamName(b?.team_id)}</p>
       </div>
     </section>
   );
 }
 
-function PacingControl({ state }: { state: RoomState }) {
-  const { room } = state;
-  const { run } = useAction();
-  if (!room) return null;
+function RoomMusic({ state }: { state: RoomState }) {
+  const { room, now } = state;
+  const clock = useServerNow(now, 1000);
+  const started = room?.phase_started_at ? Date.parse(room.phase_started_at) : clock;
+  const remaining = Math.max(0, started + (room?.phase_duration_ms ?? 0) - clock);
+  useRoomMusic(room?.phase, remaining);
+  return null;
+}
+
+function ScoreStrip({ teams }: { teams: TeamRow[] }) {
   return (
-    <details className="rounded-2xl border-2 bg-card px-3 py-2">
-      <summary className="min-h-11 cursor-pointer text-sm font-semibold leading-[2.75rem]">Admin panel</summary>
-      <div className="pb-2">
-        <Segmented
-          label="Pacing"
-          value={room.pacing}
-          options={[
-            { value: "manual", label: "Manual" },
-            { value: "auto", label: "Auto" },
-          ]}
-          onChange={(pacing) => void run("update_settings", { roomId: room.id, pacing })}
-        />
-      </div>
-    </details>
+    <p className="flex items-center gap-2 text-xs font-bold tabular-nums text-muted-foreground" aria-label="Team scores">
+      {teams.map((team, i) => (
+        <span key={team.id} className="flex items-center gap-1">
+          {i > 0 && <span aria-hidden>-</span>}
+          <span className="max-w-16 truncate">{team.name}</span> <span className="text-foreground">{team.score}</span>
+        </span>
+      ))}
+    </p>
   );
 }
 
@@ -117,13 +120,15 @@ export function RoomView({ code }: { code: string }) {
   }
 
   const showBanner = state.duel !== null && DUEL_PHASES.includes(room.phase);
-  const showScores = teams.length > 0 && room.phase !== "lobby" && room.phase !== "finished";
+  const showScores = teams.length > 0 && room.phase !== "lobby" && room.phase !== "teams_ready" && room.phase !== "finished";
   const inGame = room.phase !== "lobby" && room.phase !== "teams_ready" && room.phase !== "finished";
   return (
-    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 p-4">
-      <header className="flex items-center justify-between gap-2">
+    <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-3 p-3">
+      <RoomMusic state={state} />
+      <header className="flex items-center justify-between gap-1">
         <Link
           href="/"
+          aria-label="Leave room"
           className={buttonVariants({ variant: "ghost", className: "h-11 px-2" })}
           onClick={() => {
             if (!inGame) void run("leave_room", { roomId: room.id });
@@ -131,15 +136,19 @@ export function RoomView({ code }: { code: string }) {
         >
           <ArrowLeft className="size-4" /> Leave
         </Link>
-        <p className="font-mono text-sm font-bold tracking-widest text-muted-foreground">
-          {room.code} - Level {room.level}/{room.max_levels}
-        </p>
+        <div className="flex min-w-0 flex-col items-center leading-tight">
+          <p className="font-mono text-xs font-bold tracking-widest text-muted-foreground">
+            {room.code} - Level {room.level}/{room.max_levels}
+          </p>
+          {showScores && <ScoreStrip teams={teams} />}
+        </div>
+        <div className="flex items-center">
+          {isAdmin && room.phase !== "finished" && <AdminDialog state={state} />}
+          <SoundToggle />
+        </div>
       </header>
       {showBanner && <MatchupBanner state={state} />}
-      {showScores && <TeamScores teams={teams} />}
       <Screen state={state} />
-      {isAdmin && room.phase !== "finished" && <PacingControl state={state} />}
     </main>
   );
 }
-

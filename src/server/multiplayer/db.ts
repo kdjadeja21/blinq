@@ -39,9 +39,11 @@ export function db(): SupabaseClient {
 export async function userIdFromRequest(request: Request): Promise<string> {
   const token = request.headers.get("authorization")?.replace(/^Bearer\s+/i, "");
   if (!token) throw new ApiError(401, "Sign in first.");
-  const { data, error } = await db().auth.getUser(token);
-  if (error || !data.user) throw new ApiError(401, "Your session expired. Reload the page.");
-  return data.user.id;
+  // getClaims verifies the JWT locally against cached signing keys, avoiding an Auth round trip per call.
+  const { data, error } = await db().auth.getClaims(token);
+  const userId = data?.claims.sub;
+  if (error || !userId) throw new ApiError(401, "Your session expired. Reload the page.");
+  return userId;
 }
 
 export function isCronRequest(request: Request): boolean {

@@ -200,6 +200,7 @@ curl -X POST http://localhost:3000/api/mp/sweep \
 | Lobby not live-updating | Table not in `supabase_realtime` publication (step 3). |
 | Stuck countdowns in production | Cron URL wrong, cron secret mismatch, or job inactive. Check `cron.job_run_details`. Clients should still advance when someone has the room open. |
 | `permission denied` in API logs | Wrong key type (publishable/anon in server code) or missing table grants. Server must use the **secret** key. |
+| Taps feel slow during recall | Each tap is one API call that talks to Postgres. Put your Vercel Functions in the same region as the Supabase project (Vercel → Settings → Functions → Region). Distance between the two adds latency to every query. |
 | Realtime connects but RLS returns empty | User not in `players` for that room, or policy mismatch. Join via `/api/mp/join_room` first. |
 
 ## Official links

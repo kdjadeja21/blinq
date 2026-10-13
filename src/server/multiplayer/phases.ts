@@ -5,9 +5,10 @@ import {
   autoResultMs,
 } from "@/lib/multiplayer/config";
 import type { DuelRow, RoomRow, SubmissionRow } from "@/lib/multiplayer/types";
-import { MAX_LIVES, WRONG_PENALTY_MS } from "@/lib/scoring";
+import { MAX_LIVES, WRONG_PENALTY_MS, scoreRecall } from "@/lib/scoring";
+import { after } from "next/server";
 import { ApiError, db, isUniqueViolation, must } from "./db";
-import { countDuels, ensureLevel, resolveDuel, scorePlayer } from "./duels";
+import { countDuels, ensureLevel, resolveDuel, toPicks } from "./duels";
 import { ensureAdminOnline } from "./lobby";
 import { findDuel, findRoom, requireAdmin, requireMember, swapPhase, timedPhase } from "./queries";
 
@@ -115,69 +116,80 @@ export async function submitGuess(userId: string, duelId: unknown, itemKey: unkn
   const now = Date.now();
   const duel = must(await db().from("duels").select("*").eq("id", duelId).maybeSingle<DuelRow>());
   if (!duel) throw new ApiError(404, "Duel not found.");
-  const room = await findRoom(duel.room_id);
-  const player = await requireMember(room.id, userId);
+
+  const [room, player, mine, choice, target] = await Promise.all([
+    findRoom(duel.room_id),
+    requireMember(duel.room_id, userId),
+    db()
+      .from("submissions")
+      .select("player_id, item_key, correct, created_at")
+      .eq("duel_id", duel.id)
+      .returns<GuessRow[]>()
+      .then(must),
+    db().from("duel_choices").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
+    db().from("duel_items").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
+  ]);
   if (player.id !== duel.player_a && player.id !== duel.player_b) throw new ApiError(403, "You are not in this duel.");
   if (room.phase !== "recall" || room.level !== duel.level || room.duel_index !== duel.duel_index || !room.phase_started_at) {
     throw new ApiError(409, "Recall is not open.");
   }
 
   const startedAt = Date.parse(room.phase_started_at);
-  const mine = must(
-    await db()
-      .from("submissions")
-      .select("item_key, correct, created_at")
-      .eq("duel_id", duel.id)
-      .eq("player_id", player.id)
-      .returns<Pick<SubmissionRow, "item_key" | "correct" | "created_at">[]>(),
-  );
-  if (mine.some((s) => s.item_key === itemKey)) return { alreadyGuessed: true, ...(await progressOf(duel, player.id, room)) };
+  const existing = mine.filter((s) => s.player_id === player.id);
+  if (existing.some((s) => s.item_key === itemKey)) {
+    return { alreadyGuessed: true, ...(await syncProgress(duel, player.id, room, existing)) };
+  }
 
-  const wrong = mine.filter((s) => !s.correct).length;
+  const wrong = existing.filter((s) => !s.correct).length;
   if (wrong >= MAX_LIVES) throw new ApiError(409, "You are out of lives.");
   const personalDeadline = startedAt + duel.recall_ms - wrong * WRONG_PENALTY_MS + GUESS_GRACE_MS;
   if (now > personalDeadline) throw new ApiError(409, "Time is up.");
-  if (mine.filter((s) => now - Date.parse(s.created_at) < 1000).length >= GUESSES_PER_SECOND) {
+  if (existing.filter((s) => now - Date.parse(s.created_at) < 1000).length >= GUESSES_PER_SECOND) {
     throw new ApiError(429, "Slow down.");
   }
 
-  const choice = must(
-    await db().from("duel_choices").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
-  );
-  if (!choice) throw new ApiError(400, "That item is not in this duel.");
-  const target = must(
-    await db().from("duel_items").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
-  );
+  if (!must(choice)) throw new ApiError(400, "That item is not in this duel.");
+  const correct = Boolean(must(target));
 
-  const { error } = await db().from("submissions").insert({
-    duel_id: duel.id,
-    player_id: player.id,
-    item_key: itemKey,
-    correct: Boolean(target),
-    created_at: new Date(now).toISOString(),
-  });
-  if (isUniqueViolation(error)) return { alreadyGuessed: true, ...(await progressOf(duel, player.id, room)) };
+  const createdAt = new Date(now).toISOString();
+  const { error } = await db()
+    .from("submissions")
+    .insert({ duel_id: duel.id, player_id: player.id, item_key: itemKey, correct, created_at: createdAt });
+  if (isUniqueViolation(error)) return { alreadyGuessed: true, ...(await syncProgress(duel, player.id, room, existing)) };
   must({ data: null, error });
 
-  const progress = await progressOf(duel, player.id, room);
+  const all = [...existing, { player_id: player.id, item_key: itemKey, correct, created_at: createdAt }];
+  const progress = await syncProgress(duel, player.id, room, all, { defer: true });
   if (progress.complete) await endRecall(room);
-  return { alreadyGuessed: false, ...progress, correct: Boolean(target) };
+  return { alreadyGuessed: false, ...progress, correct };
 }
 
-async function progressOf(duel: DuelRow, playerId: string, room: RoomRow) {
-  const score = await scorePlayer(duel, playerId, room.phase_started_at ?? new Date().toISOString());
-  must(
-    await db().from("duel_progress").upsert(
-      {
-        duel_id: duel.id,
-        player_id: playerId,
-        correct_count: score.correct,
-        wrong_count: score.wrong,
-        points: score.points,
-      },
-      { onConflict: "duel_id,player_id" },
-    ),
-  );
+type GuessRow = Pick<SubmissionRow, "player_id" | "item_key" | "correct" | "created_at">;
+
+async function syncProgress(
+  duel: DuelRow,
+  playerId: string,
+  room: RoomRow,
+  subs: GuessRow[],
+  options: { defer?: boolean } = {},
+) {
+  const score = scoreRecall(toPicks(subs, room.phase_started_at ?? new Date().toISOString()), duel.item_count, duel.recall_ms);
+  const write = async () => {
+    must(
+      await db().from("duel_progress").upsert(
+        {
+          duel_id: duel.id,
+          player_id: playerId,
+          correct_count: score.correct,
+          wrong_count: score.wrong,
+          points: score.points,
+        },
+        { onConflict: "duel_id,player_id" },
+      ),
+    );
+  };
+  if (options.defer && !score.complete) after(write);
+  else await write();
   return { complete: score.complete, points: score.points, correctCount: score.correct, wrongCount: score.wrong };
 }
 

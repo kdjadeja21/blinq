@@ -58,12 +58,15 @@ function Recall({ state, duel }: { state: RoomState; duel: DuelRow }) {
   const choices = useMemo(() => toItems(state.choiceKeys), [state.choiceKeys]);
   const [right, setRight] = useState<string[]>([]);
   const [wrong, setWrong] = useState<string[]>([]);
+  const [pending, setPending] = useState<string[]>([]);
   const sent = useRef(new Set<string>());
   const out = wrong.length >= MAX_LIVES;
 
   async function pick(id: string) {
     if (sent.current.has(id) || out) return;
     sent.current.add(id);
+    playCue("tap");
+    setPending((list) => [...list, id]);
     try {
       const result = await callMp<{ correct?: boolean }>("submit_guess", { duelId: duel.id, itemKey: id });
       if (result.correct === false) {
@@ -75,12 +78,14 @@ function Recall({ state, duel }: { state: RoomState; duel: DuelRow }) {
       }
     } catch {
       sent.current.delete(id);
+    } finally {
+      setPending((list) => list.filter((key) => key !== id));
     }
   }
 
   return (
     <div className="flex flex-col gap-3">
-      <ChoiceGrid choices={choices} recalledIds={right} wrongIds={wrong} hintId={null} onPick={pick} />
+      <ChoiceGrid choices={choices} recalledIds={right} wrongIds={wrong} hintId={null} pendingIds={pending} onPick={pick} />
       <p className="text-center text-xl" role="img" aria-label={`${MAX_LIVES - wrong.length} mistakes left`}>
         {Array.from({ length: MAX_LIVES }, (_, i) => (i < MAX_LIVES - wrong.length ? "❤️" : "🖤")).join(" ")}
       </p>
@@ -119,7 +124,7 @@ export function DuelView({ state }: { state: RoomState }) {
 
   const label = room.phase === "memorize" ? "Memorize the table" : playing ? "Tap what you saw" : "Players are recalling";
   return (
-    <div className="flex flex-col gap-4">
+    <div className="flex flex-col gap-3">
       <div className="flex items-center justify-between gap-3">
         <h2 className="text-xl font-bold">{label}</h2>
         <TimerRing seconds={seconds} progress={progressFraction} label="Time remaining" />

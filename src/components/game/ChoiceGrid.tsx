@@ -9,10 +9,11 @@ interface ChoiceGridProps {
   recalledIds: string[];
   wrongIds: string[];
   hintId: string | null;
+  pendingIds?: string[];
   onPick: (id: string) => void;
 }
 
-export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: ChoiceGridProps) {
+export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds, onPick }: ChoiceGridProps) {
   const reduce = useReducedMotion();
   const cols = choices.length <= 12 ? "grid-cols-4" : "grid-cols-5";
   return (
@@ -20,7 +21,8 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: C
       {choices.map((item, index) => {
         const right = recalledIds.includes(item.id);
         const wrong = wrongIds.includes(item.id);
-        const used = right || wrong;
+        const pending = !right && !wrong && Boolean(pendingIds?.includes(item.id));
+        const used = right || wrong || pending;
         return (
           <motion.li
             key={item.id}
@@ -43,6 +45,7 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, onPick }: C
                 "relative flex aspect-square w-full min-h-11 items-center justify-center rounded-2xl border-2 border-b-4 bg-card text-4xl shadow-md outline-none transition-colors",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 enabled:active:translate-y-0.5 enabled:active:border-b-2",
                 right && "border-success bg-success/20 shadow-success/40",
+                pending && "scale-95 border-primary bg-primary/15",
                 wrong && "border-destructive bg-destructive/15 opacity-60 grayscale",
                 hintId === item.id && !used && "animate-pulse border-gold",
               )}

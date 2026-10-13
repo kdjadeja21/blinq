@@ -1,4 +1,4 @@
-import { ensureSession, supabase } from "@/lib/supabase/client";
+import { ensureSession } from "@/lib/supabase/client";
 
 export class MpError extends Error {
   constructor(
@@ -10,11 +10,10 @@ export class MpError extends Error {
 }
 
 export async function callMp<T = Record<string, unknown>>(action: string, body: object = {}): Promise<T> {
-  await ensureSession();
-  const { data } = await supabase().auth.getSession();
+  const token = await ensureSession();
   const response = await fetch(`/api/mp/${action}`, {
     method: "POST",
-    headers: { "Content-Type": "application/json", Authorization: `Bearer ${data.session?.access_token ?? ""}` },
+    headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
     body: JSON.stringify(body),
   });
   const json = (await response.json().catch(() => ({}))) as { error?: string };
