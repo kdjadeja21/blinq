@@ -27,6 +27,11 @@ Source of truth: `docs/DESIGN_SYSTEM.md`. Tokens: `src/app/globals.css`. Compone
 7. **Update the docs.** If you added or changed a token, component or pattern, update the matching table in `docs/DESIGN_SYSTEM.md`.
 8. **Verify.** Run `npm run lint` and `npm run build`. Check the screen at mobile width in light and dark themes, with reduced motion on and off. Attach light and dark screenshots to the PR.
 
+## Related skills
+
+- `composition-patterns`: use when a component grows boolean props or needs a flexible API (compound components, lifting state).
+- `react-best-practices`: use when writing or reviewing React and Next.js code for performance (re-renders, bundle size, data fetching).
+
 ## Review checklist
 
 - [ ] No raw color values or one-off radii
