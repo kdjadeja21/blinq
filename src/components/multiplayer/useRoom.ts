@@ -35,9 +35,11 @@ export interface RoomState {
   duel: DuelRow | null;
   /** Server-corrected clock in ms. */
   now: () => number;
+  /** Re-reads the room immediately instead of waiting for a realtime event. */
+  refresh: () => Promise<void>;
 }
 
-const EMPTY: Omit<RoomState, "now"> = {
+const EMPTY: Omit<RoomState, "now" | "refresh"> = {
   status: "loading",
   error: null,
   room: null,
@@ -55,7 +57,7 @@ const EMPTY: Omit<RoomState, "now"> = {
   duel: null,
 };
 
-type Data = Omit<RoomState, "now" | "online" | "status" | "error" | "me" | "isAdmin" | "duel">;
+type Data = Omit<RoomState, "now" | "refresh" | "online" | "status" | "error" | "me" | "isAdmin" | "duel">;
 const EMPTY_DATA: Data = {
   room: null,
   players: [],
@@ -229,5 +231,5 @@ export function useRoom(code: string): RoomState {
     };
   }, [roomId, version, deadline, isAdmin, duelist]);
 
-  return { ...data, status, error, online, me, isAdmin, duel, now };
+  return { ...data, status, error, online, me, isAdmin, duel, now, refresh };
 }
