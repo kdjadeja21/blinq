@@ -49,6 +49,12 @@
   --radius-2xl: calc(var(--radius) * 1.8);
   --radius-3xl: calc(var(--radius) * 2.2);
   --radius-4xl: calc(var(--radius) * 2.6);
+  --duration-fast: 150ms;
+  --duration-base: 300ms;
+  --duration-slow: 600ms;
+  --duration-ambient: 24s;
+  --ease-out-soft: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-bounce: cubic-bezier(0.34, 1.56, 0.64, 1);
 }
 
 :root {
@@ -130,7 +136,7 @@
   height: 70vmax;
   border-radius: 9999px;
   filter: blur(60px);
-  animation: drift 24s ease-in-out infinite alternate;
+  animation: drift var(--duration-ambient) ease-in-out infinite alternate;
 }
 .game-bg::before {
   background: var(--blob-a);
