@@ -2,6 +2,8 @@
 
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { SoundToggle } from "@/components/game/SoundToggle";
 import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
@@ -94,8 +96,13 @@ export function RoomView({ code }: { code: string }) {
   const state = useRoom(code);
   const { status, room, error, teams, isAdmin } = state;
   const { run } = useAction();
+  const router = useRouter();
 
-  if (status === "loading") {
+  useEffect(() => {
+    if (status === "not_member") router.replace(`/join/${code}`);
+  }, [status, code, router]);
+
+  if (status === "loading" || status === "not_member") {
     return (
       <main className="flex flex-1 items-center justify-center p-4" aria-busy="true">
         <p className="animate-bounce text-6xl" aria-hidden>
@@ -104,15 +111,15 @@ export function RoomView({ code }: { code: string }) {
       </main>
     );
   }
-  if (status === "not_member" || status === "error" || !room) {
+  if (status === "error" || !room) {
     return (
       <main className="mx-auto flex w-full max-w-md flex-1 flex-col items-center justify-center gap-4 p-4 text-center">
         <p className="text-5xl" aria-hidden>
           🚪
         </p>
-        <h1 className="text-2xl font-bold">{status === "error" ? "Could not open the room" : "You're not in this room"}</h1>
+        <h1 className="text-2xl font-bold">Could not open the room</h1>
         {error && <p className="text-sm text-destructive">{error}</p>}
-        <Link href={`/join/${code}`} className="text-primary underline-offset-4 hover:underline">
+        <Link href={`/join/${code}`} className={buttonVariants({ variant: "game", className: "h-12 rounded-2xl px-6" })}>
           Join room {code}
         </Link>
       </main>
