@@ -1,5 +1,6 @@
 "use client";
 
+import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { roundReducer, type Mode } from "@/lib/game";
 import { ITEMS_BY_ID, TRAINING_ITEM_IDS, type Item } from "@/lib/items";
@@ -162,7 +163,9 @@ export function Game() {
         </header>
         <main className="flex flex-1 flex-col">{body}</main>
       </div>
-      {offerTraining ? <TrainingPrompt onStart={() => start("training")} onSkip={finishTraining} /> : null}
+      <AnimatePresence>
+        {offerTraining ? <TrainingPrompt key="training" onStart={() => start("training")} onSkip={finishTraining} /> : null}
+      </AnimatePresence>
     </div>
   );
 }
