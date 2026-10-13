@@ -166,7 +166,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
       </dl>
 
       <Button variant="ghost" className="mt-auto h-11" onClick={onTraining}>
-        <GraduationCap className="size-4" /> Replay training
+        <GraduationCap className="size-4" /> {stats.trainingDone ? "Replay training" : "Practice round"}
       </Button>
     </div>
   );
