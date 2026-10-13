@@ -16,6 +16,7 @@ import type { DuelRow, PlayerRow } from "@/lib/multiplayer/types";
 import type { RoomState } from "./useRoom";
 import { useServerNow } from "./shared";
 import { useDuelPicks } from "./useDuelPicks";
+import { VersusIntro } from "./VersusIntro";
 
 export function toItems(keys: string[]): Item[] {
   return keys.flatMap((key) => {
@@ -173,6 +174,30 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
   );
 }
 
+function TimesUp() {
+  return (
+    <motion.div
+      initial={{ opacity: 0 }}
+      animate={{ opacity: 1 }}
+      className="fixed inset-0 z-30 flex flex-col items-center justify-center gap-4 bg-background/85 backdrop-blur-sm"
+      role="status"
+    >
+      <motion.p
+        initial={{ scale: 2.2, rotate: -6, opacity: 0 }}
+        animate={{ scale: 1, rotate: 0, opacity: 1 }}
+        transition={{ type: "spring", stiffness: 380, damping: 14 }}
+        className="text-5xl font-black"
+      >
+        Time&apos;s up!
+      </motion.p>
+      <div className="flex items-center gap-3 text-muted-foreground">
+        <span className="size-5 animate-spin rounded-full border-4 border-primary border-t-transparent" aria-hidden />
+        Counting points...
+      </div>
+    </motion.div>
+  );
+}
+
 function MemorizeView({ state, seconds, remaining, durationMs }: { state: RoomState; seconds: number; remaining: number; durationMs: number }) {
   useTickCue(seconds, true);
   const items = toItems(state.itemKeys);
@@ -194,19 +219,21 @@ export function DuelView({ state }: { state: RoomState }) {
   const durationMs = room.phase_duration_ms ?? 0;
   const remaining = Math.max(0, started + durationMs - clock);
   const seconds = Math.ceil(remaining / 1000);
-  const opponent = players.find((p) => p.id === (duel.player_a === me?.id ? duel.player_b : duel.player_a));
 
   if (room.phase === "duel_intro") {
+    const a = players.find((p) => p.id === duel.player_a);
+    const b = players.find((p) => p.id === duel.player_b);
+    const teamName = (teamId: string | null | undefined) => state.teams.find((t) => t.id === teamId)?.name;
     return (
-      <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center" role="status">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
-          Level {room.level} - duel {room.duel_index + 1}
-        </p>
-        <p className="text-5xl font-extrabold tabular-nums">{seconds}</p>
-        <p className="text-muted-foreground">
-          {playing ? `Get ready to face ${opponent?.name ?? "your opponent"}` : "Watch the duel"}
-        </p>
-      </div>
+      <VersusIntro
+        key={duel.id}
+        a={a}
+        b={b}
+        teamA={teamName(a?.team_id)}
+        teamB={teamName(b?.team_id)}
+        meId={me?.id}
+        seconds={seconds}
+      />
     );
   }
 
@@ -214,10 +241,19 @@ export function DuelView({ state }: { state: RoomState }) {
     return <MemorizeView state={state} seconds={seconds} remaining={remaining} durationMs={durationMs} />;
   }
 
-  if (playing) return <RecallPanel key={duel.id} state={state} duel={duel} clock={clock} startedAt={started} />;
+  const timesUp = clock > 0 && remaining === 0;
+  if (playing) {
+    return (
+      <>
+        <RecallPanel key={duel.id} state={state} duel={duel} clock={clock} startedAt={started} />
+        {timesUp && <TimesUp />}
+      </>
+    );
+  }
 
   return (
     <div className="flex flex-col gap-3">
+      {timesUp && <TimesUp />}
       <Header label="Players are recalling" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
       <p className="rounded-2xl bg-muted px-4 py-6 text-center text-muted-foreground">Hang tight, this duel is not yours.</p>
       <DuelProgress state={state} duel={duel} elapsedMs={clock - started} />

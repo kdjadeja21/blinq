@@ -28,18 +28,38 @@ function teamRoster(players: PlayerRow[], team: TeamRow | undefined): string[] {
  * Randomness is derived from a server secret, so concurrent callers build identical
  * rows and the inserts are safely idempotent.
  */
-export async function ensureLevel(room: RoomRow, level: number): Promise<number> {
-  const [players, teams] = await Promise.all([listPlayers(room.id), listTeams(room.id)]);
-  const teamA = teamRoster(players, teams.find((t) => t.name === "Team A"));
-  const teamB = teamRoster(players, teams.find((t) => t.name === "Team B"));
+export async function ensureLevel(
+  room: RoomRow,
+  level: number,
+): Promise<number> {
+  const [players, teams] = await Promise.all([
+    listPlayers(room.id),
+    listTeams(room.id),
+  ]);
+  const teamA = teamRoster(
+    players,
+    teams.find((t) => t.name === "Team A"),
+  );
+  const teamB = teamRoster(
+    players,
+    teams.find((t) => t.name === "Team B"),
+  );
 
   const earlier = must(
-    await db().from("duels").select("player_a, player_b").eq("room_id", room.id).lt("level", level).returns<
-      Pick<DuelRow, "player_a" | "player_b">[]
-    >(),
+    await db()
+      .from("duels")
+      .select("player_a, player_b")
+      .eq("room_id", room.id)
+      .lt("level", level)
+      .returns<Pick<DuelRow, "player_a" | "player_b">[]>(),
   );
   const history = new Set(earlier.map((d) => pairKey(d.player_a, d.player_b)));
-  const pairings = drawPairings(teamA, teamB, history, seededRandom(`${room.id}:pairs:${level}`));
+  const pairings = drawPairings(
+    teamA,
+    teamB,
+    history,
+    seededRandom(`${room.id}:pairs:${level}`),
+  );
 
   const itemCount = duelItemCount(room.difficulty, level);
   const { memorizeMs, recallMs } = duelTimings(itemCount);
@@ -56,22 +76,41 @@ export async function ensureLevel(room: RoomRow, level: number): Promise<number>
     recall_ms: recallMs,
     bot_plan:
       botIds.has(pair.a) || botIds.has(pair.b)
-        ? makeBotPlan(level, itemCount, recallMs, seededRandom(`${room.id}:bot:${level}:${index}`))
+        ? makeBotPlan(
+            level,
+            itemCount,
+            recallMs,
+            seededRandom(`${room.id}:bot:${level}:${index}`),
+          )
         : null,
   }));
-  must(await db().from("duels").upsert(rows, { onConflict: "room_id,level,duel_index", ignoreDuplicates: true }));
+  must(
+    await db()
+      .from("duels")
+      .upsert(rows, {
+        onConflict: "room_id,level,duel_index",
+        ignoreDuplicates: true,
+      }),
+  );
 
   const duels = must(
-    await db().from("duels").select("id, duel_index").eq("room_id", room.id).eq("level", level).returns<
-      Pick<DuelRow, "id" | "duel_index">[]
-    >(),
+    await db()
+      .from("duels")
+      .select("id, duel_index")
+      .eq("room_id", room.id)
+      .eq("level", level)
+      .returns<Pick<DuelRow, "id" | "duel_index">[]>(),
   );
   for (const duel of duels) {
     const random = seededRandom(`${room.id}:items:${level}:${duel.duel_index}`);
     const items = pickItems(itemCount, random);
     const choices = buildChoices(items, random);
     const toRows = (list: Item[]) =>
-      list.map((item, position) => ({ duel_id: duel.id, position, item_key: item.id }));
+      list.map((item, position) => ({
+        duel_id: duel.id,
+        position,
+        item_key: item.id,
+      }));
     const opts = { onConflict: "duel_id,position", ignoreDuplicates: true };
     must(await db().from("duel_items").upsert(toRows(items), opts));
     must(await db().from("duel_choices").upsert(toRows(choices), opts));
@@ -79,7 +118,10 @@ export async function ensureLevel(room: RoomRow, level: number): Promise<number>
   return duels.length;
 }
 
-export async function countDuels(roomId: string, level: number): Promise<number> {
+export async function countDuels(
+  roomId: string,
+  level: number,
+): Promise<number> {
   const { count, error } = await db()
     .from("duels")
     .select("id", { count: "exact", head: true })
@@ -89,9 +131,15 @@ export async function countDuels(roomId: string, level: number): Promise<number>
   return count ?? 0;
 }
 
-export function toPicks(subs: Pick<SubmissionRow, "correct" | "created_at">[], startedAt: string): PickEvent[] {
+export function toPicks(
+  subs: Pick<SubmissionRow, "correct" | "created_at">[],
+  startedAt: string,
+): PickEvent[] {
   const start = Date.parse(startedAt);
-  return subs.map((s) => ({ correct: s.correct, at: Date.parse(s.created_at) - start }));
+  return subs.map((s) => ({
+    correct: s.correct,
+    at: Date.parse(s.created_at) - start,
+  }));
 }
 
 export interface PlayerScore {
@@ -99,7 +147,11 @@ export interface PlayerScore {
   foundKeys: string[];
 }
 
-export async function scorePlayer(duel: DuelRow, playerId: string, startedAt: string): Promise<PlayerScore> {
+export async function scorePlayer(
+  duel: DuelRow,
+  playerId: string,
+  startedAt: string,
+): Promise<PlayerScore> {
   const [subs, progress] = await Promise.all([
     db()
       .from("submissions")
@@ -117,8 +169,16 @@ export async function scorePlayer(duel: DuelRow, playerId: string, startedAt: st
       .maybeSingle<{ done_ms: number | null }>()
       .then(must),
   ]);
-  const score = scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms, progress?.done_ms ?? null);
-  const foundKeys = subs.filter((s) => s.correct).slice(0, score.correct).map((s) => s.item_key);
+  const score = scoreRecall(
+    toPicks(subs, startedAt),
+    duel.item_count,
+    duel.recall_ms,
+    progress?.done_ms ?? null,
+  );
+  const foundKeys = subs
+    .filter((s) => s.correct)
+    .slice(0, score.correct)
+    .map((s) => s.item_key);
   return { score, foundKeys };
 }
 
@@ -128,31 +188,39 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
   const players = await listPlayers(room.id);
   const bots = new Set(players.filter((p) => p.is_bot).map((p) => p.id));
 
-  const outcomes: (DuelOutcome & PlayerScore)[] = [];
-  for (const playerId of [duel.player_a, duel.player_b]) {
-    let result: PlayerScore;
-    if (bots.has(playerId) && duel.bot_plan) {
-      const score = scoreRecall(botPicks(duel.bot_plan), duel.item_count, duel.recall_ms);
-      const items = must(
-        await db()
-          .from("duel_items")
-          .select("item_key")
-          .eq("duel_id", duel.id)
-          .order("position")
-          .returns<{ item_key: string }[]>(),
-      );
-      result = { score, foundKeys: items.slice(0, score.correct).map((i) => i.item_key) };
-    } else {
-      result = await scorePlayer(duel, playerId, startedAt);
-    }
-    outcomes.push({
-      playerId,
-      correct: result.score.correct,
-      complete: result.score.complete,
-      finishedMs: result.score.finishedMs,
-      ...result,
-    });
-  }
+  const outcomes: (DuelOutcome & PlayerScore)[] = await Promise.all(
+    [duel.player_a, duel.player_b].map(async (playerId) => {
+      let result: PlayerScore;
+      if (bots.has(playerId) && duel.bot_plan) {
+        const score = scoreRecall(
+          botPicks(duel.bot_plan),
+          duel.item_count,
+          duel.recall_ms,
+        );
+        const items = must(
+          await db()
+            .from("duel_items")
+            .select("item_key")
+            .eq("duel_id", duel.id)
+            .order("position")
+            .returns<{ item_key: string }[]>(),
+        );
+        result = {
+          score,
+          foundKeys: items.slice(0, score.correct).map((i) => i.item_key),
+        };
+      } else {
+        result = await scorePlayer(duel, playerId, startedAt);
+      }
+      return {
+        playerId,
+        correct: result.score.correct,
+        complete: result.score.complete,
+        finishedMs: result.score.finishedMs,
+        ...result,
+      };
+    }),
+  );
   const winner = decideWinner(outcomes[0], outcomes[1]);
 
   must(
@@ -172,18 +240,35 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
         { onConflict: "duel_id,player_id" },
       ),
   );
-  must(await db().from("duels").update({ winner_id: winner, resolved: true }).eq("id", duel.id));
+  must(
+    await db()
+      .from("duels")
+      .update({ winner_id: winner, resolved: true })
+      .eq("id", duel.id),
+  );
   await refreshTeamScores(room.id, players);
 }
 
-async function refreshTeamScores(roomId: string, players: PlayerRow[]): Promise<void> {
-  const duels = must(await db().from("duels").select("id").eq("room_id", roomId).returns<{ id: string }[]>());
+async function refreshTeamScores(
+  roomId: string,
+  players: PlayerRow[],
+): Promise<void> {
+  const duels = must(
+    await db()
+      .from("duels")
+      .select("id")
+      .eq("room_id", roomId)
+      .returns<{ id: string }[]>(),
+  );
   if (duels.length === 0) return;
   const results = must(
     await db()
       .from("duel_results")
       .select("player_id, points")
-      .in("duel_id", duels.map((d) => d.id))
+      .in(
+        "duel_id",
+        duels.map((d) => d.id),
+      )
       .returns<{ player_id: string; points: number }[]>(),
   );
   const teamOf = new Map(players.map((p) => [p.id, p.team_id]));
@@ -195,7 +280,12 @@ async function refreshTeamScores(roomId: string, players: PlayerRow[]): Promise<
   const teams = await listTeams(roomId);
   await Promise.all(
     teams.map(async (team) => {
-      must(await db().from("teams").update({ score: totals.get(team.id) ?? 0 }).eq("id", team.id));
+      must(
+        await db()
+          .from("teams")
+          .update({ score: totals.get(team.id) ?? 0 })
+          .eq("id", team.id),
+      );
     }),
   );
 }

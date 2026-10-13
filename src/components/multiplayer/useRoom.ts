@@ -204,10 +204,18 @@ export function useRoom(code: string): RoomState {
       : null;
   const isAdmin = Boolean(room && userId && room.admin_user_id === userId);
 
+  const duel = useMemo(
+    () => (room ? (data.duels.find((d) => d.level === room.level && d.duel_index === room.duel_index) ?? null) : null),
+    [data.duels, room],
+  );
+
+  const duelist = Boolean(myPlayerId && duel && (duel.player_a === myPlayerId || duel.player_b === myPlayerId));
+
   useEffect(() => {
     if (!roomId || deadline === null) return;
-    // Admin fires first; others wait a beat so one call usually wins and the rest are no-ops.
-    const stagger = isAdmin ? 0 : 300 + Math.random() * 700;
+    // The admin and the two duelists fire right away; spectators wait so one call usually wins.
+    const first = isAdmin || duelist;
+    const stagger = first ? Math.random() * 120 : 600 + Math.random() * 900;
     const wait = Math.max(0, deadline - (Date.now() + offsetRef.current)) + stagger;
     let retry: number | undefined;
     const fire = () => {
@@ -219,12 +227,7 @@ export function useRoom(code: string): RoomState {
       window.clearTimeout(id);
       window.clearTimeout(retry);
     };
-  }, [roomId, version, deadline, isAdmin]);
-
-  const duel = useMemo(
-    () => (room ? (data.duels.find((d) => d.level === room.level && d.duel_index === room.duel_index) ?? null) : null),
-    [data.duels, room],
-  );
+  }, [roomId, version, deadline, isAdmin, duelist]);
 
   return { ...data, status, error, online, me, isAdmin, duel, now };
 }

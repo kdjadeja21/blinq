@@ -11,7 +11,7 @@ import { playCue } from "@/lib/feedback";
 import { starsFor } from "@/lib/scoring";
 import type { DuelResultRow, DuelRow, PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 import { toItems } from "./DuelView";
-import { ErrorNote, TeamScores, useServerNow } from "./shared";
+import { ErrorNote, useServerNow } from "./shared";
 import { useAction } from "./LobbyView";
 import type { RoomState } from "./useRoom";
 
@@ -73,7 +73,7 @@ function nameOf(players: PlayerRow[], id: string | null): string {
 }
 
 export function DuelResultView({ state }: { state: RoomState }) {
-  const { room, duel, players, results, teams, itemKeys, me } = state;
+  const { room, duel, players, results, itemKeys, me } = state;
   const mine = Boolean(duel && me && (duel.player_a === me.id || duel.player_b === me.id));
   const outcome = !duel || !mine ? null : duel.winner_id === me?.id ? "win" : duel.winner_id ? "lose" : null;
   useResultCue(outcome);
@@ -112,7 +112,6 @@ export function DuelResultView({ state }: { state: RoomState }) {
           ))}
         </dl>
       </section>
-      <TeamScores teams={teams} />
       {itemKeys.length > 0 && <Board items={toItems(itemKeys)} mode="reveal" recalledIds={[...found]} />}
       <NextControl state={state} label={isLast ? "See level result" : "Next duel"} />
     </div>
@@ -158,10 +157,6 @@ export function LevelResultView({ state }: { state: RoomState }) {
           ))}
         </dl>
       </section>
-      <div>
-        <h3 className="mb-2 text-sm font-semibold">Total score</h3>
-        <TeamScores teams={teams} />
-      </div>
       <NextControl state={state} label={last ? "See final result" : "Next level"} />
     </div>
   );
@@ -201,7 +196,6 @@ export function FinalView({ state }: { state: RoomState }) {
           </p>
         )}
       </section>
-      <TeamScores teams={teams} highlight={tie ? null : first.id} />
       <ul className="flex flex-col gap-1 rounded-2xl border-2 bg-card p-2 text-left text-sm" aria-label="Player points">
         {totals.map(({ player, points }) => (
           <li key={player.id} className="flex items-center justify-between gap-2 px-2 py-1">
