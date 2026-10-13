@@ -18,7 +18,7 @@ export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
 }
 
 export async function listTeams(roomId: string): Promise<TeamRow[]> {
-  return must(await db().from("teams").select("*").eq("room_id", roomId).order("name").returns<TeamRow[]>());
+  return must(await db().from("teams").select("*").eq("room_id", roomId).order("side").returns<TeamRow[]>());
 }
 
 export async function findDuel(roomId: string, level: number, duelIndex: number): Promise<DuelRow | null> {

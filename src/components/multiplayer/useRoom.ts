@@ -92,7 +92,7 @@ export function useRoom(code: string): RoomState {
     roomIdRef.current = room.id;
     const [players, teams, duels] = await Promise.all([
       client.from("players").select("*").eq("room_id", room.id).order("joined_at").returns<PlayerRow[]>(),
-      client.from("teams").select("*").eq("room_id", room.id).order("name").returns<TeamRow[]>(),
+      client.from("teams").select("*").eq("room_id", room.id).order("side").returns<TeamRow[]>(),
       client.from("duels").select("*").eq("room_id", room.id).order("level").order("duel_index").returns<DuelRow[]>(),
     ]);
     const duelList = duels.data ?? [];

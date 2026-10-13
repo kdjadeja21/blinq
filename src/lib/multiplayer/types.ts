@@ -33,10 +33,13 @@ export interface RoomRow {
   created_at: string;
 }
 
+export type TeamSide = "a" | "b";
+
 export interface TeamRow {
   id: string;
   room_id: string;
   name: string;
+  side: TeamSide;
   score: number;
 }
 

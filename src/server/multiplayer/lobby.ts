@@ -17,6 +17,7 @@ import {
 import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
+import { pickTeamNamePair } from "@/lib/multiplayer/team-names";
 import type { Difficulty, Pacing, PlayerRow, RoomRow } from "@/lib/multiplayer/types";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { ensureLevel } from "./duels";
@@ -141,22 +142,27 @@ export async function createTeams(userId: string, roomId: string) {
   const humans = await listPlayers(room.id);
   if (humans.length < MIN_HUMANS) throw new ApiError(409, `You need at least ${MIN_HUMANS} players.`);
 
+  const [nameA, nameB] = pickTeamNamePair();
   must(
     await db()
       .from("teams")
       .upsert(
         [
-          { room_id: room.id, name: "Team A", score: 0 },
-          { room_id: room.id, name: "Team B", score: 0 },
+          { room_id: room.id, side: "a", name: nameA, score: 0 },
+          { room_id: room.id, side: "b", name: nameB, score: 0 },
         ],
-        { onConflict: "room_id,name" },
+        { onConflict: "room_id,side" },
       ),
   );
   const teams = must(
-    await db().from("teams").select("id, name").eq("room_id", room.id).returns<{ id: string; name: string }[]>(),
+    await db()
+      .from("teams")
+      .select("id, name, side")
+      .eq("room_id", room.id)
+      .returns<{ id: string; name: string; side: "a" | "b" }[]>(),
   );
-  const teamA = teams.find((t) => t.name === "Team A");
-  const teamB = teams.find((t) => t.name === "Team B");
+  const teamA = teams.find((t) => t.side === "a");
+  const teamB = teams.find((t) => t.side === "b");
   if (!teamA || !teamB) throw new ApiError(500, "Could not create teams.");
 
   const [groupA, groupB] = splitTeams(humans, Math.random);
