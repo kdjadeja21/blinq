@@ -55,7 +55,7 @@ If the remote database already has objects not in git, run `npx supabase db pull
 ### Option B — SQL Editor
 
 1. **SQL → New query**.
-2. Paste and **Run** each file in `supabase/migrations/` once, in filename order (`20261013000000_multiplayer.sql`, then `20261013010000_duel_feedback.sql`, then `20261013020000_player_avatar.sql`). Re-running can fail on types/tables/columns that already exist. If you already ran the first file, only run the new ones.
+2. Paste and **Run** each file in `supabase/migrations/` once, in filename order (`20261013000000_multiplayer.sql`, then `20261013010000_duel_feedback.sql`, then `20261013020000_player_avatar.sql`, then `20261013030000_room_cleanup.sql`). Re-running can fail on types/tables/columns that already exist. If you already ran the first file, only run the new ones.
 
 ### Realtime (Postgres Changes)
 
@@ -124,8 +124,10 @@ Requires **Postgres 15.1+** on Supabase (sub-minute schedules like `10 seconds`)
 3. Create a second job **`blinq-room-cleanup`**, schedule `0 * * * *` (hourly), **SQL:**
 
    ```sql
-   delete from public.rooms where expires_at < now();
+   select public.cleanup_inactive_rooms();
    ```
+
+   The last migration already schedules this job if `pg_cron` is enabled. It deletes rooms older than 1 hour with no player seen in the last 15 minutes (and any past the 24-hour hard cap).
 
 ### Option B — SQL (`supabase/cron.sql`)
 

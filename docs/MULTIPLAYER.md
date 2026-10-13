@@ -56,7 +56,7 @@ The room phase is one column, and every screen renders from it.
 | `recall` | stored on the duel | Timer ends, or a player recalls every item |
 | `duel_result` | 8s in auto mode | Auto: timer. Manual: admin taps Next |
 | `level_result` | 10s in auto mode | Auto: timer. Manual: admin taps Next level |
-| `finished` | n/a | Room expires 24 hours after creation |
+| `finished` | n/a | Hourly cleanup deletes rooms over 1 hour old with no player active for 15 minutes (24h hard cap) |
 
 ## Architecture
 
