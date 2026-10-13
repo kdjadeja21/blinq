@@ -102,7 +102,14 @@ export function useRoom(code: string): RoomState {
 
   const refresh = useCallback(async () => {
     const client = supabase();
-    const { data: room } = await client.from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>();
+    const lookup = async () => client.from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>();
+    let { data: room, error: roomError } = await lookup();
+    // Right after joining, the first read can race the session/membership; retry before deciding we are not a member.
+    for (let attempt = 0; attempt < 3 && !room; attempt++) {
+      await new Promise((resolve) => window.setTimeout(resolve, 400));
+      ({ data: room, error: roomError } = await lookup());
+    }
+    if (roomError) throw new Error(roomError.message);
     if (!room) {
       setStatus("not_member");
       return;
