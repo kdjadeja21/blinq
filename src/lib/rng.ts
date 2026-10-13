@@ -1,5 +1,3 @@
-import { ITEMS, type Item } from "./items";
-
 export function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
@@ -27,14 +25,6 @@ export function shuffle<T>(list: readonly T[], random: () => number = Math.rando
     [copy[i], copy[j]] = [copy[j], copy[i]];
   }
   return copy;
-}
-
-export function pickItems(count: number, random: () => number = Math.random): Item[] {
-  return shuffle(ITEMS, random).slice(0, count);
-}
-
-export function dailyItems(dateKey: string, count: number): Item[] {
-  return pickItems(count, mulberry32(hash(`blinq:${dateKey}`)));
 }
 
 export function utcDateKey(now: number): string {

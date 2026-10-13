@@ -7,11 +7,11 @@ import { Board } from "@/components/game/Board";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
 import { Lives } from "@/components/game/Lives";
 import { TimerRing } from "@/components/game/TimerRing";
+import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
-import { HIDE_MS } from "@/lib/game";
 import { Button } from "@/components/ui/button";
-import { WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
+import { comboMultiplier } from "@/lib/scoring";
 import type { DuelRow, PlayerRow } from "@/lib/multiplayer/types";
 import type { RoomState } from "./useRoom";
 import { useServerNow } from "./shared";
@@ -78,7 +78,7 @@ function Header({ label, seconds, progress, extra }: { label: string; seconds: n
   );
 }
 
-function Popups({ kind, points, id }: { kind: "good" | "bad"; points: number; id: number }) {
+function Popups({ kind, points, penaltyMs, id }: { kind: "good" | "bad"; points: number; penaltyMs: number; id: number }) {
   return (
     <motion.div
       key={id}
@@ -92,7 +92,7 @@ function Popups({ kind, points, id }: { kind: "good" | "bad"; points: number; id
         kind === "good" ? "top-1/2 text-success" : "top-1/3 text-destructive",
       )}
     >
-      {kind === "good" ? `+${points}` : `-${WRONG_PENALTY_MS / 1000}s`}
+      {kind === "good" ? `+${points}` : `-${penaltyMs / 1000}s`}
     </motion.div>
   );
 }
@@ -153,7 +153,7 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
           onPick={picks.pick}
         />
         <AnimatePresence>
-          {picks.popup && <Popups key={picks.popup.key} id={picks.popup.key} kind={picks.popup.kind} points={picks.popup.points} />}
+          {picks.popup && <Popups key={picks.popup.key} id={picks.popup.key} kind={picks.popup.kind} points={picks.popup.points} penaltyMs={duel.rules.wrongPenaltyMs} />}
         </AnimatePresence>
       </div>
       {status && (
@@ -165,7 +165,7 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
         <span className="text-sm text-muted-foreground tabular-nums">
           {picks.right.length}/{duel.item_count} found
         </span>
-        <Lives lives={picks.lives} />
+        <Lives lives={picks.lives} max={picks.maxLives} />
         <Button variant="secondary" className="h-11 px-4" disabled={waiting} onClick={picks.finish}>
           I&apos;m done
         </Button>
@@ -202,9 +202,10 @@ function TimesUp() {
 function MemorizeView({ state, seconds, remaining, durationMs }: { state: RoomState; seconds: number; remaining: number; durationMs: number }) {
   useTickCue(seconds, true);
   const items = toItems(state.itemKeys);
+  const twists = (state.duel?.rules.modifiers ?? []).map((modifier) => ` · ${MODIFIER_LABELS[modifier]}`).join("");
   return (
     <div className="flex flex-col gap-3">
-      <Header label="Memorize the table" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
+      <Header label={`Memorize the table${twists}`} seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
       <Board items={items} mode={remaining <= HIDE_MS ? "hide" : "memorize"} recalledIds={[]} />
     </div>
   );

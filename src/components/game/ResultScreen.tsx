@@ -5,10 +5,10 @@ import { cn } from "cn";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
+import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { shareText } from "@/lib/progress";
-import { levelItemCount } from "@/lib/scoring";
 import type { Stats } from "@/lib/storage";
 import { Board } from "./Board";
 import { Confetti } from "./Confetti";
@@ -128,7 +128,7 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
       )}
       {leveledUp && (
         <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          Level {round.level + 1} unlocked! ({levelItemCount(round.level + 1)} items)
+          Level {round.level + 1} unlocked! ({getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1 }).itemCount} items)
         </p>
       )}
 

@@ -92,8 +92,6 @@ export const ITEMS: Item[] = ROWS.map(([name, emoji, category, ...synonyms]) => 
 
 export const ITEMS_BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
 
-export const TRAINING_ITEM_IDS = ["apple", "banana", "coffee"];
-
 const LOOKALIKE_GROUPS: string[][] = [
   ["banana", "lemon", "corn", "pineapple"],
   ["apple", "tomato", "cherry", "strawberry"],

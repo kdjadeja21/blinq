@@ -1,3 +1,7 @@
+import type { Difficulty, Modifier, RoundRules } from "@/lib/engine";
+
+export type { Difficulty };
+
 export const ROOM_PHASES = [
   "lobby",
   "teams_ready",
@@ -10,7 +14,6 @@ export const ROOM_PHASES = [
 ] as const;
 export type RoomPhase = (typeof ROOM_PHASES)[number];
 
-export type Difficulty = "easy" | "medium" | "hard";
 export type Pacing = "manual" | "auto";
 
 export interface RoomRow {
@@ -55,6 +58,13 @@ export interface BotPlan {
   finishMs: number;
 }
 
+/** The engine's rules stored on a duel (`duels.rules`). */
+export interface DuelRules extends RoundRules {
+  engineVersion: number;
+  choiceCount: number;
+  modifiers: Modifier[];
+}
+
 export interface DuelRow {
   id: string;
   room_id: string;
@@ -68,6 +78,7 @@ export interface DuelRow {
   winner_id: string | null;
   resolved: boolean;
   bot_plan: BotPlan | null;
+  rules: DuelRules;
 }
 
 export interface DuelItemRow {
