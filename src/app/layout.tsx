@@ -8,8 +8,8 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  title: "Blinq - 90-second memory game",
-  description: "Memorize the table. Recall it in 30 seconds. Come back tomorrow for a new one.",
+  title: "Blinq — memory game",
+  description: "Memorize the table. Recall it against the clock. Come back tomorrow for a new one.",
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
