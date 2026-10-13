@@ -1,11 +1,13 @@
 "use client";
 
-import { Star, Trophy } from "lucide-react";
+import { Handshake, Star, Trophy } from "lucide-react";
+import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "cn";
 import { useEffect } from "react";
 import Link from "next/link";
 import { Board } from "@/components/game/Board";
 import { Confetti } from "@/components/game/Confetti";
+import { useCountUp } from "@/components/game/useCountUp";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { starsFor } from "@/lib/scoring";
@@ -129,8 +131,58 @@ export function levelTotals(level: number, duels: DuelRow[], results: DuelResult
   }));
 }
 
+function TeamScoreCard({
+  name,
+  points,
+  share,
+  isWinner,
+  isMine,
+  index,
+}: {
+  name: string;
+  points: number;
+  share: number;
+  isWinner: boolean;
+  isMine: boolean;
+  index: number;
+}) {
+  const reduce = useReducedMotion();
+  const shown = useCountUp(points);
+  return (
+    <motion.div
+      initial={reduce ? false : { opacity: 0, y: 16, scale: 0.95 }}
+      animate={{ opacity: 1, y: 0, scale: 1 }}
+      transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 18, delay: 0.15 + index * 0.1 }}
+      className={cn(
+        "relative flex flex-col items-center gap-1 rounded-2xl border-2 p-4",
+        isWinner ? "border-gold bg-gold/15 shadow-lg shadow-gold/20" : "bg-muted",
+      )}
+    >
+      {isWinner && (
+        <span className="absolute -top-3 flex items-center gap-1 rounded-full bg-gold px-3 py-0.5 text-xs font-bold text-black">
+          <Trophy className="size-3" aria-hidden /> Winner
+        </span>
+      )}
+      <dt className="flex items-center gap-1.5 text-sm font-semibold">
+        {name}
+        {isMine && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-bold">You</span>}
+      </dt>
+      <dd className="text-4xl font-extrabold tabular-nums">{shown}</dd>
+      <dd className="mt-1 h-2 w-full overflow-hidden rounded-full bg-background/60" aria-hidden>
+        <motion.span
+          className={cn("block h-full rounded-full", isWinner ? "bg-gold" : "bg-primary")}
+          initial={reduce ? false : { width: 0 }}
+          animate={{ width: `${share}%` }}
+          transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
+        />
+      </dd>
+    </motion.div>
+  );
+}
+
 export function LevelResultView({ state }: { state: RoomState }) {
   const { room, duels, results, players, teams, me } = state;
+  const reduce = useReducedMotion();
   const myTeamId = players.find((p) => p.id === me?.id)?.team_id;
   const leader = [...teams].sort((a, b) => b.score - a.score);
   const levelOutcome =
@@ -141,19 +193,51 @@ export function LevelResultView({ state }: { state: RoomState }) {
   const [first, second] = [...totals].sort((a, b) => b.points - a.points);
   const tie = !second || first.points === second.points;
   const last = room.level >= room.max_levels;
+  const sum = totals.reduce((acc, t) => acc + t.points, 0);
+  const margin = tie ? 0 : first.points - second.points;
+  const myWin = !tie && first.team.id === myTeamId;
+  const Icon = tie ? Handshake : Trophy;
   return (
     <div className="flex flex-col gap-3">
-      <section className="rounded-3xl border-2 bg-card p-4 text-center shadow-lg">
-        <p className="text-sm font-medium uppercase tracking-wide text-muted-foreground">
+      {myWin && <Confetti />}
+      <section
+        className="relative overflow-hidden rounded-3xl border-2 bg-card p-5 text-center shadow-lg"
+        aria-labelledby="level-result-title"
+      >
+        <div aria-hidden className="pointer-events-none absolute inset-x-0 -top-16 mx-auto h-40 w-64 rounded-full bg-gold/20 blur-3xl" />
+        <p className="relative mx-auto flex w-fit items-center gap-2 rounded-full bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Level {room.level} of {room.max_levels}
+          <span className="flex gap-1" aria-hidden>
+            {Array.from({ length: room.max_levels }, (_, i) => (
+              <span key={i} className={cn("size-1.5 rounded-full", i < room.level ? "bg-primary" : "bg-muted-foreground/30")} />
+            ))}
+          </span>
         </p>
-        <h2 className="mt-1 text-2xl font-extrabold">{tie ? "Level tied" : `${first.team.name} wins the level`}</h2>
-        <dl className="mt-3 grid grid-cols-2 gap-2">
-          {totals.map(({ team, points }) => (
-            <div key={team.id} className="rounded-2xl bg-muted p-3">
-              <dt className="text-sm font-semibold">{team.name}</dt>
-              <dd className="text-2xl font-extrabold tabular-nums">{points}</dd>
-            </div>
+        <motion.div
+          className="relative mx-auto mt-4 flex size-20 items-center justify-center rounded-full bg-gold text-black shadow-lg shadow-gold/30"
+          initial={reduce ? false : { scale: 0, rotate: -20 }}
+          animate={{ scale: 1, rotate: 0 }}
+          transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 300, damping: 12 }}
+        >
+          <Icon className="size-10" aria-hidden />
+        </motion.div>
+        <h2 id="level-result-title" className="relative mt-3 text-3xl font-extrabold">
+          {tie ? "Level tied" : `${first.team.name} wins the level`}
+        </h2>
+        <p className="relative mt-1 text-sm text-muted-foreground">
+          {tie ? "Dead even. Everything is still to play for." : `Ahead by ${margin} ${margin === 1 ? "point" : "points"}`}
+        </p>
+        <dl className="relative mt-6 grid grid-cols-2 gap-3">
+          {totals.map(({ team, points }, i) => (
+            <TeamScoreCard
+              key={team.id}
+              name={team.name}
+              points={points}
+              share={sum > 0 ? Math.round((points / sum) * 100) : 0}
+              isWinner={!tie && team.id === first.team.id}
+              isMine={team.id === myTeamId}
+              index={i}
+            />
           ))}
         </dl>
       </section>
