@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { AnimatePresence, motion } from "framer-motion";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useEffect, useMemo } from "react";
 import { Board } from "@/components/game/Board";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
@@ -41,15 +41,17 @@ function ProgressBar({ player, count, total, mine }: { player: PlayerRow | undef
   );
 }
 
+function correctCount(state: RoomState, duel: DuelRow, elapsedMs: number, playerId: string): number {
+  const player = state.players.find((p) => p.id === playerId);
+  if (player?.is_bot && duel.bot_plan) {
+    return Math.floor(duel.bot_plan.correct * Math.min(1, Math.max(0, elapsedMs) / duel.bot_plan.finishMs));
+  }
+  return state.progress.find((p) => p.player_id === playerId)?.correct_count ?? 0;
+}
+
 function DuelProgress({ state, duel, elapsedMs }: { state: RoomState; duel: DuelRow; elapsedMs: number }) {
-  const { players, progress, me } = state;
-  const count = (playerId: string): number => {
-    const player = players.find((p) => p.id === playerId);
-    if (player?.is_bot && duel.bot_plan) {
-      return Math.floor(duel.bot_plan.correct * Math.min(1, Math.max(0, elapsedMs) / duel.bot_plan.finishMs));
-    }
-    return progress.find((p) => p.player_id === playerId)?.correct_count ?? 0;
-  };
+  const { players, me } = state;
+  const count = (playerId: string): number => correctCount(state, duel, elapsedMs, playerId);
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 bg-card p-3">
       {[duel.player_a, duel.player_b].map((id) => (
@@ -175,6 +177,68 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
   );
 }
 
+function RacerCard({ player, teamName, count, total, isLeader, tone }: { player: PlayerRow | undefined; teamName: string | undefined; count: number; total: number; isLeader: boolean; tone: "primary" | "rival" }) {
+  return (
+    <div className={cn("flex flex-1 flex-col gap-2 rounded-2xl border-2 bg-card p-3", isLeader ? "border-primary" : "border-transparent")}>
+      <div className="min-w-0">
+        <p className="truncate text-base font-bold">{player?.name ?? "?"}</p>
+        <p className="truncate text-xs text-muted-foreground">{teamName ?? "No team"}</p>
+      </div>
+      <p className="text-3xl font-extrabold tabular-nums">
+        {count}
+        <span className="text-base font-semibold text-muted-foreground"> / {total}</span>
+      </p>
+      <div className="h-4 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={count} aria-label={`${player?.name ?? "Player"} progress`}>
+        <div className={cn("h-full rounded-full transition-all duration-500", tone === "primary" ? "bg-primary" : "bg-fuchsia-500")} style={{ width: `${total ? (count / total) * 100 : 0}%` }} />
+      </div>
+    </div>
+  );
+}
+
+function SpectatorPanel({ state, duel, elapsedMs }: { state: RoomState; duel: DuelRow; elapsedMs: number }) {
+  const { players, teams, me } = state;
+  const reduceMotion = useReducedMotion();
+  const a = players.find((p) => p.id === duel.player_a);
+  const b = players.find((p) => p.id === duel.player_b);
+  const teamName = (teamId: string | null | undefined) => teams.find((t) => t.id === teamId)?.name;
+  const countA = correctCount(state, duel, elapsedMs, duel.player_a);
+  const countB = correctCount(state, duel, elapsedMs, duel.player_b);
+
+  const leader = countA === countB ? null : countA > countB ? a : b;
+  const gap = Math.abs(countA - countB);
+  const headline = leader ? `${leader.name} leads by ${gap}` : countA === 0 ? "Get ready, it's about to heat up" : "Neck and neck";
+
+  const myTeamId = me?.team_id ?? null;
+  const teammate = myTeamId ? [a, b].find((p) => p?.team_id === myTeamId) : undefined;
+  const cheer = teammate ? `${teammate.name} is playing for your team. Cheer them on!` : "Rival duel. Scout the competition.";
+
+  return (
+    <div className="flex flex-col gap-3">
+      <div className="flex flex-col items-center gap-2 rounded-3xl border-2 bg-card px-4 py-4 text-center">
+        <span className="rounded-full bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wide text-muted-foreground">Watching live</span>
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.p
+            key={leader?.id ?? "tie"}
+            initial={reduceMotion ? false : { scale: 0.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={{ opacity: 0 }}
+            transition={{ type: "spring", stiffness: 420, damping: 16 }}
+            className="text-xl font-extrabold"
+            role="status"
+          >
+            {headline}
+          </motion.p>
+        </AnimatePresence>
+        <p className={cn("text-sm", teammate ? "font-semibold text-primary" : "text-muted-foreground")}>{cheer}</p>
+      </div>
+      <div className="flex items-stretch gap-2">
+        <RacerCard player={a} teamName={teamName(a?.team_id)} count={countA} total={duel.item_count} isLeader={leader?.id === duel.player_a} tone="primary" />
+        <RacerCard player={b} teamName={teamName(b?.team_id)} count={countB} total={duel.item_count} isLeader={leader?.id === duel.player_b} tone="rival" />
+      </div>
+    </div>
+  );
+}
+
 function TimesUp() {
   return (
     <motion.div
@@ -256,8 +320,7 @@ export function DuelView({ state }: { state: RoomState }) {
     <div className="flex flex-col gap-3">
       {timesUp && <TimesUp />}
       <Header label="Players are recalling" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
-      <p className="rounded-2xl bg-muted px-4 py-6 text-center text-muted-foreground">Hang tight, this duel is not yours.</p>
-      <DuelProgress state={state} duel={duel} elapsedMs={clock - started} />
+      <SpectatorPanel state={state} duel={duel} elapsedMs={clock - started} />
     </div>
   );
 }
