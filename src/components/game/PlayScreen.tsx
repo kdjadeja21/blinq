@@ -5,7 +5,7 @@ import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
-import { playCue } from "@/lib/feedback";
+import { playCue, startMusic, stopMusic, useFeedbackEnabled } from "@/lib/feedback";
 import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
@@ -41,6 +41,14 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   useEffect(() => {
     if (ticking) playCue("tick");
   }, [ticking, seconds]);
+
+  const soundOn = useFeedbackEnabled();
+  const musicPlaying = phase === "memorize" || phase === "hide" || phase === "recall";
+  useEffect(() => {
+    if (!musicPlaying || !soundOn) return;
+    startMusic();
+    return stopMusic;
+  }, [musicPlaying, soundOn]);
 
   const lastRecalled = round.recalled[round.recalled.length - 1];
 

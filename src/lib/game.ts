@@ -72,7 +72,7 @@ export type Action =
   | { type: "tick"; now: number }
   | { type: "pick"; id: string; now: number }
   | { type: "submit"; now: number }
-  | { type: "retry"; now: number; key: number }
+  | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[] }
   | { type: "quit" };
 
 function beginMemorize(round: Round, now: number): Round {
@@ -181,8 +181,8 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       const fresh = roundReducer(null, {
         type: "start",
         mode: round.mode,
-        items: round.items,
-        choices: round.choices,
+        items: action.items ?? round.items,
+        choices: action.choices ?? round.choices,
         level: round.level,
         now: action.now,
         key: action.key,
