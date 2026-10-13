@@ -85,10 +85,10 @@
   --ring: oklch(0.6 0.2 292);
   --blob-a: oklch(0.8 0.15 320 / 0.5);
   --blob-b: oklch(0.8 0.14 220 / 0.5);
-  --team-a: oklch(0.62 0.19 245);
-  --team-a-deep: oklch(0.48 0.18 262);
-  --team-b: oklch(0.64 0.23 28);
-  --team-b-deep: oklch(0.5 0.21 20);
+  --team-a: oklch(0.74 0.11 235);
+  --team-a-deep: oklch(0.54 0.14 252);
+  --team-b: oklch(0.74 0.13 15);
+  --team-b-deep: oklch(0.56 0.16 15);
   --radius: 1rem;
 }
 
@@ -116,10 +116,10 @@
   --ring: oklch(0.7 0.2 292);
   --blob-a: oklch(0.55 0.25 320 / 0.35);
   --blob-b: oklch(0.55 0.2 220 / 0.35);
-  --team-a: oklch(0.68 0.17 235);
-  --team-a-deep: oklch(0.48 0.18 262);
-  --team-b: oklch(0.7 0.21 30);
-  --team-b-deep: oklch(0.5 0.21 20);
+  --team-a: oklch(0.74 0.11 235);
+  --team-a-deep: oklch(0.54 0.14 252);
+  --team-b: oklch(0.74 0.13 15);
+  --team-b-deep: oklch(0.56 0.16 15);
 }
 
 @layer base {

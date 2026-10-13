@@ -39,12 +39,11 @@ export function TeamAmbient({ theme, phase }: { theme: TeamTheme | null; phase: 
           transition={{ duration: reduce ? 0 : 0.8 }}
           className="pointer-events-none fixed inset-0 -z-[1] overflow-hidden"
         >
-          <div className={`absolute inset-x-0 top-0 h-1.5 ${theme.gradient}`} />
-          <div className={`team-blob absolute -left-[25vmax] -top-[25vmax] size-[75vmax] rounded-full opacity-45 blur-[70px] ${theme.blob}`} />
+          <div className={`absolute inset-x-0 top-0 h-1 ${theme.gradient}`} />
+          <div className={`team-blob absolute -left-[25vmax] -top-[25vmax] size-[75vmax] rounded-full opacity-20 blur-[90px] ${theme.blob}`} />
           <div
-            className={`team-blob absolute -bottom-[25vmax] -right-[25vmax] size-[75vmax] rounded-full opacity-40 blur-[70px] [animation-delay:-12s] ${theme.blob}`}
+            className={`team-blob absolute -bottom-[25vmax] -right-[25vmax] size-[75vmax] rounded-full opacity-15 blur-[90px] [animation-delay:-12s] ${theme.blob}`}
           />
-          <div className={`absolute inset-0 opacity-15 ${theme.blob} [mask-image:radial-gradient(ellipse_at_center,transparent_35%,black_100%)]`} />
         </motion.div>
       )}
     </AnimatePresence>
