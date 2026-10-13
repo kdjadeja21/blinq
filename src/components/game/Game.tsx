@@ -14,6 +14,7 @@ import { ResultScreen } from "./ResultScreen";
 import { SoundToggle } from "./SoundToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
+import { useGameMusic } from "./useGameMusic";
 
 const TRAINING_ITEMS = TRAINING_ITEM_IDS.map((id) => ITEMS_BY_ID.get(id)).filter(
   (item): item is Item => item !== undefined,
@@ -45,6 +46,8 @@ export function Game() {
   const keyRef = useRef(0);
   const committedRef = useRef(-1);
   const autoTrainingRef = useRef(false);
+
+  useGameMusic(round, now);
 
   const timed = round?.phase === "memorize" || round?.phase === "hide" || round?.phase === "recall";
   const phaseEndsAt = round?.phaseEndsAt ?? 0;
