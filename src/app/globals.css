@@ -11,6 +11,10 @@
   --color-success: var(--success);
   --color-gold: var(--gold);
   --color-flame: var(--flame);
+  --color-team-a: var(--team-a);
+  --color-team-a-deep: var(--team-a-deep);
+  --color-team-b: var(--team-b);
+  --color-team-b-deep: var(--team-b-deep);
   --font-mono: var(--font-geist-mono);
   --font-heading: var(--font-sans);
   --color-sidebar-ring: var(--sidebar-ring);
@@ -81,6 +85,10 @@
   --ring: oklch(0.6 0.2 292);
   --blob-a: oklch(0.8 0.15 320 / 0.5);
   --blob-b: oklch(0.8 0.14 220 / 0.5);
+  --team-a: oklch(0.62 0.19 245);
+  --team-a-deep: oklch(0.48 0.18 262);
+  --team-b: oklch(0.64 0.23 28);
+  --team-b-deep: oklch(0.5 0.21 20);
   --radius: 1rem;
 }
 
@@ -108,6 +116,10 @@
   --ring: oklch(0.7 0.2 292);
   --blob-a: oklch(0.55 0.25 320 / 0.35);
   --blob-b: oklch(0.55 0.2 220 / 0.35);
+  --team-a: oklch(0.68 0.17 235);
+  --team-a-deep: oklch(0.48 0.18 262);
+  --team-b: oklch(0.7 0.21 30);
+  --team-b-deep: oklch(0.5 0.21 20);
 }
 
 @layer base {
@@ -164,7 +176,12 @@
 @media (prefers-reduced-motion: reduce) {
   .game-bg::before,
   .game-bg::after,
+  .team-blob,
   .shake {
     animation: none;
   }
+}
+
+.team-blob {
+  animation: drift var(--duration-ambient) ease-in-out infinite alternate;
 }
