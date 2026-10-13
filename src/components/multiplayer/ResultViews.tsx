@@ -75,11 +75,12 @@ function nameOf(players: PlayerRow[], id: string | null): string {
 }
 
 export function DuelResultView({ state }: { state: RoomState }) {
-  const { room, duel, players, results, itemKeys, me } = state;
+  const { room, duel, players, results, itemKeys, me, teams } = state;
   const mine = Boolean(duel && me && (duel.player_a === me.id || duel.player_b === me.id));
   const outcome = !duel || !mine ? null : duel.winner_id === me?.id ? "win" : duel.winner_id ? "lose" : null;
   useResultCue(outcome);
   if (!room || !duel) return null;
+  const teamName = (teamId: string | null | undefined) => teams.find((t) => t.id === teamId)?.name;
   const rows = [duel.player_a, duel.player_b].map((id) => ({
     player: players.find((p) => p.id === id),
     result: results.find((r) => r.duel_id === duel.id && r.player_id === id),
@@ -100,7 +101,11 @@ export function DuelResultView({ state }: { state: RoomState }) {
         <dl className="mt-3 grid grid-cols-2 gap-2">
           {rows.map(({ player, result }) => (
             <div key={player?.id} className="rounded-2xl bg-muted p-3">
-              <dt className="text-sm font-semibold">{player?.name}</dt>
+              <dt className="text-sm font-semibold">
+                {player?.name}
+                {player?.id === me?.id ? " (you)" : ""}
+              </dt>
+              <dd className="text-xs text-muted-foreground">{teamName(player?.team_id) ?? "No team"}</dd>
               <dd className="text-2xl font-extrabold tabular-nums">+{result?.points ?? 0}</dd>
               <dd>
                 <Stars count={starsFor(result?.correct_count ?? 0, duel.item_count)} />

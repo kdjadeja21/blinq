@@ -123,7 +123,7 @@ export function RoomView({ code }: { code: string }) {
     );
   }
 
-  const showBanner = state.duel !== null && DUEL_PHASES.includes(room.phase) && room.phase !== "duel_intro";
+  const showBanner = state.duel !== null && DUEL_PHASES.includes(room.phase) && room.phase !== "duel_intro" && room.phase !== "duel_result";
   const showScores = teams.length > 0 && room.phase !== "lobby" && room.phase !== "teams_ready";
   const inGame = room.phase !== "lobby" && room.phase !== "teams_ready" && room.phase !== "finished";
   return (
