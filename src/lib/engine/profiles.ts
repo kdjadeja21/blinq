@@ -46,7 +46,7 @@ export const PROFILES: Record<Difficulty, DifficultyProfile> = {
     lookalike: { start: 0.25, perLevel: 0.025, max: 0.5 },
     lives: 4,
     wrongPenaltyMs: 2_000,
-    bot: { ratio: { start: 0.55, perLevel: 0.015, max: 0.75 }, ratioSpread: 0.15, minFinish: 0.7, maxFinish: 0.95 },
+    bot: { ratio: { start: 0.55, perLevel: 0.015, max: 0.75 }, ratioSpread: 0.1, minFinish: 0.7, maxFinish: 0.95 },
   },
   medium: {
     items: { start: 6, perLevel: 2, max: 14 },
@@ -56,7 +56,7 @@ export const PROFILES: Record<Difficulty, DifficultyProfile> = {
     lookalike: { start: 0.5, perLevel: 0.03, max: 0.8 },
     lives: 3,
     wrongPenaltyMs: 3_000,
-    bot: { ratio: { start: 0.7, perLevel: 0.015, max: 0.8 }, ratioSpread: 0.15, minFinish: 0.6, maxFinish: 0.9 },
+    bot: { ratio: { start: 0.7, perLevel: 0.015, max: 0.8 }, ratioSpread: 0.1, minFinish: 0.6, maxFinish: 0.9 },
   },
   hard: {
     items: { start: 8, perLevel: 2, max: 16 },
