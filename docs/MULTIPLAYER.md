@@ -10,7 +10,7 @@ Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 2. **Create:** name, number of levels (default 3), difficulty, pacing. The creator is the admin and a normal player. A code and share link are generated.
 3. **Join:** code (or `/join/CODE`) plus a name for this room.
 4. **Lobby:** everyone appears live. The admin can remove players and edit settings.
-5. **Create teams (admin):** players are shuffled into two randomly named teams (for example “Neon Comets” vs “Shadow Kits”). With an odd count a computer player (Botty) joins the smaller team.
+5. **Create teams (admin):** players are shuffled into Team A and Team B. With an odd count a computer player (Botty) joins the smaller team.
 6. **Start game (admin):** duels run one at a time. A banner such as **John X Vin** shows on every screen, including for waiting players.
 7. **Duel:** both see the same table (memorize), then pick the items out of a crowd (recall).
 8. **Duel result:** winner, points, team totals. Next duel after the admin taps Next, or automatically in auto mode.

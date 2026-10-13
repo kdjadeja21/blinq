@@ -37,11 +37,11 @@ export async function ensureLevel(
   ]);
   const teamA = teamRoster(
     players,
-    teams.find((t) => t.side === "a"),
+    teams.find((t) => t.name === "Team A"),
   );
   const teamB = teamRoster(
     players,
-    teams.find((t) => t.side === "b"),
+    teams.find((t) => t.name === "Team B"),
   );
 
   const earlier = must(
