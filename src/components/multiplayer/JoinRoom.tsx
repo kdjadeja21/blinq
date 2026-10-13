@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Dices, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState, useTransition } from "react";
+import { useRef, useLayoutEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
@@ -69,6 +69,8 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
   const [name, setName] = useState("");
   const [requesting, setRequesting] = useState(false);
   const [navigating, startNavigation] = useTransition();
+  // Next keeps this page mounted (hidden) after navigating away; clear transient state so coming back never shows a stuck button.
+  useLayoutEffect(() => () => setRequesting(false), []);
   const busy = requesting || navigating;
   const [error, setError] = useState<string | null>(null);
 

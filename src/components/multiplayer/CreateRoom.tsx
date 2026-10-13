@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -28,6 +28,8 @@ export function CreateRoom() {
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
   const [requesting, setRequesting] = useState(false);
   const [navigating, startNavigation] = useTransition();
+  // Next keeps this page mounted (hidden) after navigating away; clear transient state so coming back never shows a stuck button.
+  useLayoutEffect(() => () => setRequesting(false), []);
   const busy = requesting || navigating;
   const [error, setError] = useState<string | null>(null);
 
