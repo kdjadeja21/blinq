@@ -1,16 +1,17 @@
+import type { RoundSpec } from "@/lib/engine";
 import type { PickEvent } from "@/lib/scoring";
 import { shuffle } from "@/lib/rng";
 import type { BotPlan } from "./types";
 
 /**
- * A bot recalls 70-90% of the items (never all, so it cannot end a duel early),
- * finishing between 60% and 90% of the recall time. Slightly better at higher levels.
+ * The bot's recall share and finish time come from the engine's `spec.bot`.
+ * It never recalls every item, so it cannot end a duel early.
  */
-export function makeBotPlan(level: number, itemCount: number, recallMs: number, random: () => number): BotPlan {
-  const bonus = Math.min(0.1, (level - 1) * 0.03);
-  const ratio = Math.min(0.9, 0.7 + random() * 0.2 + bonus * 0.5);
+export function makeBotPlan(spec: RoundSpec, random: () => number): BotPlan {
+  const { bot, itemCount, recallMs } = spec;
+  const ratio = bot.minRatio + random() * (bot.maxRatio - bot.minRatio);
   const correct = Math.min(itemCount - 1, Math.max(1, Math.round(itemCount * ratio)));
-  const finishMs = Math.round(recallMs * (0.6 + random() * 0.3));
+  const finishMs = Math.round(recallMs * (bot.minFinish + random() * (bot.maxFinish - bot.minFinish)));
   return { correct, finishMs };
 }
 

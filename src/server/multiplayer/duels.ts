@@ -1,17 +1,16 @@
-import { buildChoices } from "@/lib/choices";
+import { generateRound, getRoundSpec } from "@/lib/engine";
 import type { Item } from "@/lib/items";
 import { botPicks, makeBotPlan } from "@/lib/multiplayer/bots";
-import { duelItemCount, duelTimings } from "@/lib/multiplayer/config";
 import { drawPairings, pairKey } from "@/lib/multiplayer/pairing";
 import type {
   DuelRow,
+  DuelRules,
   PlayerRow,
   RoomRow,
   SubmissionRow,
   TeamRow,
 } from "@/lib/multiplayer/types";
 import { decideWinner, type DuelOutcome } from "@/lib/multiplayer/winner";
-import { pickItems } from "@/lib/rng";
 import { scoreRecall, type PickEvent, type RecallScore } from "@/lib/scoring";
 import { db, must, seededRandom } from "./db";
 import { listPlayers, listTeams } from "./queries";
@@ -61,8 +60,13 @@ export async function ensureLevel(
     seededRandom(`${room.id}:pairs:${level}`),
   );
 
-  const itemCount = duelItemCount(room.difficulty, level);
-  const { memorizeMs, recallMs } = duelTimings(itemCount);
+  const spec = getRoundSpec({ mode: "duel", difficulty: room.difficulty, level });
+  const rules: DuelRules = {
+    ...spec.rules,
+    engineVersion: spec.engineVersion,
+    choiceCount: spec.choiceCount,
+    modifiers: spec.modifiers,
+  };
   const botIds = new Set(players.filter((p) => p.is_bot).map((p) => p.id));
 
   const rows = pairings.map((pair, index) => ({
@@ -71,17 +75,13 @@ export async function ensureLevel(
     duel_index: index,
     player_a: pair.a,
     player_b: pair.b,
-    item_count: itemCount,
-    memorize_ms: memorizeMs,
-    recall_ms: recallMs,
+    item_count: spec.itemCount,
+    memorize_ms: spec.memorizeMs,
+    recall_ms: spec.recallMs,
+    rules,
     bot_plan:
       botIds.has(pair.a) || botIds.has(pair.b)
-        ? makeBotPlan(
-            level,
-            itemCount,
-            recallMs,
-            seededRandom(`${room.id}:bot:${level}:${index}`),
-          )
+        ? makeBotPlan(spec, seededRandom(`${room.id}:bot:${level}:${index}`))
         : null,
   }));
   must(
@@ -103,8 +103,7 @@ export async function ensureLevel(
   );
   for (const duel of duels) {
     const random = seededRandom(`${room.id}:items:${level}:${duel.duel_index}`);
-    const items = pickItems(itemCount, random);
-    const choices = buildChoices(items, random);
+    const { items, choices } = generateRound(spec, random);
     const toRows = (list: Item[]) =>
       list.map((item, position) => ({
         duel_id: duel.id,
@@ -173,6 +172,7 @@ export async function scorePlayer(
     toPicks(subs, startedAt),
     duel.item_count,
     duel.recall_ms,
+    duel.rules,
     progress?.done_ms ?? null,
   );
   const foundKeys = subs
@@ -196,6 +196,7 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
           botPicks(duel.bot_plan),
           duel.item_count,
           duel.recall_ms,
+          duel.rules,
         );
         const items = must(
           await db()

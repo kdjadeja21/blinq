@@ -1,13 +1,8 @@
+import type { RoundRules } from "@/lib/engine";
+
 export const BASE_POINTS = 100;
-export const COMBO_WINDOW_MS = 3000;
-export const MAX_LIVES = 3;
-export const WRONG_PENALTY_MS = 3000;
 /** Partial recall counts as a win for now (>= 1 star); a perfect round is 100%. */
 export const WIN_RATIO = 0.5;
-
-export function levelItemCount(level: number): number {
-  return Math.min(14, 6 + 2 * (level - 1));
-}
 
 export function comboMultiplier(combo: number): number {
   if (combo >= 4) return 2;
@@ -26,8 +21,8 @@ export function starsFor(correct: number, total: number): 0 | 1 | 2 | 3 {
 }
 
 /** Next combo count when a correct pick lands at `now` (ms, any shared clock). */
-export function nextCombo(combo: number, lastCorrectAt: number | null, now: number): number {
-  const chained = lastCorrectAt !== null && now - lastCorrectAt <= COMBO_WINDOW_MS;
+export function nextCombo(combo: number, lastCorrectAt: number | null, now: number, windowMs: number): number {
+  const chained = lastCorrectAt !== null && now - lastCorrectAt <= windowMs;
   return chained ? combo + 1 : 1;
 }
 
@@ -57,13 +52,14 @@ export interface RecallScore {
 
 /**
  * Replays picks with the same rules as the single-player round: combo chains,
- * wrong picks reset the combo and cost time, three wrong picks end recall, and
+ * wrong picks reset the combo and cost time, running out of lives ends recall, and
  * finishing every item early adds the remaining seconds as a speed bonus.
  */
 export function scoreRecall(
   picks: readonly PickEvent[],
   total: number,
   recallMs: number,
+  rules: RoundRules,
   /** ms since recall start when the player pressed "I'm done"; banks the remaining time as a bonus */
   doneAt: number | null = null,
 ): RecallScore {
@@ -75,22 +71,22 @@ export function scoreRecall(
   let points = 0;
 
   for (const pick of [...picks].sort((a, b) => a.at - b.at)) {
-    if (wrong >= MAX_LIVES || pick.at > deadlineMs || correct >= total) break;
+    if (wrong >= rules.lives || pick.at > deadlineMs || correct >= total) break;
     if (pick.correct) {
-      combo = nextCombo(combo, lastCorrectAt, pick.at);
+      combo = nextCombo(combo, lastCorrectAt, pick.at, rules.comboWindowMs);
       points += pointsForCombo(combo);
       lastCorrectAt = pick.at;
       correct += 1;
     } else {
       wrong += 1;
       combo = 0;
-      deadlineMs -= WRONG_PENALTY_MS;
+      deadlineMs -= rules.wrongPenaltyMs;
     }
   }
 
   const complete = total > 0 && correct === total;
   let speedBonus = 0;
   if (complete && lastCorrectAt !== null) speedBonus = Math.max(0, Math.floor((deadlineMs - lastCorrectAt) / 1000));
-  else if (doneAt !== null && correct > 0 && wrong < MAX_LIVES) speedBonus = Math.max(0, Math.floor((deadlineMs - doneAt) / 1000));
+  else if (doneAt !== null && correct > 0 && wrong < rules.lives) speedBonus = Math.max(0, Math.floor((deadlineMs - doneAt) / 1000));
   return { correct, wrong, points: points + speedBonus, speedBonus, finishedMs: lastCorrectAt, complete, combo, deadlineMs };
 }

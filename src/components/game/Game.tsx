@@ -2,12 +2,10 @@
 
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
+import { SOLO_DIFFICULTY, generateRound, getRoundSpec } from "@/lib/engine";
 import { roundReducer, type Mode } from "@/lib/game";
-import { ITEMS_BY_ID, TRAINING_ITEM_IDS, type Item } from "@/lib/items";
 import { applyRoundResult } from "@/lib/progress";
-import { buildChoices } from "@/lib/choices";
-import { dailyItems, hash, mulberry32, pickItems, utcDateKey } from "@/lib/rng";
-import { levelItemCount } from "@/lib/scoring";
+import { hash, mulberry32, utcDateKey } from "@/lib/rng";
 import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
 import { PlayScreen } from "./PlayScreen";
@@ -17,10 +15,6 @@ import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
 import { TrainingPrompt } from "./TrainingPrompt";
 import { useGameMusic } from "./useGameMusic";
-
-const TRAINING_ITEMS = TRAINING_ITEM_IDS.map((id) => ITEMS_BY_ID.get(id)).filter(
-  (item): item is Item => item !== undefined,
-);
 
 const TRAINING_PROMPT_DELAY_MS = 2000;
 
@@ -72,18 +66,13 @@ export function Game() {
   }, [round]);
 
   const start = useCallback((mode: Mode) => {
-    const current = loadStats();
     const t = Date.now();
-    let items: Item[];
-    let level = current.level;
-    if (mode === "training") items = TRAINING_ITEMS;
-    else if (mode === "daily") items = dailyItems(utcDateKey(t), levelItemCount(3));
-    else items = pickItems(levelItemCount(level));
-    if (mode !== "level") level = 1;
-    const seed = mode === "training" ? "training" : mode === "daily" ? utcDateKey(t) : null;
-    const choices = buildChoices(items, seed ? mulberry32(hash(`blinq:choices:${seed}`)) : Math.random);
+    const level = mode === "level" ? loadStats().level : 1;
+    const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
+    const seed = mode === "training" ? "blinq:training" : mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
+    const { items, choices } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
     keyRef.current += 1;
-    dispatch({ type: "start", mode, items, choices, level, now: t, key: keyRef.current });
+    dispatch({ type: "start", mode, spec, items, choices, level, now: t, key: keyRef.current });
   }, []);
 
   const finishTraining = useCallback(() => {
@@ -95,8 +84,7 @@ export function Game() {
     keyRef.current += 1;
     const now = Date.now();
     if (round?.mode === "level") {
-      const items = pickItems(round.items.length);
-      dispatch({ type: "retry", now, key: keyRef.current, items, choices: buildChoices(items, Math.random) });
+      dispatch({ type: "retry", now, key: keyRef.current, ...generateRound(round.spec) });
       return;
     }
     dispatch({ type: "retry", now, key: keyRef.current });

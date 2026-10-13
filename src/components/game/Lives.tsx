@@ -3,9 +3,8 @@
 import { Heart, HeartCrack } from "lucide-react";
 import { cn } from "cn";
 import { motion } from "framer-motion";
-import { MAX_LIVES } from "@/lib/scoring";
 
-export function Lives({ lives, max = MAX_LIVES }: { lives: number; max?: number }) {
+export function Lives({ lives, max }: { lives: number; max: number }) {
   return (
     <span className="flex items-center gap-1" role="img" aria-label={`${lives} of ${max} mistakes left`}>
       {Array.from({ length: max }, (_, i) => {
