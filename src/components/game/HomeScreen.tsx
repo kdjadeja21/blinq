@@ -20,8 +20,8 @@ interface HomeScreenProps {
 const FLOATERS = [
   { emoji: "🍎", className: "left-2 top-2", delay: 0 },
   { emoji: "🎧", className: "right-3 top-6", delay: 0.6 },
-  { emoji: "🔑", className: "left-8 bottom-0", delay: 1.2 },
-  { emoji: "☕", className: "right-8 bottom-2", delay: 1.8 },
+  { emoji: "🔑", className: "left-0 top-24", delay: 1.2 },
+  { emoji: "☕", className: "right-0 top-24", delay: 1.8 },
 ];
 
 function useResetCountdown(): string {

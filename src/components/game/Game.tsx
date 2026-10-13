@@ -23,6 +23,20 @@ function subscribeNever() {
   return () => {};
 }
 
+function Splash() {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-3 text-center" aria-busy="true">
+      <p className="animate-bounce text-7xl" aria-hidden>
+        🧠
+      </p>
+      <h1 className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-6xl font-extrabold tracking-tight text-transparent">
+        Blinq
+      </h1>
+      <p className="text-muted-foreground">Warming up your memory...</p>
+    </div>
+  );
+}
+
 export function Game() {
   const stats = useStats();
   const today = useSyncExternalStore(subscribeNever, () => utcDateKey(Date.now()), () => "");
@@ -85,7 +99,7 @@ export function Game() {
 
   let body: React.ReactNode;
   if (!stats) {
-    body = <div className="flex-1" aria-busy="true" />;
+    body = <Splash />;
   } else if (!round) {
     body = (
       <HomeScreen
