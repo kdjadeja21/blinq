@@ -53,24 +53,33 @@ export function TextField({
   value,
   onChange,
   className,
+  hint,
+  suffix,
   ...rest
-}: { label: string; value: string; onChange: (value: string) => void } & Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "value" | "onChange"
->) {
+}: {
+  label: string;
+  value: string;
+  onChange: (value: string) => void;
+  hint?: string;
+  suffix?: React.ReactNode;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-semibold">
-      {label}
-      <input
-        {...rest}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-12 rounded-2xl border-2 bg-card px-4 text-base font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-          className,
-        )}
-      />
-    </label>
+    <div className="flex flex-col gap-1.5">
+      <span className="text-sm font-semibold">{label}</span>
+      {hint ? <p className="-mt-1 text-xs font-normal text-muted-foreground">{hint}</p> : null}
+      <div className={cn("flex gap-2", !suffix && "flex-col")}>
+        <input
+          {...rest}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            "h-12 min-w-0 flex-1 rounded-2xl border-2 bg-card px-4 text-base font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+            className,
+          )}
+        />
+        {suffix}
+      </div>
+    </div>
   );
 }
 

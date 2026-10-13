@@ -22,3 +22,46 @@ export function normalizeCode(raw: unknown): string | null {
   const code = raw.trim().toUpperCase();
   return CODE_PATTERN.test(code) ? code : null;
 }
+
+const RANDOM_ADJECTIVES = [
+  "Swift",
+  "Bold",
+  "Happy",
+  "Cosmic",
+  "Mighty",
+  "Sunny",
+  "Clever",
+  "Lucky",
+  "Neon",
+  "Golden",
+  "Silver",
+  "Turbo",
+  "Chill",
+  "Epic",
+  "Zesty",
+] as const;
+
+const RANDOM_NOUNS = [
+  "Fox",
+  "Panda",
+  "Otter",
+  "Comet",
+  "Mango",
+  "Pixel",
+  "Rocket",
+  "Koala",
+  "Tiger",
+  "Ninja",
+  "Penguin",
+  "Wizard",
+  "Badger",
+  "Falcon",
+  "Gamer",
+] as const;
+
+/** Fun default for create/join; always passes `cleanName`. */
+export function randomPlayerName(random: () => number = Math.random): string {
+  const adj = RANDOM_ADJECTIVES[Math.floor(random() * RANDOM_ADJECTIVES.length)];
+  const noun = RANDOM_NOUNS[Math.floor(random() * RANDOM_NOUNS.length)];
+  return `${adj} ${noun}`.slice(0, NAME_MAX);
+}
