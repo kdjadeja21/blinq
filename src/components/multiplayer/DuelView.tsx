@@ -149,6 +149,7 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
           wrongIds={picks.wrong}
           hintId={null}
           pendingIds={picks.pending}
+          disabled={waiting}
           onPick={picks.pick}
         />
         <AnimatePresence>

@@ -10,10 +10,11 @@ interface ChoiceGridProps {
   wrongIds: string[];
   hintId: string | null;
   pendingIds?: string[];
+  disabled?: boolean;
   onPick: (id: string) => void;
 }
 
-export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds, onPick }: ChoiceGridProps) {
+export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds, disabled = false, onPick }: ChoiceGridProps) {
   const reduce = useReducedMotion();
   const cols = choices.length <= 12 ? "grid-cols-4" : "grid-cols-5";
   return (
@@ -38,7 +39,7 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds,
           >
             <button
               type="button"
-              disabled={used}
+              disabled={used || disabled}
               onClick={() => onPick(item.id)}
               aria-label={`${item.name}${right ? ", correct" : wrong ? ", not on the table" : ""}`}
               className={cn(
@@ -47,7 +48,8 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds,
                 right && "border-success bg-success/20 shadow-success/40",
                 pending && "scale-95 border-primary bg-primary/15",
                 wrong && "border-destructive bg-destructive/30 ring-2 ring-destructive/60",
-                hintId === item.id && !used && "animate-pulse border-gold",
+                disabled && !used && "opacity-40 grayscale",
+                hintId === item.id && !used && !disabled && "animate-pulse border-gold",
               )}
             >
               <span className="select-none leading-none">{item.emoji}</span>

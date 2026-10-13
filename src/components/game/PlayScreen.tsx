@@ -120,6 +120,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             recalledIds={round.recalled.map((r) => r.id)}
             wrongIds={round.wrong}
             hintId={hintId}
+            disabled={round.lives <= 0}
             onPick={pick}
           />
         ) : (
