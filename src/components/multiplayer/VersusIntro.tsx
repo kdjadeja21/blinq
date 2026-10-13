@@ -157,7 +157,7 @@ export function VersusIntro({
             <span aria-hidden className="absolute inset-0 select-none px-6 py-1 text-8xl font-black italic leading-none tracking-tighter text-black/60 translate-x-1 translate-y-1.5">
               VS
             </span>
-            <span className="relative bg-gradient-to-b from-gold via-flame to-fuchsia-500 bg-clip-text text-8xl font-black italic leading-none tracking-tighter text-transparent [-webkit-text-stroke:2px_white]">
+            <span className="relative inline-block px-3 -mx-3 bg-gradient-to-b from-gold via-flame to-fuchsia-500 bg-clip-text text-8xl font-black italic leading-none tracking-tighter text-transparent [-webkit-text-stroke:2px_white]">
               VS
             </span>
           </motion.span>
