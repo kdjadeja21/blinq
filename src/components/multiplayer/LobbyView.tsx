@@ -8,6 +8,7 @@ import { callMp, shareUrl } from "@/lib/multiplayer/api";
 import { MAX_PLAYERS, MIN_HUMANS } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip } from "./shared";
+import { GameStartOverlay } from "./GameStartOverlay";
 
 export function useAction() {
   const [busy, setBusy] = useState(false);
@@ -141,11 +142,20 @@ export function LobbyView({ state }: { state: RoomState }) {
 }
 
 export function TeamsReadyView({ state }: { state: RoomState }) {
-  const { room, players, teams, me, isAdmin, online } = state;
+  const { room, players, teams, me, isAdmin, online, refresh } = state;
   const { busy, error, run } = useAction();
+  const [starting, setStarting] = useState(false);
   if (!room) return null;
+  async function startGame() {
+    if (!room) return;
+    setStarting(true);
+    const result = await run("start_game", { roomId: room.id });
+    if (result === null) setStarting(false);
+    else await refresh().catch(() => undefined);
+  }
   return (
     <div className="flex flex-1 flex-col gap-3">
+      {starting && <GameStartOverlay />}
       <div className="grid grid-cols-2 gap-3">
         {teams.map((team) => (
           <section key={team.id} className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-label={team.name}>
@@ -165,7 +175,7 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
       {isAdmin ? (
         <div className="mt-auto flex flex-col gap-2">
           <ErrorNote message={error} />
-          <Button variant="game" className="h-14 rounded-3xl text-lg" disabled={busy} onClick={() => run("start_game", { roomId: room.id })}>
+          <Button variant="game" className="h-14 rounded-3xl text-lg" disabled={busy || starting} onClick={startGame}>
             Start game
           </Button>
           <Button variant="secondary" className="h-12 rounded-2xl" disabled={busy} onClick={() => run("create_teams", { roomId: room.id })}>

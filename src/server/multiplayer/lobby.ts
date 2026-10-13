@@ -180,8 +180,11 @@ export async function playAgain(userId: string, roomId: string) {
 export async function startGame(userId: string, roomId: string) {
   const room = await requireAdmin(roomId, userId);
   if (room.phase !== "teams_ready") throw new ApiError(409, "Create teams first.");
-  await ensureLevel(room, 1);
-  must(await db().from("teams").update({ score: 0 }).eq("room_id", room.id));
+  const [, resetScores] = await Promise.all([
+    ensureLevel(room, 1),
+    db().from("teams").update({ score: 0 }).eq("room_id", room.id),
+  ]);
+  must(resetScores);
   const next = await swapPhase(room, {
     phase: "duel_intro",
     level: 1,
