@@ -1,5 +1,6 @@
--- Run once in the Supabase SQL editor after the first deploy (see docs/SUPABASE_SETUP.md).
--- Replace APP_URL and CRON_SECRET. CRON_SECRET must equal the MULTIPLAYER_CRON_SECRET env var of the app.
+-- Optional: run in SQL Editor after deploy, OR create the same jobs in Dashboard → Integrations → Cron.
+-- See docs/SUPABASE_SETUP.md. Replace APP_URL and CRON_SECRET (same value as MULTIPLAYER_CRON_SECRET).
+-- Requires Postgres 15+ for sub-minute schedules (https://supabase.com/docs/guides/cron/quickstart).
 
 create extension if not exists pg_cron;
 create extension if not exists pg_net;

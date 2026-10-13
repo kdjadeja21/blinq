@@ -1,14 +1,13 @@
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
+import { isSupabaseConfigured, supabasePublishableKey, supabaseUrl } from "./env";
+
+export { isSupabaseConfigured } from "./env";
 
 let cached: SupabaseClient | null = null;
 
-export function isSupabaseConfigured(): boolean {
-  return Boolean(process.env.NEXT_PUBLIC_SUPABASE_URL && process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY);
-}
-
 export function supabase(): SupabaseClient {
   if (!isSupabaseConfigured()) throw new Error("Supabase is not configured. See docs/SUPABASE_SETUP.md.");
-  cached ??= createClient(process.env.NEXT_PUBLIC_SUPABASE_URL!, process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY!, {
+  cached ??= createClient(supabaseUrl()!, supabasePublishableKey()!, {
     auth: { persistSession: true, autoRefreshToken: true, storageKey: "blinq:supabase-auth" },
   });
   return cached;

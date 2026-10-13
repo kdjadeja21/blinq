@@ -1,6 +1,7 @@
 import { createHmac } from "node:crypto";
 import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { mulberry32 } from "@/lib/rng";
+import { supabaseSecretKey, supabaseUrl } from "@/lib/supabase/env";
 
 export class ApiError extends Error {
   constructor(
@@ -19,9 +20,17 @@ function env(name: string): string {
 
 let cached: SupabaseClient | null = null;
 
-/** Service-role client. It bypasses RLS, so it must only ever run on the server. */
+/** Secret-key client. It bypasses RLS, so it must only ever run on the server. */
 export function db(): SupabaseClient {
-  cached ??= createClient(env("NEXT_PUBLIC_SUPABASE_URL"), env("SUPABASE_SERVICE_ROLE_KEY"), {
+  const url = supabaseUrl();
+  const secret = supabaseSecretKey();
+  if (!url || !secret) {
+    throw new ApiError(
+      500,
+      "Missing Supabase URL or secret key (SUPABASE_SECRET_KEY or SUPABASE_SERVICE_ROLE_KEY). See docs/SUPABASE_SETUP.md.",
+    );
+  }
+  cached ??= createClient(url, secret, {
     auth: { persistSession: false, autoRefreshToken: false },
   });
   return cached;
