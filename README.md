@@ -24,6 +24,8 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 - Branching, commits and releases: [docs/BRANCHING.md](docs/BRANCHING.md)
 - Visual language, tokens and components: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
+- Multiplayer design and rules: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)
+- Connect Supabase (multiplayer backend): [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
 
 ## Learn More
 

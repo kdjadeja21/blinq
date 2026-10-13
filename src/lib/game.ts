@@ -1,11 +1,10 @@
 import type { Item } from "./items";
 import {
-  BASE_POINTS,
-  COMBO_WINDOW_MS,
   MAX_LIVES,
   WRONG_PENALTY_MS,
   WIN_RATIO,
-  comboMultiplier,
+  nextCombo,
+  pointsForCombo,
   starsFor,
 } from "./scoring";
 
@@ -163,10 +162,8 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         };
         return next.lives <= 0 || action.now >= next.phaseEndsAt ? finish(next, action.now, false) : next;
       }
-      const chained =
-        round.lastCorrectAt !== null && action.now - round.lastCorrectAt <= COMBO_WINDOW_MS;
-      const combo = chained ? round.combo + 1 : 1;
-      const points = Math.round(BASE_POINTS * comboMultiplier(combo));
+      const combo = nextCombo(round.combo, round.lastCorrectAt, action.now);
+      const points = pointsForCombo(combo);
       const next: Round = {
         ...round,
         recalled: [...round.recalled, { id: action.id, points }],
