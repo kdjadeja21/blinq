@@ -65,12 +65,27 @@ const CUES: Record<Cue, { notes: Note[]; vibrate: number | number[] }> = {
 
 let ctx: AudioContext | null = null;
 
+export function isFeedbackEnabled(): boolean {
+  return typeof window !== "undefined" && readEnabled();
+}
+
+export function getAudioContext(): AudioContext | null {
+  if (typeof window === "undefined") return null;
+  try {
+    ctx ??= new AudioContext();
+    return ctx;
+  } catch {
+    return null;
+  }
+}
+
 export function playCue(cue: Cue) {
   if (typeof window === "undefined" || !readEnabled()) return;
   const { notes, vibrate } = CUES[cue];
   if (vibrate && typeof navigator.vibrate === "function") navigator.vibrate(vibrate);
   try {
-    ctx ??= new AudioContext();
+    const ctx = getAudioContext();
+    if (!ctx) return;
     if (ctx.state === "suspended") void ctx.resume();
     const t0 = ctx.currentTime;
     for (const note of notes) {

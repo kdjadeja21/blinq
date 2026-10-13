@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
+import { musicHit } from "@/lib/music";
 import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
@@ -46,7 +47,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
 
   function pick(id: string) {
     const correct = round.items.some((i) => i.id === id);
-    playCue(correct ? "correct" : "wrong");
+    if (!correct) playCue("wrong");
+    else if (!musicHit(round.combo)) playCue("correct");
     dispatch({ type: "pick", id, now: Date.now() });
   }
 
