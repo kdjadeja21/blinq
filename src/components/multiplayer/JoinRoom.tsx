@@ -5,10 +5,11 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Dices, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useLayoutEffect, useState, useTransition } from "react";
+import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
+import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
 import { ErrorNote, Spinner, TextField } from "./shared";
 
 const ADJECTIVES = ["Swift", "Sneaky", "Brainy", "Lucky", "Fuzzy", "Cosmic", "Zesty", "Mighty", "Clever", "Sunny"];
@@ -73,6 +74,11 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
   useLayoutEffect(() => () => setRequesting(false), []);
   const busy = requesting || navigating;
   const [error, setError] = useState<string | null>(null);
+
+  // Create the anonymous session while the guest types their name, so Join does not sign in and navigate in one step.
+  useEffect(() => {
+    if (isSupabaseConfigured()) void ensureSession().catch(() => undefined);
+  }, []);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
