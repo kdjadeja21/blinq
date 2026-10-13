@@ -5,7 +5,7 @@ import {
   autoResultMs,
 } from "@/lib/multiplayer/config";
 import type { DuelProgressRow, DuelRow, RoomRow, SubmissionRow } from "@/lib/multiplayer/types";
-import { MAX_LIVES, WRONG_PENALTY_MS, scoreRecall } from "@/lib/scoring";
+import { scoreRecall } from "@/lib/scoring";
 import { after } from "next/server";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { countDuels, ensureLevel, resolveDuel, toPicks } from "./duels";
@@ -157,8 +157,8 @@ export async function submitGuess(userId: string, duelId: unknown, itemKey: unkn
 
   const at = tapTime(now, claimedAt, startedAt);
   const wrong = mine.filter((s) => !s.correct).length;
-  if (wrong >= MAX_LIVES) throw new ApiError(409, "You are out of lives.");
-  const personalDeadline = startedAt + duel.recall_ms - wrong * WRONG_PENALTY_MS + GUESS_GRACE_MS;
+  if (wrong >= duel.rules.lives) throw new ApiError(409, "You are out of lives.");
+  const personalDeadline = startedAt + duel.recall_ms - wrong * duel.rules.wrongPenaltyMs + GUESS_GRACE_MS;
   if (at > personalDeadline) throw new ApiError(409, "Time is up.");
   if (mine.filter((s) => at - Date.parse(s.created_at) < 1000).length >= GUESSES_PER_SECOND) {
     throw new ApiError(429, "Slow down.");
@@ -189,7 +189,7 @@ export async function finishEarly(userId: string, duelId: unknown) {
 type ProgressRow = Pick<DuelProgressRow, "player_id" | "done" | "correct_count" | "wrong_count">;
 
 function isDone(duel: DuelRow, row: ProgressRow | undefined): boolean {
-  return Boolean(row && (row.done || row.wrong_count >= MAX_LIVES || row.correct_count >= duel.item_count));
+  return Boolean(row && (row.done || row.wrong_count >= duel.rules.lives || row.correct_count >= duel.item_count));
 }
 
 /**
@@ -205,8 +205,8 @@ async function settle(
 ) {
   const startedAt = room.phase_started_at ?? new Date().toISOString();
   const doneMs = options.doneMs ?? null;
-  const score = scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms, doneMs);
-  const selfDone = doneMs !== null || score.complete || score.wrong >= MAX_LIVES;
+  const score = scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms, duel.rules, doneMs);
+  const selfDone = doneMs !== null || score.complete || score.wrong >= duel.rules.lives;
 
   const write = async () => {
     must(

@@ -5,9 +5,9 @@ import Link from "next/link";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
+import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
-import { levelItemCount } from "@/lib/scoring";
 import type { Stats } from "@/lib/storage";
 import { StatTile } from "./StatTile";
 
@@ -107,7 +107,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
           }}
         >
           <Play className="size-6 fill-current" /> Play level {stats.level}
-          <span className="text-sm font-normal opacity-80">({levelItemCount(stats.level)} items)</span>
+          <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
         </Button>
       </motion.div>
 
