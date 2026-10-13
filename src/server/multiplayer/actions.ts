@@ -6,18 +6,21 @@ import {
   joinRoom,
   kickPlayer,
   leaveRoom,
+  playAgain,
   startGame,
   updateSettings,
 } from "./lobby";
 import { requireMember } from "./queries";
-import { advancePhase, nextStep, submitGuess, sweep } from "./phases";
+import { advancePhase, finishEarly, nextStep, submitGuess, sweep } from "./phases";
 
 export const USER_ACTIONS = [
   "create_room",
   "join_room",
   "create_teams",
   "start_game",
+  "play_again",
   "submit_guess",
+  "finish_early",
   "advance_phase",
   "next_step",
   "update_settings",
@@ -50,8 +53,12 @@ export async function runUserAction(action: UserAction, userId: string, body: Bo
       return createTeams(userId, str(body, "roomId"));
     case "start_game":
       return startGame(userId, str(body, "roomId"));
+    case "play_again":
+      return playAgain(userId, str(body, "roomId"));
     case "submit_guess":
-      return submitGuess(userId, body.duelId, body.itemKey);
+      return submitGuess(userId, body.duelId, body.itemKey, body.at);
+    case "finish_early":
+      return finishEarly(userId, body.duelId);
     case "advance_phase": {
       const roomId = str(body, "roomId");
       await requireMember(roomId, userId);

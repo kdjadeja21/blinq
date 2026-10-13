@@ -46,13 +46,13 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds,
                 "focus-visible:ring-3 focus-visible:ring-ring/50 enabled:active:translate-y-0.5 enabled:active:border-b-2",
                 right && "border-success bg-success/20 shadow-success/40",
                 pending && "scale-95 border-primary bg-primary/15",
-                wrong && "border-destructive bg-destructive/15 opacity-60 grayscale",
+                wrong && "border-destructive bg-destructive/30 ring-2 ring-destructive/60",
                 hintId === item.id && !used && "animate-pulse border-gold",
               )}
             >
               <span className="select-none leading-none">{item.emoji}</span>
               {right && <span className="absolute right-1 top-0.5 text-sm text-success">✓</span>}
-              {wrong && <span className="absolute right-1 top-0.5 text-sm text-destructive">✕</span>}
+              {wrong && <span className="absolute right-1 top-0 text-xl font-black text-destructive">✕</span>}
             </button>
           </motion.li>
         );

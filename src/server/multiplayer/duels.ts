@@ -94,16 +94,32 @@ export function toPicks(subs: Pick<SubmissionRow, "correct" | "created_at">[], s
   return subs.map((s) => ({ correct: s.correct, at: Date.parse(s.created_at) - start }));
 }
 
-export async function scorePlayer(duel: DuelRow, playerId: string, startedAt: string): Promise<RecallScore> {
-  const subs = must(
-    await db()
+export interface PlayerScore {
+  score: RecallScore;
+  foundKeys: string[];
+}
+
+export async function scorePlayer(duel: DuelRow, playerId: string, startedAt: string): Promise<PlayerScore> {
+  const [subs, progress] = await Promise.all([
+    db()
       .from("submissions")
-      .select("correct, created_at")
+      .select("item_key, correct, created_at")
       .eq("duel_id", duel.id)
       .eq("player_id", playerId)
-      .returns<Pick<SubmissionRow, "correct" | "created_at">[]>(),
-  );
-  return scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms);
+      .order("created_at")
+      .returns<Pick<SubmissionRow, "item_key" | "correct" | "created_at">[]>()
+      .then(must),
+    db()
+      .from("duel_progress")
+      .select("done_ms")
+      .eq("duel_id", duel.id)
+      .eq("player_id", playerId)
+      .maybeSingle<{ done_ms: number | null }>()
+      .then(must),
+  ]);
+  const score = scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms, progress?.done_ms ?? null);
+  const foundKeys = subs.filter((s) => s.correct).slice(0, score.correct).map((s) => s.item_key);
+  return { score, foundKeys };
 }
 
 /** Idempotent: computes results from stored submissions, writes them, refreshes team totals. */
@@ -112,18 +128,29 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
   const players = await listPlayers(room.id);
   const bots = new Set(players.filter((p) => p.is_bot).map((p) => p.id));
 
-  const outcomes: (DuelOutcome & { score: RecallScore })[] = [];
+  const outcomes: (DuelOutcome & PlayerScore)[] = [];
   for (const playerId of [duel.player_a, duel.player_b]) {
-    const score =
-      bots.has(playerId) && duel.bot_plan
-        ? scoreRecall(botPicks(duel.bot_plan), duel.item_count, duel.recall_ms)
-        : await scorePlayer(duel, playerId, startedAt);
+    let result: PlayerScore;
+    if (bots.has(playerId) && duel.bot_plan) {
+      const score = scoreRecall(botPicks(duel.bot_plan), duel.item_count, duel.recall_ms);
+      const items = must(
+        await db()
+          .from("duel_items")
+          .select("item_key")
+          .eq("duel_id", duel.id)
+          .order("position")
+          .returns<{ item_key: string }[]>(),
+      );
+      result = { score, foundKeys: items.slice(0, score.correct).map((i) => i.item_key) };
+    } else {
+      result = await scorePlayer(duel, playerId, startedAt);
+    }
     outcomes.push({
       playerId,
-      correct: score.correct,
-      complete: score.complete,
-      finishedMs: score.finishedMs,
-      score,
+      correct: result.score.correct,
+      complete: result.score.complete,
+      finishedMs: result.score.finishedMs,
+      ...result,
     });
   }
   const winner = decideWinner(outcomes[0], outcomes[1]);
@@ -136,6 +163,9 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
           duel_id: duel.id,
           player_id: o.playerId,
           correct_count: o.score.correct,
+          wrong_count: o.score.wrong,
+          speed_bonus: o.score.speedBonus,
+          found_keys: o.foundKeys,
           finished_ms: o.score.finishedMs,
           points: o.score.points,
         })),

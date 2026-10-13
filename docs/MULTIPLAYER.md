@@ -87,7 +87,9 @@ All are `POST /api/mp/<action>` with the user's access token. Code in `src/serve
 | `join_room` | Anyone | Lobby only, max 12, unique name. Existing members rejoin at any time. |
 | `create_teams` | Admin | Shuffle into two teams, add a bot when odd, phase `teams_ready`. |
 | `start_game` | Admin | Build level 1 (pairings, items, timers), phase `duel_intro`. |
-| `submit_guess` | Duel player | Validates and stores a pick, updates live progress, ends the duel early when all items are found. |
+| `submit_guess` | Duel player | Validates and stores a pick (optional `at`: client tap time on the server clock, clamped to the last 5s), updates live progress. Returns `correct`, `points`, `combo`, `correctCount`, `wrongCount`, `deadlineMs`, `ended`. Ends the duel when someone finds every item, or when both players are finished (out of lives, done early, or a bot opponent). |
+| `finish_early` | Duel player | "I'm done": stops recall and banks the remaining time as a speed bonus. |
+| `play_again` | Admin | After the final result: deletes the finished game and returns the room to the lobby. |
 | `advance_phase` | Member / cron | Moves on after the deadline. Resolves duels, updates team scores, builds the next level. |
 | `next_step` | Admin | Skips a result screen. |
 | `update_settings` | Admin | Levels and difficulty before the game; pacing any time. |
@@ -131,3 +133,7 @@ The plan was adapted to the code we already have.
 - Reactions or chat while waiting for a duel.
 - Restore a player's own picks after a mid-recall reload (picks are kept server-side; only the local highlight is lost).
 - CAPTCHA widget and a maintained profanity list (see Hardening in the setup guide).
+
+## Instant tap feedback
+
+During memorize each duel player already receives the table (RLS only exposes `duel_items` in that phase). `useRoom` keeps those keys as `memorizedKeys`, and `useDuelPicks` judges taps against them locally with the shared `scoreRecall` rules, exactly like single-player. Taps are queued and sent to `submit_guess` in order in the background. The server stays authoritative: if its answer differs, or it rejects a tap, the local state is corrected. A client that joined late (no memorized table) falls back to waiting for the server's answer.

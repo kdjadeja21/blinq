@@ -1,17 +1,21 @@
 "use client";
 
 import { cn } from "cn";
-import { useMemo, useRef, useState } from "react";
+import { AnimatePresence, motion } from "framer-motion";
+import { useEffect, useMemo } from "react";
 import { Board } from "@/components/game/Board";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
+import { Lives } from "@/components/game/Lives";
 import { TimerRing } from "@/components/game/TimerRing";
 import { playCue } from "@/lib/feedback";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
-import { callMp } from "@/lib/multiplayer/api";
-import { MAX_LIVES } from "@/lib/scoring";
+import { HIDE_MS } from "@/lib/game";
+import { Button } from "@/components/ui/button";
+import { WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import type { DuelRow, PlayerRow } from "@/lib/multiplayer/types";
 import type { RoomState } from "./useRoom";
 import { useServerNow } from "./shared";
+import { useDuelPicks } from "./useDuelPicks";
 
 export function toItems(keys: string[]): Item[] {
   return keys.flatMap((key) => {
@@ -54,42 +58,128 @@ function DuelProgress({ state, duel, elapsedMs }: { state: RoomState; duel: Duel
   );
 }
 
-function Recall({ state, duel }: { state: RoomState; duel: DuelRow }) {
-  const choices = useMemo(() => toItems(state.choiceKeys), [state.choiceKeys]);
-  const [right, setRight] = useState<string[]>([]);
-  const [wrong, setWrong] = useState<string[]>([]);
-  const [pending, setPending] = useState<string[]>([]);
-  const sent = useRef(new Set<string>());
-  const out = wrong.length >= MAX_LIVES;
+function useTickCue(seconds: number, active: boolean) {
+  const ticking = active && seconds > 0 && seconds <= 5;
+  useEffect(() => {
+    if (ticking) playCue("tick");
+  }, [ticking, seconds]);
+}
 
-  async function pick(id: string) {
-    if (sent.current.has(id) || out) return;
-    sent.current.add(id);
-    playCue("tap");
-    setPending((list) => [...list, id]);
-    try {
-      const result = await callMp<{ correct?: boolean }>("submit_guess", { duelId: duel.id, itemKey: id });
-      if (result.correct === false) {
-        playCue("wrong");
-        setWrong((list) => [...list, id]);
-      } else {
-        playCue("correct");
-        setRight((list) => [...list, id]);
-      }
-    } catch {
-      sent.current.delete(id);
-    } finally {
-      setPending((list) => list.filter((key) => key !== id));
-    }
-  }
+function Header({ label, seconds, progress, extra }: { label: string; seconds: number; progress: number; extra?: React.ReactNode }) {
+  return (
+    <div className="flex items-center justify-between gap-3">
+      <div className="flex min-w-0 flex-col gap-1">
+        <h2 className="text-xl font-bold">{label}</h2>
+        {extra}
+      </div>
+      <TimerRing seconds={seconds} progress={progress} label="Time remaining" />
+    </div>
+  );
+}
+
+function Popups({ kind, points, id }: { kind: "good" | "bad"; points: number; id: number }) {
+  return (
+    <motion.div
+      key={id}
+      aria-hidden
+      initial={{ y: 10, opacity: 1, scale: 0.7 }}
+      animate={{ y: -50, opacity: 0, scale: 1.3 }}
+      exit={{ opacity: 0 }}
+      transition={{ duration: 0.9 }}
+      className={cn(
+        "pointer-events-none absolute left-1/2 -translate-x-1/2 text-3xl font-extrabold drop-shadow-lg",
+        kind === "good" ? "top-1/2 text-success" : "top-1/3 text-destructive",
+      )}
+    >
+      {kind === "good" ? `+${points}` : `-${WRONG_PENALTY_MS / 1000}s`}
+    </motion.div>
+  );
+}
+
+function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel: DuelRow; clock: number; startedAt: number }) {
+  const choices = useMemo(() => toItems(state.choiceKeys), [state.choiceKeys]);
+  const picks = useDuelPicks({ duel, startedAt, memorized: state.memorizedKeys, now: state.now });
+  const { score } = picks;
+
+  const current = clock || startedAt;
+  const remaining = Math.max(0, startedAt + score.deadlineMs - current);
+  const seconds = Math.ceil(remaining / 1000);
+  const timeUp = remaining === 0;
+  useTickCue(seconds, !picks.stopped && !timeUp);
+
+  const waiting = picks.stopped || timeUp;
+  const status = picks.out
+    ? "Out of mistakes. Waiting for your opponent."
+    : picks.complete || picks.finished
+      ? "Done. Waiting for your opponent."
+      : timeUp
+        ? "Time is up."
+        : null;
 
   return (
     <div className="flex flex-col gap-3">
-      <ChoiceGrid choices={choices} recalledIds={right} wrongIds={wrong} hintId={null} pendingIds={pending} onPick={pick} />
-      <p className="text-center text-xl" role="img" aria-label={`${MAX_LIVES - wrong.length} mistakes left`}>
-        {Array.from({ length: MAX_LIVES }, (_, i) => (i < MAX_LIVES - wrong.length ? "❤️" : "🖤")).join(" ")}
-      </p>
-      {out && <p className="text-center text-sm text-muted-foreground">Out of mistakes. Watch your opponent finish.</p>}
+      <Header
+        label="Tap what you saw"
+        seconds={seconds}
+        progress={Math.min(1, remaining / duel.recall_ms)}
+        extra={
+          <div className="h-8">
+            <AnimatePresence mode="popLayout">
+              {score.combo >= 2 && !waiting && (
+                <motion.span
+                  key={score.combo}
+                  initial={{ scale: 0.4, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  exit={{ opacity: 0 }}
+                  transition={{ type: "spring", stiffness: 500, damping: 14 }}
+                  className="inline-block rounded-full bg-flame px-3 py-1 text-sm font-bold text-black shadow-lg shadow-flame/40"
+                >
+                  🔥 x{comboMultiplier(score.combo)} combo
+                </motion.span>
+              )}
+            </AnimatePresence>
+          </div>
+        }
+      />
+      <div className="relative">
+        <ChoiceGrid
+          choices={choices}
+          recalledIds={picks.right}
+          wrongIds={picks.wrong}
+          hintId={null}
+          pendingIds={picks.pending}
+          onPick={picks.pick}
+        />
+        <AnimatePresence>
+          {picks.popup && <Popups key={picks.popup.key} id={picks.popup.key} kind={picks.popup.kind} points={picks.popup.points} />}
+        </AnimatePresence>
+      </div>
+      {status && (
+        <p className="rounded-2xl bg-muted px-3 py-2 text-center text-sm font-medium" role="status">
+          {status}
+        </p>
+      )}
+      <div className="flex items-center justify-between gap-2">
+        <span className="text-sm text-muted-foreground tabular-nums">
+          {picks.right.length}/{duel.item_count} found
+        </span>
+        <Lives lives={picks.lives} />
+        <Button variant="secondary" className="h-11 px-4" disabled={waiting} onClick={picks.finish}>
+          I&apos;m done
+        </Button>
+      </div>
+      <DuelProgress state={state} duel={duel} elapsedMs={current - startedAt} />
+    </div>
+  );
+}
+
+function MemorizeView({ state, seconds, remaining, durationMs }: { state: RoomState; seconds: number; remaining: number; durationMs: number }) {
+  useTickCue(seconds, true);
+  const items = toItems(state.itemKeys);
+  return (
+    <div className="flex flex-col gap-3">
+      <Header label="Memorize the table" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
+      <Board items={items} mode={remaining <= HIDE_MS ? "hide" : "memorize"} recalledIds={[]} />
     </div>
   );
 }
@@ -104,8 +194,6 @@ export function DuelView({ state }: { state: RoomState }) {
   const durationMs = room.phase_duration_ms ?? 0;
   const remaining = Math.max(0, started + durationMs - clock);
   const seconds = Math.ceil(remaining / 1000);
-  const progressFraction = durationMs ? Math.min(1, remaining / durationMs) : 0;
-  const items = toItems(state.itemKeys);
   const opponent = players.find((p) => p.id === (duel.player_a === me?.id ? duel.player_b : duel.player_a));
 
   if (room.phase === "duel_intro") {
@@ -122,23 +210,17 @@ export function DuelView({ state }: { state: RoomState }) {
     );
   }
 
-  const label = room.phase === "memorize" ? "Memorize the table" : playing ? "Tap what you saw" : "Players are recalling";
+  if (room.phase === "memorize") {
+    return <MemorizeView state={state} seconds={seconds} remaining={remaining} durationMs={durationMs} />;
+  }
+
+  if (playing) return <RecallPanel key={duel.id} state={state} duel={duel} clock={clock} startedAt={started} />;
+
   return (
     <div className="flex flex-col gap-3">
-      <div className="flex items-center justify-between gap-3">
-        <h2 className="text-xl font-bold">{label}</h2>
-        <TimerRing seconds={seconds} progress={progressFraction} label="Time remaining" />
-      </div>
-      {room.phase === "memorize" && <Board items={items} mode="memorize" recalledIds={[]} />}
-      {room.phase === "recall" && playing && <Recall key={duel.id} state={state} duel={duel} />}
-      {room.phase === "recall" && !playing && (
-        <p className="rounded-2xl bg-muted px-4 py-6 text-center text-muted-foreground">
-          Hang tight, this duel is not yours.
-        </p>
-      )}
-      {room.phase === "recall" && (
-        <DuelProgress state={state} duel={duel} elapsedMs={clock - started} />
-      )}
+      <Header label="Players are recalling" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
+      <p className="rounded-2xl bg-muted px-4 py-6 text-center text-muted-foreground">Hang tight, this duel is not yours.</p>
+      <DuelProgress state={state} duel={duel} elapsedMs={clock - started} />
     </div>
   );
 }

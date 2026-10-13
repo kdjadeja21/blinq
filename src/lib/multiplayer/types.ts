@@ -81,12 +81,17 @@ export interface DuelProgressRow {
   correct_count: number;
   wrong_count: number;
   points: number;
+  done: boolean;
+  done_ms: number | null;
 }
 
 export interface DuelResultRow {
   duel_id: string;
   player_id: string;
   correct_count: number;
+  wrong_count: number;
+  speed_bonus: number;
+  found_keys: string[];
   finished_ms: number | null;
   points: number;
 }

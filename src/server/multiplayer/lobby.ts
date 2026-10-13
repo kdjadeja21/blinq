@@ -155,6 +155,19 @@ export async function createTeams(userId: string, roomId: string) {
   return { roomId: room.id };
 }
 
+/** Admin, after the final result: wipe the finished game and return everyone to the lobby. */
+export async function playAgain(userId: string, roomId: string) {
+  const room = await requireAdmin(roomId, userId);
+  if (room.phase !== "finished") throw new ApiError(409, "The game is not over yet.");
+  await removeBots(room.id);
+  must(await db().from("duels").delete().eq("room_id", room.id));
+  must(await db().from("teams").update({ score: 0 }).eq("room_id", room.id));
+  must(await db().from("players").update({ team_id: null, seat: null }).eq("room_id", room.id));
+  const next = await swapPhase(room, { phase: "lobby", level: 1, duel_index: 0, ...timedPhase(null) });
+  if (!next) throw new ApiError(409, "The room changed. Try again.");
+  return { roomId: room.id };
+}
+
 export async function startGame(userId: string, roomId: string) {
   const room = await requireAdmin(roomId, userId);
   if (room.phase !== "teams_ready") throw new ApiError(409, "Create teams first.");

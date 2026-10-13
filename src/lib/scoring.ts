@@ -49,6 +49,8 @@ export interface RecallScore {
   /** ms from recall start to the last correct pick, null when nothing was correct */
   finishedMs: number | null;
   complete: boolean;
+  /** combo count after the last pick */
+  combo: number;
   /** recall time left to this player after wrong-pick penalties */
   deadlineMs: number;
 }
@@ -58,7 +60,13 @@ export interface RecallScore {
  * wrong picks reset the combo and cost time, three wrong picks end recall, and
  * finishing every item early adds the remaining seconds as a speed bonus.
  */
-export function scoreRecall(picks: readonly PickEvent[], total: number, recallMs: number): RecallScore {
+export function scoreRecall(
+  picks: readonly PickEvent[],
+  total: number,
+  recallMs: number,
+  /** ms since recall start when the player pressed "I'm done"; banks the remaining time as a bonus */
+  doneAt: number | null = null,
+): RecallScore {
   let deadlineMs = recallMs;
   let combo = 0;
   let lastCorrectAt: number | null = null;
@@ -81,6 +89,8 @@ export function scoreRecall(picks: readonly PickEvent[], total: number, recallMs
   }
 
   const complete = total > 0 && correct === total;
-  const speedBonus = complete && lastCorrectAt !== null ? Math.max(0, Math.floor((deadlineMs - lastCorrectAt) / 1000)) : 0;
-  return { correct, wrong, points: points + speedBonus, speedBonus, finishedMs: lastCorrectAt, complete, deadlineMs };
+  let speedBonus = 0;
+  if (complete && lastCorrectAt !== null) speedBonus = Math.max(0, Math.floor((deadlineMs - lastCorrectAt) / 1000));
+  else if (doneAt !== null && correct > 0 && wrong < MAX_LIVES) speedBonus = Math.max(0, Math.floor((deadlineMs - doneAt) / 1000));
+  return { correct, wrong, points: points + speedBonus, speedBonus, finishedMs: lastCorrectAt, complete, combo, deadlineMs };
 }

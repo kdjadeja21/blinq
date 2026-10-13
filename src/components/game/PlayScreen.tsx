@@ -7,9 +7,10 @@ import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
-import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
+import { WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { Lives } from "./Lives";
 import { TimerRing } from "./TimerRing";
 
 interface PlayScreenProps {
@@ -162,9 +163,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             {round.recalled.length}/{total} found
           </span>
           {!training && (
-            <span className="text-xl" role="img" aria-label={`${round.lives} mistakes left`}>
-              {Array.from({ length: MAX_LIVES }, (_, i) => (i < round.lives ? "❤️" : "🖤")).join(" ")}
-            </span>
+            <Lives lives={round.lives} />
           )}
           <div className="flex gap-2">
             {training && (

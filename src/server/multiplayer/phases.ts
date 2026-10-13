@@ -4,13 +4,13 @@ import {
   GUESS_GRACE_MS,
   autoResultMs,
 } from "@/lib/multiplayer/config";
-import type { DuelRow, RoomRow, SubmissionRow } from "@/lib/multiplayer/types";
+import type { DuelProgressRow, DuelRow, RoomRow, SubmissionRow } from "@/lib/multiplayer/types";
 import { MAX_LIVES, WRONG_PENALTY_MS, scoreRecall } from "@/lib/scoring";
 import { after } from "next/server";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { countDuels, ensureLevel, resolveDuel, toPicks } from "./duels";
 import { ensureAdminOnline } from "./lobby";
-import { findDuel, findRoom, requireAdmin, requireMember, swapPhase, timedPhase } from "./queries";
+import { findDuel, findRoom, listPlayers, requireAdmin, requireMember, swapPhase, timedPhase } from "./queries";
 
 const TIMED_PHASES = ["duel_intro", "memorize", "recall", "duel_result", "level_result"] as const;
 
@@ -111,13 +111,20 @@ export async function nextStep(userId: string, roomId: string, expectedVersion: 
   return { advanced: next !== null, room: next ?? (await findRoom(roomId)) };
 }
 
-export async function submitGuess(userId: string, duelId: unknown, itemKey: unknown) {
-  if (typeof duelId !== "string" || typeof itemKey !== "string") throw new ApiError(400, "Bad guess.");
-  const now = Date.now();
+type GuessRow = Pick<SubmissionRow, "player_id" | "item_key" | "correct" | "created_at">;
+
+/** Clients stamp taps with the server-corrected clock so queued sends keep their real spacing. */
+const MAX_TAP_AGE_MS = 5_000;
+
+function tapTime(now: number, claimed: unknown, startedAt: number): number {
+  if (typeof claimed !== "number" || !Number.isFinite(claimed)) return now;
+  return Math.min(now, Math.max(claimed, now - MAX_TAP_AGE_MS, startedAt));
+}
+
+async function loadRecall(userId: string, duelId: string) {
   const duel = must(await db().from("duels").select("*").eq("id", duelId).maybeSingle<DuelRow>());
   if (!duel) throw new ApiError(404, "Duel not found.");
-
-  const [room, player, mine, choice, target] = await Promise.all([
+  const [room, player, mine] = await Promise.all([
     findRoom(duel.room_id),
     requireMember(duel.room_id, userId),
     db()
@@ -126,54 +133,81 @@ export async function submitGuess(userId: string, duelId: unknown, itemKey: unkn
       .eq("duel_id", duel.id)
       .returns<GuessRow[]>()
       .then(must),
-    db().from("duel_choices").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
-    db().from("duel_items").select("item_key").eq("duel_id", duel.id).eq("item_key", itemKey).maybeSingle(),
   ]);
   if (player.id !== duel.player_a && player.id !== duel.player_b) throw new ApiError(403, "You are not in this duel.");
   if (room.phase !== "recall" || room.level !== duel.level || room.duel_index !== duel.duel_index || !room.phase_started_at) {
     throw new ApiError(409, "Recall is not open.");
   }
+  return { duel, room, player, mine: mine.filter((s) => s.player_id === player.id) };
+}
 
-  const startedAt = Date.parse(room.phase_started_at);
-  const existing = mine.filter((s) => s.player_id === player.id);
-  if (existing.some((s) => s.item_key === itemKey)) {
-    return { alreadyGuessed: true, ...(await syncProgress(duel, player.id, room, existing)) };
+export async function submitGuess(userId: string, duelId: unknown, itemKey: unknown, claimedAt?: unknown) {
+  if (typeof duelId !== "string" || typeof itemKey !== "string") throw new ApiError(400, "Bad guess.");
+  const now = Date.now();
+  const [{ duel, room, player, mine }, choice, target] = await Promise.all([
+    loadRecall(userId, duelId),
+    db().from("duel_choices").select("item_key").eq("duel_id", duelId).eq("item_key", itemKey).maybeSingle(),
+    db().from("duel_items").select("item_key").eq("duel_id", duelId).eq("item_key", itemKey).maybeSingle(),
+  ]);
+
+  const startedAt = Date.parse(room.phase_started_at ?? "");
+  if (mine.some((s) => s.item_key === itemKey)) {
+    return { alreadyGuessed: true, ...(await settle(duel, player.id, room, mine)) };
   }
 
-  const wrong = existing.filter((s) => !s.correct).length;
+  const at = tapTime(now, claimedAt, startedAt);
+  const wrong = mine.filter((s) => !s.correct).length;
   if (wrong >= MAX_LIVES) throw new ApiError(409, "You are out of lives.");
   const personalDeadline = startedAt + duel.recall_ms - wrong * WRONG_PENALTY_MS + GUESS_GRACE_MS;
-  if (now > personalDeadline) throw new ApiError(409, "Time is up.");
-  if (existing.filter((s) => now - Date.parse(s.created_at) < 1000).length >= GUESSES_PER_SECOND) {
+  if (at > personalDeadline) throw new ApiError(409, "Time is up.");
+  if (mine.filter((s) => at - Date.parse(s.created_at) < 1000).length >= GUESSES_PER_SECOND) {
     throw new ApiError(429, "Slow down.");
   }
 
   if (!must(choice)) throw new ApiError(400, "That item is not in this duel.");
   const correct = Boolean(must(target));
 
-  const createdAt = new Date(now).toISOString();
+  const createdAt = new Date(at).toISOString();
   const { error } = await db()
     .from("submissions")
     .insert({ duel_id: duel.id, player_id: player.id, item_key: itemKey, correct, created_at: createdAt });
-  if (isUniqueViolation(error)) return { alreadyGuessed: true, ...(await syncProgress(duel, player.id, room, existing)) };
+  if (isUniqueViolation(error)) return { alreadyGuessed: true, ...(await settle(duel, player.id, room, mine)) };
   must({ data: null, error });
 
-  const all = [...existing, { player_id: player.id, item_key: itemKey, correct, created_at: createdAt }];
-  const progress = await syncProgress(duel, player.id, room, all, { defer: true });
-  if (progress.complete) await endRecall(room);
-  return { alreadyGuessed: false, ...progress, correct };
+  const all = [...mine, { player_id: player.id, item_key: itemKey, correct, created_at: createdAt }];
+  return { alreadyGuessed: false, correct, ...(await settle(duel, player.id, room, all)) };
 }
 
-type GuessRow = Pick<SubmissionRow, "player_id" | "item_key" | "correct" | "created_at">;
+/** "I'm done": stop recalling now and bank the remaining time as a speed bonus. */
+export async function finishEarly(userId: string, duelId: unknown) {
+  if (typeof duelId !== "string") throw new ApiError(400, "Bad duel.");
+  const { duel, room, player, mine } = await loadRecall(userId, duelId);
+  const doneMs = Date.now() - Date.parse(room.phase_started_at ?? "");
+  return { alreadyGuessed: false, ...(await settle(duel, player.id, room, mine, { doneMs })) };
+}
 
-async function syncProgress(
+type ProgressRow = Pick<DuelProgressRow, "player_id" | "done" | "correct_count" | "wrong_count">;
+
+function isDone(duel: DuelRow, row: ProgressRow | undefined): boolean {
+  return Boolean(row && (row.done || row.wrong_count >= MAX_LIVES || row.correct_count >= duel.item_count));
+}
+
+/**
+ * Stores live progress, then ends the duel when someone found everything or when both
+ * players are finished (out of lives, done early, or a bot opponent).
+ */
+async function settle(
   duel: DuelRow,
   playerId: string,
   room: RoomRow,
   subs: GuessRow[],
-  options: { defer?: boolean } = {},
+  options: { doneMs?: number } = {},
 ) {
-  const score = scoreRecall(toPicks(subs, room.phase_started_at ?? new Date().toISOString()), duel.item_count, duel.recall_ms);
+  const startedAt = room.phase_started_at ?? new Date().toISOString();
+  const doneMs = options.doneMs ?? null;
+  const score = scoreRecall(toPicks(subs, startedAt), duel.item_count, duel.recall_ms, doneMs);
+  const selfDone = doneMs !== null || score.complete || score.wrong >= MAX_LIVES;
+
   const write = async () => {
     must(
       await db().from("duel_progress").upsert(
@@ -183,14 +217,42 @@ async function syncProgress(
           correct_count: score.correct,
           wrong_count: score.wrong,
           points: score.points,
+          ...(selfDone ? { done: true } : {}),
+          ...(doneMs !== null ? { done_ms: doneMs } : {}),
         },
         { onConflict: "duel_id,player_id" },
       ),
     );
   };
-  if (options.defer && !score.complete) after(write);
-  else await write();
-  return { complete: score.complete, points: score.points, correctCount: score.correct, wrongCount: score.wrong };
+  if (selfDone) await write();
+  else after(write);
+
+  let ended = score.complete;
+  if (!ended && selfDone) {
+    const opponentId = playerId === duel.player_a ? duel.player_b : duel.player_a;
+    const [opponent, players] = await Promise.all([
+      db()
+        .from("duel_progress")
+        .select("player_id, done, correct_count, wrong_count")
+        .eq("duel_id", duel.id)
+        .eq("player_id", opponentId)
+        .maybeSingle<ProgressRow>()
+        .then(must),
+      listPlayers(room.id),
+    ]);
+    ended = players.find((p) => p.id === opponentId)?.is_bot === true || isDone(duel, opponent ?? undefined);
+  }
+  if (ended) await endRecall(room);
+
+  return {
+    complete: score.complete,
+    points: score.points,
+    combo: score.combo,
+    correctCount: score.correct,
+    wrongCount: score.wrong,
+    deadlineMs: score.deadlineMs,
+    ended,
+  };
 }
 
 /** Cron entry point: advance every room past its deadline and rescue rooms with an offline admin. */

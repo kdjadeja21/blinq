@@ -55,7 +55,7 @@ If the remote database already has objects not in git, run `npx supabase db pull
 ### Option B — SQL Editor
 
 1. **SQL → New query**.
-2. Paste the full contents of `supabase/migrations/20261013000000_multiplayer.sql` and **Run** once. Re-running can fail on types/tables that already exist.
+2. Paste and **Run** each file in `supabase/migrations/` once, in filename order (`20261013000000_multiplayer.sql`, then `20261013010000_duel_feedback.sql`). Re-running can fail on types/tables/columns that already exist. If you already ran the first file, only run the new ones.
 
 ### Realtime (Postgres Changes)
 

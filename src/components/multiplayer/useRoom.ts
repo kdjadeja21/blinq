@@ -27,6 +27,8 @@ export interface RoomState {
   /** item keys on the table; only filled while the server allows reading them */
   itemKeys: string[];
   choiceKeys: string[];
+  /** the table as seen during memorize; kept so recall can judge taps without a server round trip */
+  memorizedKeys: string[];
   online: Set<string>;
   me: PlayerRow | null;
   isAdmin: boolean;
@@ -46,6 +48,7 @@ const EMPTY: Omit<RoomState, "now"> = {
   progress: [],
   itemKeys: [],
   choiceKeys: [],
+  memorizedKeys: [],
   online: new Set(),
   me: null,
   isAdmin: false,
@@ -62,6 +65,7 @@ const EMPTY_DATA: Data = {
   progress: [],
   itemKeys: [],
   choiceKeys: [],
+  memorizedKeys: [],
 };
 
 export function useRoom(code: string): RoomState {
@@ -72,6 +76,7 @@ export function useRoom(code: string): RoomState {
   const [userId, setUserId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const roomIdRef = useRef<string | null>(null);
+  const memorizedRef = useRef<{ duelId: string; keys: string[] } | null>(null);
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
@@ -102,6 +107,9 @@ export function useRoom(code: string): RoomState {
         ? client.from("duel_choices").select("item_key, position").eq("duel_id", current.id).order("position")
         : null,
     ]);
+    const itemKeys = (items?.data ?? []).map((r: { item_key: string }) => r.item_key);
+    if (current && itemKeys.length > 0) memorizedRef.current = { duelId: current.id, keys: itemKeys };
+    const memorized = memorizedRef.current;
     setData({
       room,
       players: players.data ?? [],
@@ -109,7 +117,8 @@ export function useRoom(code: string): RoomState {
       duels: duelList,
       results: results?.data ?? [],
       progress: progress?.data ?? [],
-      itemKeys: (items?.data ?? []).map((r: { item_key: string }) => r.item_key),
+      itemKeys,
+      memorizedKeys: current && memorized?.duelId === current.id ? memorized.keys : [],
       choiceKeys: (choices?.data ?? []).map((r: { item_key: string }) => r.item_key),
     });
     setStatus("ready");
