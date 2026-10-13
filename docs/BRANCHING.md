@@ -35,6 +35,8 @@ Format: `<type>/<short-description>`
 | `chore` | Tooling, dependencies, CI | `chore/update-eslint` |
 | `hotfix` | Urgent production fix | `hotfix/daily-seed-rollover` |
 
+AI-assisted contributions follow the same rules, enforced for Cursor by `.cursor/rules/branching.mdc`.
+
 ## Workflow
 
 1. Update `main`: `git switch main && git pull --ff-only`.
