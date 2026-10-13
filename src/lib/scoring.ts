@@ -1,6 +1,7 @@
 export const BASE_POINTS = 100;
 export const COMBO_WINDOW_MS = 3000;
 export const MAX_LIVES = 3;
+export const WRONG_PENALTY_MS = 3000;
 /** Partial recall counts as a win for now (>= 1 star); a perfect round is 100%. */
 export const WIN_RATIO = 0.5;
 

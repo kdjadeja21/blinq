@@ -6,7 +6,7 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { TIMINGS, type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
-import { MAX_LIVES, comboMultiplier } from "@/lib/scoring";
+import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
 import { TimerRing } from "./TimerRing";
@@ -64,7 +64,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
     : phase === "memorize"
       ? "Tip: watch the timer above, then try to picture each item."
       : phase === "recall"
-        ? "Tip: tap the items that were on the table. Lookalikes are traps!"
+        ? "Tip: tap the items that were on the table. Lookalikes are traps, and in real rounds each wrong tap costs time!"
         : null;
 
   return (
@@ -137,6 +137,21 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             </motion.div>
           )}
         </AnimatePresence>
+        <AnimatePresence>
+          {phase === "recall" && !training && round.wrong.length > 0 && (
+            <motion.div
+              key={round.wrong.length}
+              aria-hidden
+              initial={{ y: 0, opacity: 1, scale: 0.7 }}
+              animate={{ y: -50, opacity: 0, scale: 1.3 }}
+              exit={{ opacity: 0 }}
+              transition={{ duration: 0.9 }}
+              className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 text-3xl font-extrabold text-destructive drop-shadow-lg"
+            >
+              -{WRONG_PENALTY_MS / 1000}s
+            </motion.div>
+          )}
+        </AnimatePresence>
       </div>
 
       {phase === "recall" ? (
@@ -145,7 +160,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             {round.recalled.length}/{total} found
           </span>
           {!training && (
-            <span className="text-xl" role="img" aria-label={`${round.lives} lives left`}>
+            <span className="text-xl" role="img" aria-label={`${round.lives} mistakes left`}>
               {Array.from({ length: MAX_LIVES }, (_, i) => (i < round.lives ? "❤️" : "🖤")).join(" ")}
             </span>
           )}

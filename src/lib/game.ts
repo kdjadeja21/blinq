@@ -3,6 +3,7 @@ import {
   BASE_POINTS,
   COMBO_WINDOW_MS,
   MAX_LIVES,
+  WRONG_PENALTY_MS,
   WIN_RATIO,
   comboMultiplier,
   starsFor,
@@ -143,8 +144,15 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       if (!round.items.some((i) => i.id === action.id)) {
         const wrong = [...round.wrong, action.id];
         if (round.mode === "training") return { ...round, wrong, combo: 0 };
-        const next = { ...round, wrong, combo: 0, lives: round.lives - 1 };
-        return next.lives <= 0 ? finish(next, action.now, false) : next;
+        const next = {
+          ...round,
+          wrong,
+          combo: 0,
+          lives: round.lives - 1,
+          phaseEndsAt: round.phaseEndsAt - WRONG_PENALTY_MS,
+          recallEndsAt: round.recallEndsAt - WRONG_PENALTY_MS,
+        };
+        return next.lives <= 0 || action.now >= next.phaseEndsAt ? finish(next, action.now, false) : next;
       }
       const chained =
         round.lastCorrectAt !== null && action.now - round.lastCorrectAt <= COMBO_WINDOW_MS;
