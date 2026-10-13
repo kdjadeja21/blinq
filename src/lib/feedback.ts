@@ -90,3 +90,64 @@ export function playCue(cue: Cue) {
     // audio unavailable
   }
 }
+
+let music: { gain: GainNode; stop: () => void } | null = null;
+
+const MUSIC_CHORDS = [
+  [196, 246.94, 293.66],
+  [174.61, 220, 261.63],
+  [164.81, 196, 246.94],
+  [196, 233.08, 293.66],
+];
+const CHORD_SECONDS = 4;
+
+export function startMusic() {
+  if (typeof window === "undefined" || !readEnabled() || music) return;
+  try {
+    ctx ??= new AudioContext();
+    if (ctx.state === "suspended") void ctx.resume();
+    const audio = ctx;
+    const master = audio.createGain();
+    master.gain.setValueAtTime(0.0001, audio.currentTime);
+    master.gain.linearRampToValueAtTime(0.05, audio.currentTime + 2);
+    master.connect(audio.destination);
+
+    let chord = 0;
+    const playChord = () => {
+      const t0 = audio.currentTime;
+      for (const freq of MUSIC_CHORDS[chord % MUSIC_CHORDS.length]) {
+        const osc = audio.createOscillator();
+        const g = audio.createGain();
+        osc.type = "sine";
+        osc.frequency.value = freq;
+        g.gain.setValueAtTime(0.0001, t0);
+        g.gain.linearRampToValueAtTime(0.5, t0 + 1.5);
+        g.gain.linearRampToValueAtTime(0.0001, t0 + CHORD_SECONDS + 1);
+        osc.connect(g).connect(master);
+        osc.start(t0);
+        osc.stop(t0 + CHORD_SECONDS + 1.1);
+      }
+      chord += 1;
+    };
+    playChord();
+    const timer = window.setInterval(playChord, CHORD_SECONDS * 1000);
+    music = {
+      gain: master,
+      stop: () => {
+        window.clearInterval(timer);
+        const t = audio.currentTime;
+        master.gain.cancelScheduledValues(t);
+        master.gain.setValueAtTime(Math.max(master.gain.value, 0.0001), t);
+        master.gain.linearRampToValueAtTime(0.0001, t + 0.6);
+        window.setTimeout(() => master.disconnect(), 800);
+      },
+    };
+  } catch {
+    music = null;
+  }
+}
+
+export function stopMusic() {
+  music?.stop();
+  music = null;
+}

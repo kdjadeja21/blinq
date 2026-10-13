@@ -94,8 +94,14 @@ export function Game() {
 
   const retry = useCallback(() => {
     keyRef.current += 1;
-    dispatch({ type: "retry", now: Date.now(), key: keyRef.current });
-  }, []);
+    const now = Date.now();
+    if (round?.mode === "level") {
+      const items = pickItems(round.items.length);
+      dispatch({ type: "retry", now, key: keyRef.current, items, choices: buildChoices(items, Math.random) });
+      return;
+    }
+    dispatch({ type: "retry", now, key: keyRef.current });
+  }, [round]);
 
   let body: React.ReactNode;
   if (!stats) {
