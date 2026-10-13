@@ -4,7 +4,8 @@ import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalSt
 import { roundReducer, type Mode } from "@/lib/game";
 import { ITEMS_BY_ID, TRAINING_ITEM_IDS, type Item } from "@/lib/items";
 import { applyRoundResult } from "@/lib/progress";
-import { dailyItems, pickItems, utcDateKey } from "@/lib/rng";
+import { buildChoices } from "@/lib/choices";
+import { dailyItems, hash, mulberry32, pickItems, utcDateKey } from "@/lib/rng";
 import { levelItemCount } from "@/lib/scoring";
 import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
@@ -59,8 +60,10 @@ export function Game() {
     else if (mode === "daily") items = dailyItems(utcDateKey(t), levelItemCount(3));
     else items = pickItems(levelItemCount(level));
     if (mode !== "level") level = 1;
+    const seed = mode === "training" ? "training" : mode === "daily" ? utcDateKey(t) : null;
+    const choices = buildChoices(items, seed ? mulberry32(hash(`blinq:choices:${seed}`)) : Math.random);
     keyRef.current += 1;
-    dispatch({ type: "start", mode, items, level, now: t, key: keyRef.current });
+    dispatch({ type: "start", mode, items, choices, level, now: t, key: keyRef.current });
   }, []);
 
   useEffect(() => {

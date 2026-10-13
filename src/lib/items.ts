@@ -93,3 +93,34 @@ export const ITEMS: Item[] = ROWS.map(([name, emoji, category, ...synonyms]) => 
 export const ITEMS_BY_ID = new Map(ITEMS.map((item) => [item.id, item]));
 
 export const TRAINING_ITEM_IDS = ["apple", "banana", "coffee"];
+
+const LOOKALIKE_GROUPS: string[][] = [
+  ["banana", "lemon", "corn", "pineapple"],
+  ["apple", "tomato", "cherry", "strawberry"],
+  ["cake", "donut", "cookie", "bread"],
+  ["pizza", "burger", "cheese"],
+  ["cola", "coffee", "milk", "wine-glass"],
+  ["fork", "knife", "spoon"],
+  ["pen", "pencil", "ruler"],
+  ["book", "notebook", "envelope"],
+  ["scissors", "paperclip", "pushpin"],
+  ["phone", "calculator", "radio", "television"],
+  ["laptop", "keyboard", "camera"],
+  ["mouse", "magnet", "battery"],
+  ["key", "lock"],
+  ["watch", "clock"],
+  ["glasses", "headphones"],
+  ["candle", "lightbulb"],
+  ["bucket", "broom", "soap", "toothbrush"],
+  ["globe", "compass"],
+  ["trophy", "gift", "balloon"],
+  ["bowl", "pan", "teapot"],
+  ["avocado", "broccoli", "egg"],
+];
+
+export const LOOKALIKES = new Map<string, string[]>();
+for (const group of LOOKALIKE_GROUPS) {
+  for (const id of group) {
+    LOOKALIKES.set(id, [...(LOOKALIKES.get(id) ?? []), ...group.filter((g) => g !== id)]);
+  }
+}

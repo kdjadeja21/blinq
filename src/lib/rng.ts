@@ -1,6 +1,6 @@
 import { ITEMS, type Item } from "./items";
 
-function mulberry32(seed: number) {
+export function mulberry32(seed: number) {
   let a = seed >>> 0;
   return () => {
     a = (a + 0x6d2b79f5) >>> 0;
@@ -11,7 +11,7 @@ function mulberry32(seed: number) {
   };
 }
 
-function hash(text: string): number {
+export function hash(text: string): number {
   let h = 2166136261;
   for (let i = 0; i < text.length; i++) {
     h ^= text.charCodeAt(i);
@@ -20,13 +20,17 @@ function hash(text: string): number {
   return h >>> 0;
 }
 
-export function pickItems(count: number, random: () => number = Math.random): Item[] {
-  const pool = [...ITEMS];
-  for (let i = pool.length - 1; i > 0; i--) {
+export function shuffle<T>(list: readonly T[], random: () => number = Math.random): T[] {
+  const copy = [...list];
+  for (let i = copy.length - 1; i > 0; i--) {
     const j = Math.floor(random() * (i + 1));
-    [pool[i], pool[j]] = [pool[j], pool[i]];
+    [copy[i], copy[j]] = [copy[j], copy[i]];
   }
-  return pool.slice(0, count);
+  return copy;
+}
+
+export function pickItems(count: number, random: () => number = Math.random): Item[] {
+  return shuffle(ITEMS, random).slice(0, count);
 }
 
 export function dailyItems(dateKey: string, count: number): Item[] {

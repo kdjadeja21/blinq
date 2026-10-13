@@ -1,8 +1,8 @@
 import type { Item } from "./items";
-import { matchItem } from "./match";
 import {
   BASE_POINTS,
   COMBO_WINDOW_MS,
+  MAX_LIVES,
   WIN_RATIO,
   comboMultiplier,
   starsFor,
@@ -42,24 +42,25 @@ export interface Round {
   level: number;
   attempt: number;
   items: Item[];
+  choices: Item[];
+  lives: number;
   phase: Phase;
   introStep: number;
   phaseEndsAt: number;
   recallEndsAt: number;
   recalled: Recalled[];
+  /** ids of decoys the player tapped */
   wrong: string[];
   combo: number;
   lastCorrectAt: number | null;
   result: RoundResult | null;
 }
 
-export type GuessOutcome = "correct" | "duplicate" | "wrong" | "empty";
-
 export type Action =
-  | { type: "start"; mode: Mode; items: Item[]; level: number; now: number; key: number }
+  | { type: "start"; mode: Mode; items: Item[]; choices: Item[]; level: number; now: number; key: number }
   | { type: "introNext"; now: number }
   | { type: "tick"; now: number }
-  | { type: "guess"; raw: string; now: number }
+  | { type: "pick"; id: string; now: number }
   | { type: "submit"; now: number }
   | { type: "retry"; now: number; key: number }
   | { type: "quit" };
@@ -93,15 +94,6 @@ function finish(round: Round, now: number, early: boolean): Round {
   };
 }
 
-export function guessOutcome(round: Round, raw: string): { outcome: GuessOutcome; item: Item | null } {
-  if (!raw.trim()) return { outcome: "empty", item: null };
-  const matched = matchItem(raw);
-  const onTable = matched ? round.items.find((i) => i.id === matched.id) : undefined;
-  if (!onTable) return { outcome: "wrong", item: null };
-  if (round.recalled.some((r) => r.id === onTable.id)) return { outcome: "duplicate", item: onTable };
-  return { outcome: "correct", item: onTable };
-}
-
 export function roundReducer(round: Round | null, action: Action): Round | null {
   if (action.type === "start") {
     const base: Round = {
@@ -110,6 +102,8 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       level: action.level,
       attempt: 1,
       items: action.items,
+      choices: action.choices,
+      lives: MAX_LIVES,
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
       phaseEndsAt: 0,
@@ -143,12 +137,14 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       if (round.phase === "recall") return finish(round, action.now, false);
       return round;
     }
-    case "guess": {
+    case "pick": {
       if (round.phase !== "recall") return round;
-      const { outcome, item } = guessOutcome(round, action.raw);
-      if (outcome === "empty" || outcome === "duplicate") return round;
-      if (outcome === "wrong" || !item) {
-        return { ...round, wrong: [...round.wrong, action.raw.trim()], combo: 0 };
+      if (round.recalled.some((r) => r.id === action.id) || round.wrong.includes(action.id)) return round;
+      if (!round.items.some((i) => i.id === action.id)) {
+        const wrong = [...round.wrong, action.id];
+        if (round.mode === "training") return { ...round, wrong, combo: 0 };
+        const next = { ...round, wrong, combo: 0, lives: round.lives - 1 };
+        return next.lives <= 0 ? finish(next, action.now, false) : next;
       }
       const chained =
         round.lastCorrectAt !== null && action.now - round.lastCorrectAt <= COMBO_WINDOW_MS;
@@ -156,7 +152,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       const points = Math.round(BASE_POINTS * comboMultiplier(combo));
       const next: Round = {
         ...round,
-        recalled: [...round.recalled, { id: item.id, points }],
+        recalled: [...round.recalled, { id: action.id, points }],
         combo,
         lastCorrectAt: action.now,
       };
@@ -169,6 +165,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         type: "start",
         mode: round.mode,
         items: round.items,
+        choices: round.choices,
         level: round.level,
         now: action.now,
         key: action.key,

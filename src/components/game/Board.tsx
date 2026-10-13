@@ -4,16 +4,15 @@ import { cn } from "cn";
 import { motion, useReducedMotion } from "framer-motion";
 import type { Item } from "@/lib/items";
 
-export type BoardMode = "memorize" | "hide" | "recall" | "reveal";
+export type BoardMode = "memorize" | "hide" | "reveal";
 
 interface BoardProps {
   items: Item[];
   mode: BoardMode;
   recalledIds: string[];
-  hintLetters: boolean;
 }
 
-export function Board({ items, mode, recalledIds, hintLetters }: BoardProps) {
+export function Board({ items, mode, recalledIds }: BoardProps) {
   const reduce = useReducedMotion();
   const cols = items.length <= 6 ? "grid-cols-3" : "grid-cols-4";
   return (
@@ -58,7 +57,7 @@ export function Board({ items, mode, recalledIds, hintLetters }: BoardProps) {
                 aria-hidden
                 className="absolute inset-0 flex items-center justify-center rounded-2xl border-2 border-primary/40 bg-gradient-to-br from-primary to-fuchsia-500 text-3xl font-bold text-primary-foreground shadow-md [backface-visibility:hidden] [transform:rotateY(180deg)]"
               >
-                {hintLetters && mode === "recall" ? `${item.name[0].toUpperCase()}…` : "?"}
+                ?
               </div>
             </motion.div>
           </motion.li>

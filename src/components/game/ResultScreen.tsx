@@ -113,7 +113,7 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
         <Stat label="Wrong" value={String(result.wrongCount)} />
       </dl>
 
-      <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} hintLetters={false} />
+      <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
 
       {!result.perfect && result.stars < 3 && (
         <p className="text-center text-sm text-muted-foreground">
