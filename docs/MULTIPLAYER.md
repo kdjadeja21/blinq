@@ -138,3 +138,6 @@ During memorize each duel player already receives the table (RLS only exposes `d
 
 - Every player gets an emoji avatar, assigned server-side when they join. It is unique within a room (partial unique index on `players(room_id, avatar)`); bots use 🤖. Older rows without one fall back to a stable hash of the player id (`avatarFor`).
 - Duel timers come from the difficulty engine (see [GAME_ENGINE.md](GAME_ENGINE.md)). Duels already created keep their stored durations and rules.
+
+## Team colors
+Team A is blue and Team B is red, resolved by `teamThemeFor` in `src/lib/multiplayer/teamTheme.ts` (by team name, falling back to list position). Tokens `--team-a`, `--team-b` and their `-deep` variants live in `globals.css`. `RoomView` renders `TeamAmbient`, a background tinted with the player's own team (strong on team reveal, intro and results, calmer while memorizing and recalling, off in the lobby). Team color is always paired with the team name and an icon, and animation respects reduced motion.

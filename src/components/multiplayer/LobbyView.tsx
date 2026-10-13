@@ -2,13 +2,16 @@
 
 import { Check, Copy, Share2 } from "lucide-react";
 import { QRCodeSVG } from "qrcode.react";
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { callMp, shareUrl } from "@/lib/multiplayer/api";
 import { MAX_PLAYERS, MIN_HUMANS } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip, Spinner } from "./shared";
 import { GameStartOverlay } from "./GameStartOverlay";
+import { teamThemeFor, type TeamTheme } from "@/lib/multiplayer/teamTheme";
 
 export function useAction() {
   const [busy, setBusy] = useState(false);
@@ -149,11 +152,63 @@ export function LobbyView({ state }: { state: RoomState }) {
   );
 }
 
+function TeamReveal({ theme, name }: { theme: TeamTheme; name: string }) {
+  const reduce = useReducedMotion();
+  const [open, setOpen] = useState(true);
+  useEffect(() => {
+    const id = setTimeout(() => setOpen(false), 1900);
+    return () => clearTimeout(id);
+  }, []);
+  const Icon = theme.icon;
+  return (
+    <AnimatePresence>
+      {open && (
+        <motion.div
+          role="status"
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          exit={{ opacity: 0 }}
+          transition={{ duration: reduce ? 0 : 0.35 }}
+          className={cn("pointer-events-none fixed inset-0 z-40 flex flex-col items-center justify-center gap-3", theme.gradient)}
+        >
+          <motion.span
+            initial={reduce ? false : { scale: 0, rotate: -30 }}
+            animate={{ scale: 1, rotate: 0 }}
+            transition={{ type: "spring", stiffness: 300, damping: 12 }}
+            className="flex size-24 items-center justify-center rounded-full bg-white/20"
+          >
+            <Icon className="size-14" aria-hidden />
+          </motion.span>
+          <motion.p
+            initial={reduce ? false : { y: 24, opacity: 0 }}
+            animate={{ y: 0, opacity: 1 }}
+            transition={{ delay: reduce ? 0 : 0.15 }}
+            className="text-xs font-bold uppercase tracking-[0.3em] opacity-90"
+          >
+            You are on
+          </motion.p>
+          <motion.p
+            initial={reduce ? false : { scale: 1.8, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            transition={{ type: "spring", stiffness: 380, damping: 14, delay: reduce ? 0 : 0.25 }}
+            className="text-5xl font-black"
+          >
+            {name}
+          </motion.p>
+        </motion.div>
+      )}
+    </AnimatePresence>
+  );
+}
+
 export function TeamsReadyView({ state }: { state: RoomState }) {
   const { room, players, teams, me, isAdmin, online, refresh } = state;
   const { busy, error, run } = useAction();
   const [starting, setStarting] = useState(false);
   if (!room) return null;
+  const myTeamId = players.find((p) => p.id === me?.id)?.team_id;
+  const myTeam = teams.find((t) => t.id === myTeamId);
+  const myTheme = teamThemeFor(myTeamId, teams);
   async function startGame() {
     if (!room) return;
     setStarting(true);
@@ -164,10 +219,29 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
   return (
     <div className="flex flex-1 flex-col gap-3">
       {starting && <GameStartOverlay />}
+      {myTeam && myTheme && <TeamReveal key={myTeam.id} theme={myTheme} name={myTeam.name} />}
       <div className="grid grid-cols-2 gap-3">
-        {teams.map((team) => (
-          <section key={team.id} className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-label={team.name}>
-            <h2 className="mb-2 text-center text-lg font-bold">{team.name}</h2>
+        {teams.map((team) => {
+          const theme = teamThemeFor(team.id, teams);
+          const Icon = theme?.icon;
+          const mine = team.id === myTeamId;
+          return (
+          <section
+            key={team.id}
+            className={cn(
+              "relative overflow-hidden rounded-3xl border-2 p-3 shadow-lg",
+              theme ? [theme.border, theme.soft] : "bg-card",
+              mine && theme && ["shadow-xl", theme.glow],
+            )}
+            aria-label={team.name}
+          >
+            <h2 className={cn("-mx-3 -mt-3 mb-3 flex items-center justify-center gap-1.5 px-3 py-2 text-lg font-bold", theme?.gradient)}>
+              {Icon && <Icon className="size-5" aria-hidden />}
+              {team.name}
+            </h2>
+            {mine && (
+              <p className="mb-2 text-center text-xs font-extrabold uppercase tracking-wider">Your team</p>
+            )}
             <ul className="flex flex-col items-center gap-2">
               {players
                 .filter((p) => p.team_id === team.id)
@@ -178,7 +252,8 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
                 ))}
             </ul>
           </section>
-        ))}
+          );
+        })}
       </div>
       {isAdmin ? (
         <div className="mt-auto flex flex-col gap-2">

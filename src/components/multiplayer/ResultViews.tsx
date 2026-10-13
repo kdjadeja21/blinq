@@ -11,6 +11,7 @@ import { useCountUp } from "@/components/game/useCountUp";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { starsFor } from "@/lib/scoring";
+import { teamThemeFor, type TeamTheme } from "@/lib/multiplayer/teamTheme";
 import type { DuelResultRow, DuelRow, PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 import { toItems } from "./DuelView";
 import { ErrorNote, useServerNow } from "./shared";
@@ -100,7 +101,7 @@ export function DuelResultView({ state }: { state: RoomState }) {
         </h2>
         <dl className="mt-3 grid grid-cols-2 gap-2">
           {rows.map(({ player, result }) => (
-            <div key={player?.id} className="rounded-2xl bg-muted p-3">
+            <div key={player?.id} className={cn("rounded-2xl border-2 p-3", teamThemeFor(player?.team_id, teams)?.border ?? "border-transparent", teamThemeFor(player?.team_id, teams)?.soft ?? "bg-muted")}>
               <dt className="text-sm font-semibold">
                 {player?.name}
                 {player?.id === me?.id ? " (you)" : ""}
@@ -143,6 +144,7 @@ function TeamScoreCard({
   isWinner,
   isMine,
   index,
+  theme,
 }: {
   name: string;
   points: number;
@@ -150,7 +152,9 @@ function TeamScoreCard({
   isWinner: boolean;
   isMine: boolean;
   index: number;
+  theme: TeamTheme | null;
 }) {
+  const Icon = theme?.icon;
   const reduce = useReducedMotion();
   const shown = useCountUp(points);
   return (
@@ -160,7 +164,8 @@ function TeamScoreCard({
       transition={reduce ? { duration: 0 } : { type: "spring", stiffness: 380, damping: 18, delay: 0.15 + index * 0.1 }}
       className={cn(
         "relative flex flex-col items-center gap-1 rounded-2xl border-2 p-4",
-        isWinner ? "border-gold bg-gold/15 shadow-lg shadow-gold/20" : "bg-muted",
+        theme ? [theme.border, theme.soft] : "bg-muted",
+        isWinner && "shadow-lg shadow-gold/30 ring-2 ring-gold",
       )}
     >
       {isWinner && (
@@ -169,13 +174,14 @@ function TeamScoreCard({
         </span>
       )}
       <dt className="flex items-center gap-1.5 text-sm font-semibold">
+        {Icon && <Icon className={cn("size-4", theme?.text)} aria-hidden />}
         {name}
         {isMine && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-bold">You</span>}
       </dt>
       <dd className="text-4xl font-extrabold tabular-nums">{shown}</dd>
       <dd className="mt-1 h-2 w-full overflow-hidden rounded-full bg-background/60" aria-hidden>
         <motion.span
-          className={cn("block h-full rounded-full", isWinner ? "bg-gold" : "bg-primary")}
+          className={cn("block h-full rounded-full", theme?.bar ?? "bg-primary")}
           initial={reduce ? false : { width: 0 }}
           animate={{ width: `${share}%` }}
           transition={reduce ? { duration: 0 } : { duration: 0.9, ease: [0.22, 1, 0.36, 1], delay: 0.3 }}
@@ -242,6 +248,7 @@ export function LevelResultView({ state }: { state: RoomState }) {
               isWinner={!tie && team.id === first.team.id}
               isMine={team.id === myTeamId}
               index={i}
+              theme={teamThemeFor(team.id, teams)}
             />
           ))}
         </dl>
@@ -258,6 +265,7 @@ export function FinalView({ state }: { state: RoomState }) {
   const tie = !second || first.score === second.score;
   const myTeam = players.find((p) => p.id === me?.id)?.team_id;
   const won = !tie && Boolean(myTeam) && myTeam === first.id;
+  const winnerTheme = teamThemeFor(first?.id, teams);
   useResultCue(tie || !myTeam ? null : won ? "win" : "lose");
 
   const totals = players
@@ -273,8 +281,14 @@ export function FinalView({ state }: { state: RoomState }) {
   return (
     <div className="flex flex-col gap-3 text-center">
       {won && <Confetti />}
-      <section className="rounded-3xl border-2 bg-card p-4 shadow-lg">
-        <Trophy className="mx-auto size-14 text-gold" aria-hidden />
+      <section
+        className={cn(
+          "relative overflow-hidden rounded-3xl border-2 p-4 shadow-lg",
+          !tie && winnerTheme ? [winnerTheme.border, winnerTheme.soft] : "bg-card",
+        )}
+      >
+        {!tie && winnerTheme && <div aria-hidden className={cn("pointer-events-none absolute inset-x-0 -top-16 mx-auto h-40 w-64 rounded-full opacity-40 blur-3xl", winnerTheme.blob)} />}
+        <Trophy className="relative mx-auto size-14 text-gold" aria-hidden />
         <h2 className="mt-2 text-3xl font-extrabold">{tie ? "It's a tie!" : `${first.name} wins!`}</h2>
         {!tie && myTeam && (
           <p className="mt-1 text-muted-foreground">{myTeam === first.id ? "Your team took the game." : "Better luck next time."}</p>

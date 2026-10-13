@@ -4,6 +4,7 @@ import { avatarFor } from "@/lib/multiplayer/avatars";
 import { cn } from "cn";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import type { PlayerRow } from "@/lib/multiplayer/types";
+import type { TeamTheme } from "@/lib/multiplayer/teamTheme";
 
 const SPARKS = Array.from({ length: 14 }, (_, i) => {
   const angle = (i / 14) * Math.PI * 2;
@@ -16,13 +17,15 @@ const IMPACT_DELAY = 0.8;
 interface FighterProps {
   player: PlayerRow | undefined;
   team: string | undefined;
+  theme: TeamTheme | null;
   from: "left" | "right";
   you: boolean;
 }
 
-function Fighter({ player, team, from, you }: FighterProps) {
+function Fighter({ player, team, theme, from, you }: FighterProps) {
   const reduce = useReducedMotion();
   const left = from === "left";
+  const Icon = theme?.icon;
   return (
     <motion.div
       initial={reduce ? false : { x: left ? -360 : 360, opacity: 0, skewX: left ? 20 : -20 }}
@@ -30,9 +33,12 @@ function Fighter({ player, team, from, you }: FighterProps) {
       transition={{ type: "spring", stiffness: 170, damping: 16, delay: left ? 0.1 : 0.35 }}
       className={cn(
         "relative z-10 flex w-full items-center gap-4 rounded-3xl border-2 p-3 pr-5 shadow-2xl",
-        left
-          ? "border-primary bg-gradient-to-r from-primary to-fuchsia-500 text-primary-foreground shadow-primary/50"
-          : "flex-row-reverse border-flame bg-gradient-to-l from-flame to-gold text-black shadow-flame/50",
+        !left && "flex-row-reverse",
+        theme
+          ? [theme.border, left ? theme.gradient : theme.gradientReverse, theme.glow]
+          : left
+            ? "border-primary bg-gradient-to-r from-primary to-fuchsia-500 text-primary-foreground shadow-primary/50"
+            : "border-flame bg-gradient-to-l from-flame to-gold text-black shadow-flame/50",
       )}
     >
       <motion.span
@@ -40,7 +46,7 @@ function Fighter({ player, team, from, you }: FighterProps) {
         transition={{ duration: 2.4, repeat: Infinity, delay: 1.2 }}
         className={cn(
           "flex size-16 shrink-0 items-center justify-center rounded-full border-4 text-4xl shadow-inner",
-          left ? "border-white/70 bg-black/25" : "border-black/60 bg-white/40",
+          theme || left ? "border-white/70 bg-black/25" : "border-black/60 bg-white/40",
         )}
         aria-hidden
       >
@@ -49,9 +55,10 @@ function Fighter({ player, team, from, you }: FighterProps) {
       <div className={cn("min-w-0 flex-1", left ? "text-left" : "text-right")}>
         <p className="truncate text-2xl font-black leading-tight tracking-tight">{player?.name ?? "?"}</p>
         <p className="flex items-center gap-2 text-sm font-semibold opacity-85" style={{ justifyContent: left ? "flex-start" : "flex-end" }}>
+          {Icon && <Icon className="size-4" aria-hidden />}
           {team}
           {you && (
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-extrabold", left ? "bg-white/25" : "bg-black/20")}>YOU</span>
+            <span className={cn("rounded-full px-2 py-0.5 text-xs font-extrabold", theme || left ? "bg-white/25" : "bg-black/20")}>YOU</span>
           )}
         </p>
       </div>
@@ -64,6 +71,8 @@ export function VersusIntro({
   b,
   teamA,
   teamB,
+  themeA,
+  themeB,
   meId,
   seconds,
 }: {
@@ -71,6 +80,8 @@ export function VersusIntro({
   b: PlayerRow | undefined;
   teamA: string | undefined;
   teamB: string | undefined;
+  themeA: TeamTheme | null;
+  themeB: TeamTheme | null;
   meId: string | undefined;
   seconds: number;
 }) {
@@ -83,6 +94,22 @@ export function VersusIntro({
       transition={{ duration: 0.45, delay: IMPACT_DELAY }}
     >
       <div aria-hidden className="pointer-events-none absolute inset-0 -z-10 overflow-hidden rounded-3xl">
+        {themeA && themeB && (
+          <>
+            <motion.div
+              initial={reduce ? false : { y: "-100%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className={cn("absolute inset-x-0 top-0 h-1/2 opacity-35 bg-gradient-to-b to-transparent", themeA.key === "a" ? "from-team-a" : "from-team-b")}
+            />
+            <motion.div
+              initial={reduce ? false : { y: "100%" }}
+              animate={{ y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut" }}
+              className={cn("absolute inset-x-0 bottom-0 h-1/2 opacity-35 bg-gradient-to-t to-transparent", themeB.key === "a" ? "from-team-a" : "from-team-b")}
+            />
+          </>
+        )}
         <motion.div
           animate={reduce ? undefined : { rotate: 360 }}
           transition={{ duration: 28, repeat: Infinity, ease: "linear" }}
@@ -90,7 +117,7 @@ export function VersusIntro({
         />
       </div>
 
-      <Fighter player={a} team={teamA} from="left" you={a?.id === meId} />
+      <Fighter player={a} team={teamA} theme={themeA} from="left" you={a?.id === meId} />
 
       <div className="relative z-20 -my-3 flex h-28 w-full items-center justify-center">
         {!reduce && (
@@ -137,7 +164,7 @@ export function VersusIntro({
         </motion.div>
       </div>
 
-      <Fighter player={b} team={teamB} from="right" you={b?.id === meId} />
+      <Fighter player={b} team={teamB} theme={themeB} from="right" you={b?.id === meId} />
 
       <motion.div
         initial={reduce ? false : { opacity: 0, y: 12 }}

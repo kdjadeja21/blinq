@@ -17,6 +17,7 @@ import type { RoomState } from "./useRoom";
 import { useServerNow } from "./shared";
 import { useDuelPicks } from "./useDuelPicks";
 import { VersusIntro } from "./VersusIntro";
+import { teamThemeFor, type TeamTheme } from "@/lib/multiplayer/teamTheme";
 
 export function toItems(keys: string[]): Item[] {
   return keys.flatMap((key) => {
@@ -25,7 +26,7 @@ export function toItems(keys: string[]): Item[] {
   });
 }
 
-function ProgressBar({ player, count, total, mine }: { player: PlayerRow | undefined; count: number; total: number; mine: boolean }) {
+function ProgressBar({ player, count, total, mine, theme }: { player: PlayerRow | undefined; count: number; total: number; mine: boolean; theme: TeamTheme | null }) {
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-sm font-semibold">
@@ -35,7 +36,7 @@ function ProgressBar({ player, count, total, mine }: { player: PlayerRow | undef
         </span>
       </div>
       <div className="h-3 overflow-hidden rounded-full bg-muted" role="progressbar" aria-valuemin={0} aria-valuemax={total} aria-valuenow={count} aria-label={`${player?.name ?? "Player"} progress`}>
-        <div className={cn("h-full rounded-full transition-all", mine ? "bg-primary" : "bg-fuchsia-500")} style={{ width: `${total ? (count / total) * 100 : 0}%` }} />
+        <div className={cn("h-full rounded-full transition-all", theme ? theme.bar : mine ? "bg-primary" : "bg-fuchsia-500")} style={{ width: `${total ? (count / total) * 100 : 0}%` }} />
       </div>
     </div>
   );
@@ -55,7 +56,7 @@ function DuelProgress({ state, duel, elapsedMs }: { state: RoomState; duel: Duel
   return (
     <div className="flex flex-col gap-3 rounded-2xl border-2 bg-card p-3">
       {[duel.player_a, duel.player_b].map((id) => (
-        <ProgressBar key={id} player={players.find((p) => p.id === id)} count={count(id)} total={duel.item_count} mine={id === me?.id} />
+        <ProgressBar key={id} player={players.find((p) => p.id === id)} count={count(id)} total={duel.item_count} mine={id === me?.id} theme={teamThemeFor(players.find((p) => p.id === id)?.team_id, state.teams)} />
       ))}
     </div>
   );
@@ -297,6 +298,8 @@ export function DuelView({ state }: { state: RoomState }) {
         b={b}
         teamA={teamName(a?.team_id)}
         teamB={teamName(b?.team_id)}
+        themeA={teamThemeFor(a?.team_id, state.teams)}
+        themeB={teamThemeFor(b?.team_id, state.teams)}
         meId={me?.id}
         seconds={seconds}
       />
