@@ -27,6 +27,15 @@ export function useAction() {
   return { busy, error, run };
 }
 
+function CodeCard({ code }: { code: string }) {
+  return (
+    <section className="rounded-3xl border-2 bg-gradient-to-b from-primary/25 to-card p-4 text-center shadow-lg" aria-label="Room code">
+      <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">Room code</p>
+      <p className="font-mono text-4xl font-extrabold tracking-[0.25em]">{code}</p>
+    </section>
+  );
+}
+
 function ShareCard({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   async function share() {
@@ -88,7 +97,7 @@ export function LobbyView({ state }: { state: RoomState }) {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      <ShareCard code={room.code} />
+      {isAdmin ? <ShareCard code={room.code} /> : <CodeCard code={room.code} />}
       <section className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-labelledby="players-title">
         <h2 id="players-title" className="text-base font-bold">
           Players{" "}
