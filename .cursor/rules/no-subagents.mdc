@@ -1,0 +1,10 @@
+---
+description: Never delegate work to subagents
+alwaysApply: true
+---
+
+# Do not use subagents
+
+Do not use subagents for this task. Do the work yourself with the tools available in this session.
+
+This includes every subagent type: explore, general purpose, computer use, code review, security review, CI, and any other delegated agent. Do not launch them in parallel, in the background, or to speed up research, testing, or review.
