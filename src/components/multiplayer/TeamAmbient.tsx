@@ -10,12 +10,11 @@ function intensityFor(phase: RoomPhase): number {
       return 0;
     case "teams_ready":
     case "duel_intro":
-    case "level_result":
-    case "finished":
-      return 1;
     case "memorize":
     case "recall":
     case "duel_result":
+    case "level_result":
+    case "finished":
       return 0.5;
     default: {
       const unreachable: never = phase;
