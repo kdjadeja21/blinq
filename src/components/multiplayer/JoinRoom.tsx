@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Dices, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useRef, useState, useTransition } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
@@ -68,11 +68,7 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [editingCode, setEditingCode] = useState(!invited);
   const [name, setName] = useState("");
-  const [requesting, setRequesting] = useState(false);
-  const [navigating, startNavigation] = useTransition();
-  // Next keeps this page mounted (hidden) after navigating away; clear transient state so coming back never shows a stuck button.
-  useLayoutEffect(() => () => setRequesting(false), []);
-  const busy = requesting || navigating;
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   // Create the anonymous session while the guest types their name, so Join does not sign in and navigate in one step.
@@ -82,15 +78,14 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setRequesting(true);
+    setBusy(true);
     setError(null);
     try {
       const room = await callMp<{ code: string }>("join_room", { code, name });
-      startNavigation(() => router.push(`/room/${room.code}`));
+      router.push(`/room/${room.code}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not join the room.");
-    } finally {
-      setRequesting(false);
+      setBusy(false);
     }
   }
 

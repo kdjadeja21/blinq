@@ -1,8 +1,8 @@
 "use client";
 
-import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HEARTBEAT_MS } from "@/lib/multiplayer/config";
-import { callMp, withTimeout } from "@/lib/multiplayer/api";
+import { callMp } from "@/lib/multiplayer/api";
 import type {
   DuelProgressRow,
   DuelResultRow,
@@ -11,9 +11,7 @@ import type {
   RoomRow,
   TeamRow,
 } from "@/lib/multiplayer/types";
-import { ensureUser, supabase } from "@/lib/supabase/client";
-
-const INIT_TIMEOUT_MS = 15000;
+import { ensureSession, supabase } from "@/lib/supabase/client";
 
 export type RoomStatus = "loading" | "ready" | "not_member" | "error";
 
@@ -82,37 +80,11 @@ export function useRoom(code: string): RoomState {
   const roomIdRef = useRef<string | null>(null);
   const memorizedRef = useRef<{ duelId: string; keys: string[] } | null>(null);
 
-  const epochRef = useRef(0);
-
-  // Next keeps a visited room mounted but hidden (Activity). Drop everything we learned when it is hidden, so a
-  // re-shown instance starts from "loading" and re-reads, instead of acting on a stale "not_member" and
-  // redirecting before any fresh read. The epoch also discards reads that were still in flight when it hid.
-  useLayoutEffect(() => {
-    return () => {
-      epochRef.current += 1;
-      roomIdRef.current = null;
-      memorizedRef.current = null;
-      setStatus(EMPTY.status);
-      setError(null);
-      setData(EMPTY_DATA);
-      setOnline(EMPTY.online);
-    };
-  }, [code]);
-
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
   const refresh = useCallback(async () => {
-    const epoch = epochRef.current;
     const client = supabase();
-    const lookup = async () => client.from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>();
-    let { data: room, error: roomError } = await lookup();
-    // Right after joining, the first read can race the session/membership; retry before deciding we are not a member.
-    for (let attempt = 0; attempt < 3 && !room; attempt++) {
-      await new Promise((resolve) => window.setTimeout(resolve, 400));
-      ({ data: room, error: roomError } = await lookup());
-    }
-    if (epoch !== epochRef.current) return;
-    if (roomError) throw new Error(roomError.message);
+    const { data: room } = await client.from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>();
     if (!room) {
       setStatus("not_member");
       return;
@@ -137,7 +109,6 @@ export function useRoom(code: string): RoomState {
         ? client.from("duel_choices").select("item_key, position").eq("duel_id", current.id).order("position")
         : null,
     ]);
-    if (epoch !== epochRef.current) return;
     const itemKeys = (items?.data ?? []).map((r: { item_key: string }) => r.item_key);
     if (current && itemKeys.length > 0) memorizedRef.current = { duelId: current.id, keys: itemKeys };
     const memorized = memorizedRef.current;
@@ -165,19 +136,14 @@ export function useRoom(code: string): RoomState {
 
     (async () => {
       try {
-        await withTimeout(
-          (async () => {
-            const { userId: id } = await ensureUser();
-            if (cancelled) return;
-            setUserId(id);
-            const t0 = Date.now();
-            const clock = await callMp<{ serverNow: number }>("time");
-            offsetRef.current = clock.serverNow - (t0 + Date.now()) / 2;
-            await refresh();
-          })(),
-          INIT_TIMEOUT_MS,
-          "Loading the room timed out. Please try again.",
-        );
+        await ensureSession();
+        const { data: auth } = await supabase().auth.getUser();
+        if (cancelled) return;
+        setUserId(auth.user?.id ?? null);
+        const t0 = Date.now();
+        const clock = await callMp<{ serverNow: number }>("time");
+        offsetRef.current = clock.serverNow - (t0 + Date.now()) / 2;
+        await refresh();
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Could not load the room.");

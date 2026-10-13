@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useLayoutEffect, useState, useTransition } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -26,11 +26,7 @@ export function CreateRoom() {
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
-  const [requesting, setRequesting] = useState(false);
-  const [navigating, startNavigation] = useTransition();
-  // Next keeps this page mounted (hidden) after navigating away; clear transient state so coming back never shows a stuck button.
-  useLayoutEffect(() => () => setRequesting(false), []);
-  const busy = requesting || navigating;
+  const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,7 +35,7 @@ export function CreateRoom() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setRequesting(true);
+    setBusy(true);
     setError(null);
     try {
       const room = await callMp<{ roomId: string; code: string }>("create_room", {
@@ -48,11 +44,10 @@ export function CreateRoom() {
         difficulty,
         pacing,
       });
-      startNavigation(() => router.push(`/room/${room.code}`));
+      router.push(`/room/${room.code}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the room.");
-    } finally {
-      setRequesting(false);
+      setBusy(false);
     }
   }
 
