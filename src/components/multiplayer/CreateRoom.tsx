@@ -3,12 +3,13 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
+import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
 import { DEFAULT_DIFFICULTY, DEFAULT_LEVELS, DEFAULT_PACING, DIFFICULTIES, MAX_ROOM_LEVELS, NAME_MAX } from "@/lib/multiplayer/config";
 import type { Difficulty, Pacing } from "@/lib/multiplayer/types";
-import { ErrorNote, Segmented, TextField } from "./shared";
+import { ErrorNote, Segmented, Spinner, TextField } from "./shared";
 
 const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((value) => ({
   value,
@@ -28,13 +29,21 @@ export function CreateRoom() {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  useEffect(() => {
+    if (isSupabaseConfigured()) void ensureSession().catch(() => undefined);
+  }, []);
+
   async function submit(event: React.FormEvent) {
     event.preventDefault();
     setBusy(true);
     setError(null);
     try {
-      const room = await callMp<{ roomId: string; code: string }>("create_room", { name });
-      await callMp("update_settings", { roomId: room.roomId, maxLevels: levels, difficulty, pacing });
+      const room = await callMp<{ roomId: string; code: string }>("create_room", {
+        name,
+        maxLevels: levels,
+        difficulty,
+        pacing,
+      });
       router.push(`/room/${room.code}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the room.");
@@ -48,7 +57,7 @@ export function CreateRoom() {
         <ArrowLeft className="size-4" /> Back
       </Link>
       <h1 className="text-3xl font-extrabold tracking-tight">Create a room</h1>
-      <form onSubmit={submit} className="flex flex-col gap-5 rounded-3xl border-2 bg-card p-4 shadow-lg">
+      <form onSubmit={submit} aria-busy={busy} className="flex flex-col gap-5 rounded-3xl border-2 bg-card p-4 shadow-lg">
         <TextField
           label="Your name"
           hint="Your player name in the lobby — not the room name. You get a share code after creating."
@@ -79,7 +88,13 @@ export function CreateRoom() {
         </p>
         <ErrorNote message={error} />
         <Button type="submit" variant="game" className="h-14 rounded-3xl text-lg" disabled={busy}>
-          {busy ? "Creating..." : "Create room"}
+          {busy ? (
+            <>
+              <Spinner /> Creating room...
+            </>
+          ) : (
+            "Create room"
+          )}
         </Button>
       </form>
     </main>

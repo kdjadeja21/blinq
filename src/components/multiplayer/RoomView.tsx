@@ -12,6 +12,7 @@ import { LobbyView, TeamsReadyView, useAction } from "./LobbyView";
 import { DuelResultView, FinalView, LevelResultView } from "./ResultViews";
 import { useServerNow } from "./shared";
 import { AdminDialog } from "./AdminDialog";
+import { RoomLoading } from "./RoomLoading";
 import { useRoom, type RoomState } from "./useRoom";
 import { useRoomMusic } from "./useRoomMusic";
 
@@ -104,11 +105,7 @@ export function RoomView({ code }: { code: string }) {
 
   if (status === "loading" || status === "not_member") {
     return (
-      <main className="flex flex-1 items-center justify-center p-4" aria-busy="true">
-        <p className="animate-bounce text-6xl" aria-hidden>
-          🧠
-        </p>
-      </main>
+      <RoomLoading />
     );
   }
   if (status === "error" || !room) {

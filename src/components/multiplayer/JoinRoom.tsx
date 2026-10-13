@@ -9,7 +9,7 @@ import { useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
-import { ErrorNote, TextField } from "./shared";
+import { ErrorNote, Spinner, TextField } from "./shared";
 
 const ADJECTIVES = ["Swift", "Sneaky", "Brainy", "Lucky", "Fuzzy", "Cosmic", "Zesty", "Mighty", "Clever", "Sunny"];
 const ANIMALS = ["Fox", "Owl", "Panda", "Otter", "Koala", "Tiger", "Falcon", "Gecko", "Lynx", "Whale"];
@@ -152,7 +152,7 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
           className="h-14 rounded-3xl text-lg"
           disabled={busy || code.length !== ROOM_CODE_LENGTH || !name.trim()}
         >
-          <LogIn className="size-5" /> {busy ? "Joining..." : "Join room"}
+          {busy ? <Spinner /> : <LogIn className="size-5" />} {busy ? "Joining..." : "Join room"}
         </Button>
       </form>
     </main>
