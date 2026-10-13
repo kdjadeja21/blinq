@@ -50,19 +50,27 @@ export function Segmented<T extends string>({ label, value, options, onChange, d
 
 export function TextField({
   label,
+  hint,
   value,
   onChange,
   className,
   ...rest
-}: { label: string; value: string; onChange: (value: string) => void } & Omit<
-  React.InputHTMLAttributes<HTMLInputElement>,
-  "value" | "onChange"
->) {
+}: {
+  label: string;
+  hint?: string;
+  value: string;
+  onChange: (value: string) => void;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  const id = rest.id ?? rest.name;
   return (
-    <label className="flex flex-col gap-1.5 text-sm font-semibold">
-      {label}
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className="text-sm font-semibold">
+        {label}
+      </label>
+      {hint ? <p className="text-xs font-normal text-muted-foreground">{hint}</p> : null}
       <input
         {...rest}
+        id={id}
         value={value}
         onChange={(e) => onChange(e.target.value)}
         className={cn(
@@ -70,7 +78,7 @@ export function TextField({
           className,
         )}
       />
-    </label>
+    </div>
   );
 }
 

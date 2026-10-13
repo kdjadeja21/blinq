@@ -47,7 +47,15 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
           className="h-14 text-center font-mono text-2xl tracking-[0.3em]"
           required
         />
-        <TextField label="Your name" value={name} onChange={setName} maxLength={NAME_MAX} autoComplete="nickname" required />
+        <TextField
+          label="Your name"
+          hint="Your player name in this room — not the room code above."
+          value={name}
+          onChange={setName}
+          maxLength={NAME_MAX}
+          autoComplete="nickname"
+          required
+        />
         <ErrorNote message={error} />
         <Button type="submit" variant="success" className="h-14 rounded-3xl text-lg" disabled={busy || code.length !== ROOM_CODE_LENGTH}>
           {busy ? "Joining..." : "Join"}

@@ -49,7 +49,15 @@ export function CreateRoom() {
       </Link>
       <h1 className="text-3xl font-extrabold tracking-tight">Create a room</h1>
       <form onSubmit={submit} className="flex flex-col gap-5 rounded-3xl border-2 bg-card p-4 shadow-lg">
-        <TextField label="Your name" value={name} onChange={setName} maxLength={NAME_MAX} autoComplete="nickname" required />
+        <TextField
+          label="Your name"
+          hint="Your player name in the lobby — not the room name. You get a share code after creating."
+          value={name}
+          onChange={setName}
+          maxLength={NAME_MAX}
+          autoComplete="nickname"
+          required
+        />
         <div className="flex flex-col gap-1.5">
           <label htmlFor="levels" className="text-sm font-semibold">
             Levels: <span className="tabular-nums">{levels}</span>
