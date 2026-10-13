@@ -4,7 +4,7 @@ import { Lightbulb, SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { TIMINGS, type Action, type Round } from "@/lib/game";
+import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { MAX_LIVES, WRONG_PENALTY_MS, comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
@@ -32,7 +32,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const training = round.mode === "training";
 
   const phase = round.phase;
-  const totalMs = phase === "memorize" ? TIMINGS[round.mode].memorizeMs : TIMINGS[round.mode].recallMs;
+  const totalMs = phase === "memorize" ? round.memorizeMs : round.recallMs;
   const remainingMs = Math.min(totalMs, Math.max(0, round.phaseEndsAt - now));
   const seconds = formatSeconds(remainingMs);
   const progress = phase === "hide" ? 0 : Math.min(1, remainingMs / totalMs);

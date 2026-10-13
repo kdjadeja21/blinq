@@ -14,11 +14,16 @@ export type Phase = "intro" | "memorize" | "hide" | "recall" | "result";
 
 export const HIDE_MS = 700;
 
-export const TIMINGS: Record<Mode, { memorizeMs: number; recallMs: number }> = {
-  training: { memorizeMs: 15_000, recallMs: 20_000 },
-  level: { memorizeMs: 30_000, recallMs: 30_000 },
-  daily: { memorizeMs: 30_000, recallMs: 30_000 },
-};
+const TRAINING_TIMINGS = { memorizeMs: 15_000, recallMs: 20_000 };
+
+/** Memorize 4s + 2s per item, recall 8s + 1.5s per item, both capped at 30s. */
+export function roundTimings(mode: Mode, itemCount: number): { memorizeMs: number; recallMs: number } {
+  if (mode === "training") return TRAINING_TIMINGS;
+  return {
+    memorizeMs: Math.min(30_000, 4_000 + 2_000 * itemCount),
+    recallMs: Math.min(30_000, 8_000 + 1_500 * itemCount),
+  };
+}
 
 export interface Recalled {
   id: string;
@@ -45,6 +50,8 @@ export interface Round {
   items: Item[];
   choices: Item[];
   lives: number;
+  memorizeMs: number;
+  recallMs: number;
   phase: Phase;
   introStep: number;
   phaseEndsAt: number;
@@ -67,8 +74,7 @@ export type Action =
   | { type: "quit" };
 
 function beginMemorize(round: Round, now: number): Round {
-  const { memorizeMs } = TIMINGS[round.mode];
-  return { ...round, phase: "memorize", phaseEndsAt: now + memorizeMs };
+  return { ...round, phase: "memorize", phaseEndsAt: now + round.memorizeMs };
 }
 
 function finish(round: Round, now: number, early: boolean): Round {
@@ -105,6 +111,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       items: action.items,
       choices: action.choices,
       lives: MAX_LIVES,
+      ...roundTimings(action.mode, action.items.length),
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
       phaseEndsAt: 0,
@@ -132,7 +139,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         return { ...round, phase: "hide", phaseEndsAt: round.phaseEndsAt + HIDE_MS };
       }
       if (round.phase === "hide") {
-        const recallEndsAt = action.now + TIMINGS[round.mode].recallMs;
+        const recallEndsAt = action.now + round.recallMs;
         return { ...round, phase: "recall", phaseEndsAt: recallEndsAt, recallEndsAt };
       }
       if (round.phase === "recall") return finish(round, action.now, false);

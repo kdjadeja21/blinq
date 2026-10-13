@@ -88,7 +88,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
           Blinq
         </h1>
         <p className="mx-auto mt-2 max-w-xs text-muted-foreground">
-          Memorize the table. Recall it in 30 seconds. Come back tomorrow for a new one.
+          Memorize the table. Recall it against the clock. Come back tomorrow for a new one.
         </p>
       </div>
 
