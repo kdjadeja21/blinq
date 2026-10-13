@@ -13,19 +13,28 @@ export function supabase(): SupabaseClient {
   return cached;
 }
 
-let pending: Promise<string> | null = null;
+export interface SessionUser {
+  token: string;
+  userId: string;
+}
 
-/** Anonymous sign-in: every device gets a stable user id without a signup. Resolves to the access token. */
-export function ensureSession(): Promise<string> {
+let pending: Promise<SessionUser> | null = null;
+
+/** Anonymous sign-in: every device gets a stable user id without a signup. Reads the stored session, no extra network call. */
+export function ensureUser(): Promise<SessionUser> {
   pending ??= (async () => {
     const client = supabase();
     const { data } = await client.auth.getSession();
-    if (data.session) return data.session.access_token;
+    if (data.session) return { token: data.session.access_token, userId: data.session.user.id };
     const { data: signedIn, error } = await client.auth.signInAnonymously();
     if (error || !signedIn.session) throw new Error(error?.message ?? "Could not sign in.");
-    return signedIn.session.access_token;
+    return { token: signedIn.session.access_token, userId: signedIn.session.user.id };
   })().finally(() => {
     pending = null;
   });
   return pending;
+}
+
+export async function ensureSession(): Promise<string> {
+  return (await ensureUser()).token;
 }

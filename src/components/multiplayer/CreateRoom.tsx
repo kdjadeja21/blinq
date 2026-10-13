@@ -3,7 +3,7 @@
 import { ArrowLeft } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
@@ -26,7 +26,9 @@ export function CreateRoom() {
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
-  const [busy, setBusy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [navigating, startNavigation] = useTransition();
+  const busy = requesting || navigating;
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
@@ -35,7 +37,7 @@ export function CreateRoom() {
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    setRequesting(true);
     setError(null);
     try {
       const room = await callMp<{ roomId: string; code: string }>("create_room", {
@@ -44,10 +46,11 @@ export function CreateRoom() {
         difficulty,
         pacing,
       });
-      router.push(`/room/${room.code}`);
+      startNavigation(() => router.push(`/room/${room.code}`));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not create the room.");
-      setBusy(false);
+    } finally {
+      setRequesting(false);
     }
   }
 

@@ -11,7 +11,25 @@ import type {
   RoomRow,
   TeamRow,
 } from "@/lib/multiplayer/types";
-import { ensureSession, supabase } from "@/lib/supabase/client";
+import { ensureUser, supabase } from "@/lib/supabase/client";
+
+const INIT_TIMEOUT_MS = 15000;
+
+function withTimeout<T>(promise: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((resolve, reject) => {
+    const id = window.setTimeout(() => reject(new Error("Loading the room timed out. Please try again.")), ms);
+    promise.then(
+      (value) => {
+        window.clearTimeout(id);
+        resolve(value);
+      },
+      (error: unknown) => {
+        window.clearTimeout(id);
+        reject(error);
+      },
+    );
+  });
+}
 
 export type RoomStatus = "loading" | "ready" | "not_member" | "error";
 
@@ -136,14 +154,18 @@ export function useRoom(code: string): RoomState {
 
     (async () => {
       try {
-        await ensureSession();
-        const { data: auth } = await supabase().auth.getUser();
-        if (cancelled) return;
-        setUserId(auth.user?.id ?? null);
-        const t0 = Date.now();
-        const clock = await callMp<{ serverNow: number }>("time");
-        offsetRef.current = clock.serverNow - (t0 + Date.now()) / 2;
-        await refresh();
+        await withTimeout(
+          (async () => {
+            const { userId: id } = await ensureUser();
+            if (cancelled) return;
+            setUserId(id);
+            const t0 = Date.now();
+            const clock = await callMp<{ serverNow: number }>("time");
+            offsetRef.current = clock.serverNow - (t0 + Date.now()) / 2;
+            await refresh();
+          })(),
+          INIT_TIMEOUT_MS,
+        );
       } catch (e) {
         if (!cancelled) {
           setError(e instanceof Error ? e.message : "Could not load the room.");

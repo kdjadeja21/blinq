@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Dices, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useRef, useState, useTransition } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
@@ -67,19 +67,22 @@ export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [editingCode, setEditingCode] = useState(!invited);
   const [name, setName] = useState("");
-  const [busy, setBusy] = useState(false);
+  const [requesting, setRequesting] = useState(false);
+  const [navigating, startNavigation] = useTransition();
+  const busy = requesting || navigating;
   const [error, setError] = useState<string | null>(null);
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
-    setBusy(true);
+    setRequesting(true);
     setError(null);
     try {
       const room = await callMp<{ code: string }>("join_room", { code, name });
-      router.push(`/room/${room.code}`);
+      startNavigation(() => router.push(`/room/${room.code}`));
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not join the room.");
-      setBusy(false);
+    } finally {
+      setRequesting(false);
     }
   }
 
