@@ -31,10 +31,9 @@ const MODE_OPTIONS: { value: RoomMode; label: string }[] = [
   { value: "individual", label: MODES.individual.label },
   { value: "team", label: MODES.team.label },
 ];
-const TEAM_STYLE_OPTIONS: { value: TeamStyle; label: string; description: string }[] = TEAM_STYLES.map((value) => ({
+const TEAM_STYLE_OPTIONS: { value: TeamStyle; label: string }[] = TEAM_STYLES.map((value) => ({
   value,
   label: TEAM_STYLES_INFO[value].label,
-  description: TEAM_STYLES_INFO[value].description,
 }));
 const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "manual", label: "Manual" },
@@ -96,7 +95,12 @@ export function CreateRoom() {
         <p className="-mt-2 text-xs text-muted-foreground">
           {MODES[mode].description} Up to {maxPlayersFor(mode)} players.
         </p>
-        {mode === "team" && <Segmented label="Team style" value={teamStyle} options={TEAM_STYLE_OPTIONS} onChange={setTeamStyle} />}
+        {mode === "team" && (
+          <>
+            <Segmented label="Team style" value={teamStyle} options={TEAM_STYLE_OPTIONS} onChange={setTeamStyle} />
+            <p className="-mt-2 text-xs text-muted-foreground">{TEAM_STYLES_INFO[teamStyle].description}</p>
+          </>
+        )}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="levels" className="text-sm font-semibold">
             Levels: <span className="tabular-nums">{levels}</span>
