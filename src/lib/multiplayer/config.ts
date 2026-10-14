@@ -1,6 +1,13 @@
-import type { Difficulty, Pacing } from "./types";
+import type { Difficulty, Pacing, RoomMode } from "./types";
 
-export const MAX_PLAYERS = 12;
+/** Realtime Postgres Changes fans every row change out to every subscriber, so rooms stay small. */
+export const MAX_PLAYERS_BY_MODE: Record<RoomMode, number> = { team: 12, individual: 21 };
+export const MAX_PLAYERS = MAX_PLAYERS_BY_MODE.team;
+export const DEFAULT_MODE: RoomMode = "individual";
+
+export function maxPlayersFor(mode: RoomMode): number {
+  return MAX_PLAYERS_BY_MODE[mode];
+}
 export const MIN_HUMANS = 2;
 export const MAX_ROOM_LEVELS = 10;
 export const DEFAULT_LEVELS = 3;
@@ -38,3 +45,8 @@ export const DIFFICULTIES: Record<Difficulty, { label: string }> = {
 export function autoResultMs(phase: "duel_result" | "level_result"): number {
   return phase === "duel_result" ? AUTO_DUEL_RESULT_MS : AUTO_LEVEL_RESULT_MS;
 }
+
+export const MODES: Record<RoomMode, { label: string; description: string }> = {
+  team: { label: "Team", description: "Two teams, one-on-one duels." },
+  individual: { label: "Individual", description: "Everyone plays at once. Top of the leaderboard wins." },
+};

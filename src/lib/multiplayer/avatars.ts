@@ -2,7 +2,7 @@ export const BOT_AVATAR = "🤖";
 
 /** More avatars than MAX_PLAYERS, so every player in a room gets a different one. */
 export const AVATARS = [
-  "🦊", "🐼", "🐯", "🦁", "🐸", "🐵", "🐙", "🦄", "🐧", "🦉", "🐨", "🐰", "🦋", "🐢", "🐳", "🦖", "🐝", "🦈", "🦜", "🐞",
+  "🦊", "🐼", "🐯", "🦁", "🐸", "🐵", "🐙", "🦄", "🐧", "🦉", "🐨", "🐰", "🦋", "🐢", "🐳", "🦖", "🐝", "🦈", "🦜", "🐞", "🦩", "🐘", "🦔", "🐠",
 ] as const;
 
 export function pickAvatar(taken: readonly (string | null)[], random: () => number = Math.random): string {

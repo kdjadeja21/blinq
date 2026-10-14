@@ -9,6 +9,8 @@ import { buttonVariants } from "@/components/ui/button";
 import { SoundToggle } from "@/components/game/SoundToggle";
 import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
 import { DuelView } from "./DuelView";
+import { IndividualFinalView, RoundResultView } from "./IndividualResults";
+import { RoundView } from "./RoundView";
 import { LobbyView, TeamsReadyView, useAction } from "./LobbyView";
 import { DuelResultView, FinalView, LevelResultView } from "./ResultViews";
 import { useServerNow } from "./shared";
@@ -99,6 +101,7 @@ function MyTeamPill({ state }: { state: RoomState }) {
 
 function Screen({ state }: { state: RoomState }) {
   const phase = state.room?.phase;
+  const individual = state.room?.mode === "individual";
   switch (phase) {
     case "lobby":
       return <LobbyView state={state} />;
@@ -107,13 +110,13 @@ function Screen({ state }: { state: RoomState }) {
     case "duel_intro":
     case "memorize":
     case "recall":
-      return <DuelView state={state} />;
+      return individual ? <RoundView state={state} /> : <DuelView state={state} />;
     case "duel_result":
       return <DuelResultView state={state} />;
     case "level_result":
-      return <LevelResultView state={state} />;
+      return individual ? <RoundResultView state={state} /> : <LevelResultView state={state} />;
     case "finished":
-      return <FinalView state={state} />;
+      return individual ? <IndividualFinalView state={state} /> : <FinalView state={state} />;
     case undefined:
       return null;
     default: {

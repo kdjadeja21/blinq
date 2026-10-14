@@ -9,6 +9,9 @@ import type {
   DuelRow,
   PlayerRow,
   RoomRow,
+  RoundDoneRow,
+  RoundResultRow,
+  RoundRow,
   TeamRow,
 } from "@/lib/multiplayer/types";
 import { ensureSession, supabase } from "@/lib/supabase/client";
@@ -24,6 +27,10 @@ export interface RoomState {
   duels: DuelRow[];
   results: DuelResultRow[];
   progress: DuelProgressRow[];
+  /** individual mode: one shared round per level */
+  rounds: RoundRow[];
+  roundResults: RoundResultRow[];
+  roundDone: RoundDoneRow[];
   /** item keys on the table; only filled while the server allows reading them */
   itemKeys: string[];
   choiceKeys: string[];
@@ -33,6 +40,7 @@ export interface RoomState {
   me: PlayerRow | null;
   isAdmin: boolean;
   duel: DuelRow | null;
+  round: RoundRow | null;
   /** Server-corrected clock in ms. */
   now: () => number;
   /** Re-reads the room immediately instead of waiting for a realtime event. */
@@ -48,6 +56,9 @@ const EMPTY: Omit<RoomState, "now" | "refresh"> = {
   duels: [],
   results: [],
   progress: [],
+  rounds: [],
+  roundResults: [],
+  roundDone: [],
   itemKeys: [],
   choiceKeys: [],
   memorizedKeys: [],
@@ -55,9 +66,10 @@ const EMPTY: Omit<RoomState, "now" | "refresh"> = {
   me: null,
   isAdmin: false,
   duel: null,
+  round: null,
 };
 
-type Data = Omit<RoomState, "now" | "refresh" | "online" | "status" | "error" | "me" | "isAdmin" | "duel">;
+type Data = Omit<RoomState, "now" | "refresh" | "online" | "status" | "error" | "me" | "isAdmin" | "duel" | "round">;
 const EMPTY_DATA: Data = {
   room: null,
   players: [],
@@ -65,6 +77,9 @@ const EMPTY_DATA: Data = {
   duels: [],
   results: [],
   progress: [],
+  rounds: [],
+  roundResults: [],
+  roundDone: [],
   itemKeys: [],
   choiceKeys: [],
   memorizedKeys: [],
@@ -78,7 +93,7 @@ export function useRoom(code: string): RoomState {
   const [userId, setUserId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const roomIdRef = useRef<string | null>(null);
-  const memorizedRef = useRef<{ duelId: string; keys: string[] } | null>(null);
+  const memorizedRef = useRef<{ stageId: string; keys: string[] } | null>(null);
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
 
@@ -90,27 +105,39 @@ export function useRoom(code: string): RoomState {
       return;
     }
     roomIdRef.current = room.id;
-    const [players, teams, duels] = await Promise.all([
+    const individual = room.mode === "individual";
+    const [players, teams, duels, rounds] = await Promise.all([
       client.from("players").select("*").eq("room_id", room.id).order("joined_at").returns<PlayerRow[]>(),
       client.from("teams").select("*").eq("room_id", room.id).order("name").returns<TeamRow[]>(),
-      client.from("duels").select("*").eq("room_id", room.id).order("level").order("duel_index").returns<DuelRow[]>(),
+      individual
+        ? null
+        : client.from("duels").select("*").eq("room_id", room.id).order("level").order("duel_index").returns<DuelRow[]>(),
+      individual
+        ? client.from("rounds").select("*").eq("room_id", room.id).order("level").returns<RoundRow[]>()
+        : null,
     ]);
-    const duelList = duels.data ?? [];
-    const current = duelList.find((d) => d.level === room.level && d.duel_index === room.duel_index);
-    const [results, progress, items, choices] = await Promise.all([
+    const duelList = duels?.data ?? [];
+    const roundList = rounds?.data ?? [];
+    const currentDuel = duelList.find((d) => d.level === room.level && d.duel_index === room.duel_index);
+    const currentRound = roundList.find((r) => r.level === room.level);
+    const stageId = currentRound?.id ?? currentDuel?.id;
+    const itemsTable = individual ? "round_items" : "duel_items";
+    const choicesTable = individual ? "round_choices" : "duel_choices";
+    const stageColumn = individual ? "round_id" : "duel_id";
+    const [results, progress, roundResults, roundDone, items, choices] = await Promise.all([
       duelList.length
         ? client.from("duel_results").select("*").in("duel_id", duelList.map((d) => d.id)).returns<DuelResultRow[]>()
         : null,
-      current ? client.from("duel_progress").select("*").eq("duel_id", current.id).returns<DuelProgressRow[]>() : null,
-      current
-        ? client.from("duel_items").select("item_key, position").eq("duel_id", current.id).order("position")
+      currentDuel ? client.from("duel_progress").select("*").eq("duel_id", currentDuel.id).returns<DuelProgressRow[]>() : null,
+      roundList.length
+        ? client.from("round_results").select("*").in("round_id", roundList.map((r) => r.id)).returns<RoundResultRow[]>()
         : null,
-      current
-        ? client.from("duel_choices").select("item_key, position").eq("duel_id", current.id).order("position")
-        : null,
+      currentRound ? client.from("round_done").select("*").eq("round_id", currentRound.id).returns<RoundDoneRow[]>() : null,
+      stageId ? client.from(itemsTable).select("item_key, position").eq(stageColumn, stageId).order("position") : null,
+      stageId ? client.from(choicesTable).select("item_key, position").eq(stageColumn, stageId).order("position") : null,
     ]);
     const itemKeys = (items?.data ?? []).map((r: { item_key: string }) => r.item_key);
-    if (current && itemKeys.length > 0) memorizedRef.current = { duelId: current.id, keys: itemKeys };
+    if (stageId && itemKeys.length > 0) memorizedRef.current = { stageId, keys: itemKeys };
     const memorized = memorizedRef.current;
     setData({
       room,
@@ -119,8 +146,11 @@ export function useRoom(code: string): RoomState {
       duels: duelList,
       results: results?.data ?? [],
       progress: progress?.data ?? [],
+      rounds: roundList,
+      roundResults: roundResults?.data ?? [],
+      roundDone: roundDone?.data ?? [],
       itemKeys,
-      memorizedKeys: current && memorized?.duelId === current.id ? memorized.keys : [],
+      memorizedKeys: stageId && memorized?.stageId === stageId ? memorized.keys : [],
       choiceKeys: (choices?.data ?? []).map((r: { item_key: string }) => r.item_key),
     });
     setStatus("ready");
@@ -161,6 +191,9 @@ export function useRoom(code: string): RoomState {
       .on("postgres_changes", { event: "*", schema: "public", table: "duels" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "duel_progress" }, schedule)
       .on("postgres_changes", { event: "*", schema: "public", table: "duel_results" }, schedule)
+      .on("postgres_changes", { event: "*", schema: "public", table: "rounds" }, schedule)
+      .on("postgres_changes", { event: "*", schema: "public", table: "round_done" }, schedule)
+      .on("postgres_changes", { event: "*", schema: "public", table: "round_results" }, schedule)
       .subscribe();
 
     const onVisible = () => {
@@ -211,6 +244,11 @@ export function useRoom(code: string): RoomState {
     [data.duels, room],
   );
 
+  const round = useMemo(
+    () => (room ? (data.rounds.find((r) => r.level === room.level) ?? null) : null),
+    [data.rounds, room],
+  );
+
   const duelist = Boolean(myPlayerId && duel && (duel.player_a === myPlayerId || duel.player_b === myPlayerId));
 
   useEffect(() => {
@@ -231,5 +269,5 @@ export function useRoom(code: string): RoomState {
     };
   }, [roomId, version, deadline, isAdmin, duelist]);
 
-  return { ...data, status, error, online, me, isAdmin, duel, now, refresh };
+  return { ...data, status, error, online, me, isAdmin, duel, round, now, refresh };
 }

@@ -17,6 +17,20 @@ Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 9. **Level result:** the team with the most points that level wins it. The next level has more items and freshly shuffled pairings.
 10. **Final:** the team with the highest total wins.
 
+## Individual mode
+
+The creator picks a **mode** when creating the room: **Team** (above) or **Individual**. The mode can change only while the room is in the lobby.
+
+- **Flow:** lobby, then the admin taps Start game (no teams, no bot, at least 2 players). Each level is one shared round: intro, memorize, recall, then a leaderboard. After the last level the final standings and podium show.
+- **Same items, different layout:** every player gets the same items and decoys, but their own tile order on the memorize board and on the recall grid (`layoutFor` in `src/lib/multiplayer/layout.ts`, derived from round id and player id, nothing stored). A neighbour's screen does not help.
+- **Level selection and difficulty:** identical to team mode (`getRoundSpec({ mode: "duel", ... })`), stored on a `rounds` row per level.
+- **Recall ends** when every online human is done (all found, out of lives, or "I'm done") or the timer ends. Per-pick progress is not stored or broadcast; players see "x of N players finished".
+- **Scoring:** `scoreRecall`, same as team mode, per player.
+- **Leaderboard:** `src/lib/multiplayer/leaderboard.ts`. Rank by total points, then more correct, then less total time (a level with no correct pick costs a fixed maximum). Full ties share a rank. After each level the overall (cumulative) standings show by default, with places gained or lost since the previous level as arrows, plus a toggle for that level alone. Rank changes are derived from `round_results`, so they cost no extra realtime traffic.
+- **Size:** 2 to 21 players (`MAX_PLAYERS_BY_MODE` in `src/lib/multiplayer/config.ts`). Team mode stays at 12. Postgres Changes checks every row change against RLS once per subscriber, so rooms stay small.
+- **Tables:** `rounds`, `round_items`, `round_choices`, `round_submissions` (no client access), `round_done`, `round_results`. Same RLS timing rules as the duel tables. Room phases are reused: `duel_intro` is the round intro and `level_result` is the leaderboard; `teams_ready` and `duel_result` are not used.
+- **Actions:** `submit_guess` and `finish_early` take `roundId` instead of `duelId`. `create_room` and `update_settings` accept `mode`. `create_teams` is rejected in individual rooms and `start_game` runs straight from the lobby.
+
 ## Rules
 
 - **Teams:** two, as even as possible. Pairings are reshuffled every level and avoid earlier pairings while fresh ones exist (n players per team gives n fresh levels, then repeats are allowed). The bot rotates like any player.
@@ -25,7 +39,7 @@ Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 - **Points:** `scoreRecall` in `src/lib/scoring.ts`, the same combo, speed-bonus and mistake rules as single player. Team score is the sum of its players' points.
 - **Mistakes:** like single player, 3 wrong picks end your recall and each wrong pick costs 3 seconds of your own recall time.
 - **Late joiners:** blocked once the game starts. A player who disconnects rejoins on the same device with the room code.
-- **Size:** 2 to 12 human players, plus at most one bot.
+- **Size:** 2 to 12 human players, plus at most one bot (team mode).
 - **Names:** 2 to 16 characters, unique in the room (case-insensitive), basic profanity filter.
 
 ### Difficulty and timers
