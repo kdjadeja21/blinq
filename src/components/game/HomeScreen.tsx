@@ -161,13 +161,11 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
               {locked ? <Lock className="size-4" aria-hidden /> : <Play className="size-4 fill-current" aria-hidden />}
             </span>
             <span className="max-w-full truncate tracking-tight">{locked ? "Unlock" : "Play"}</span>
-            <span className="max-w-full text-[0.6875rem] font-semibold leading-tight tabular-nums text-primary-foreground/85">
-              <span className="block truncate">Level {stats.level}</span>
-              {locked ? null : (
-                <span className="block truncate opacity-85">
-                  {getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items
-                </span>
-              )}
+            <span className="max-w-full truncate px-0.5 text-[0.6875rem] font-semibold leading-tight tabular-nums text-primary-foreground/85">
+              Level {stats.level}
+              {locked
+                ? null
+                : ` · ${getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items`}
             </span>
           </Button>
           <Link
