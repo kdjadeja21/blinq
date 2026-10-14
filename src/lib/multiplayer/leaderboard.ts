@@ -14,6 +14,19 @@ export interface RoundScore {
   finishedMs: number | null;
 }
 
+/** Squad: turns resolved duel results into the per-level scores the standings are built from. */
+export function duelScores(
+  duels: readonly { id: string; level: number }[],
+  results: readonly { duel_id: string; player_id: string; points: number; correct_count: number; finished_ms: number | null }[],
+): RoundScore[] {
+  const levelOf = new Map(duels.map((d) => [d.id, d.level]));
+  return results.flatMap((r) => {
+    const level = levelOf.get(r.duel_id);
+    if (level === undefined) return [];
+    return [{ playerId: r.player_id, level, points: r.points, correct: r.correct_count, finishedMs: r.finished_ms }];
+  });
+}
+
 export interface Standing {
   playerId: string;
   name: string;

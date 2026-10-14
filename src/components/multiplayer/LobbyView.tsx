@@ -12,7 +12,7 @@ import {
   roomInviteShareText,
   roomInviteShareTitle,
 } from "@/lib/multiplayer/share";
-import { MIN_HUMANS, maxPlayersFor } from "@/lib/multiplayer/config";
+import { MIN_HUMANS, isSquad, maxPlayersFor } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip, Spinner } from "./shared";
 import { GameStartOverlay } from "./GameStartOverlay";
@@ -280,6 +280,9 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
           );
         })}
       </div>
+      {isSquad(room) && (
+        <p className="text-center text-sm text-muted-foreground">Squad: every duel of a level starts at the same time.</p>
+      )}
       {isAdmin ? (
         <div className="mt-auto flex flex-col gap-2">
           <ErrorNote message={error} />
