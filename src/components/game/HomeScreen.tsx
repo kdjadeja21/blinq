@@ -51,7 +51,7 @@ function useResetCountdown(): string {
 const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
 
 const ACTION_TILE =
-  "flex h-auto min-h-16 w-full min-w-0 max-w-full shrink flex-col items-center justify-center gap-0.5 overflow-hidden rounded-3xl px-2 py-2.5 text-center text-sm font-extrabold leading-snug whitespace-normal shadow-lg ring-1 ring-black/10";
+  "flex !h-auto min-h-[5.25rem] w-full min-w-0 max-w-full shrink flex-col items-center justify-center gap-0.5 overflow-hidden rounded-3xl px-2 py-2.5 text-center text-sm font-extrabold leading-snug whitespace-normal shadow-lg ring-1 ring-black/10";
 
 function ClashingSwords({ reduce, compact }: { reduce: boolean; compact?: boolean }) {
   const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
