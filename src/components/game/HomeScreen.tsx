@@ -182,8 +182,8 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
             <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 shadow-inner">
               <ClashingSwords reduce={!!reduce} compact />
             </span>
-            <span className="max-w-full truncate text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
-            <span className="max-w-full truncate rounded-full bg-black/30 px-1.5 py-px text-[0.5625rem] font-extrabold uppercase tracking-wide text-gold">
+            <span className="max-w-full text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
+            <span className="inline-flex max-w-full items-center justify-center rounded-full bg-black/30 px-2 py-0.5 text-[0.5625rem] font-extrabold leading-none uppercase tracking-wide text-gold">
               Team battle
             </span>
           </Link>
