@@ -182,16 +182,14 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
       >
         <div className="flex items-center justify-between">
           <h2 id="daily-title" className="text-lg font-bold">
-            {dailySignedOut ? "Sign in to play" : "Daily challenge"}
+            Daily challenge
           </h2>
-          {!dailySignedOut && (
-            <span
-              className="flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold"
-              aria-label={`Streak: ${streak} days`}
-            >
-              <Flame className="size-4 fill-flame text-flame" /> {streak}
-            </span>
-          )}
+          <span
+            className="flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold"
+            aria-label={`Streak: ${streak} days`}
+          >
+            <Flame className="size-4 fill-flame text-flame" /> {streak}
+          </span>
         </div>
         {dailySignedOut ? (
           <>
