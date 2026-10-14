@@ -272,9 +272,6 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
               {Icon && <Icon className="size-5" aria-hidden />}
               {team.name}
             </h2>
-            {mine && (
-              <p className="mb-2 text-center text-xs font-extrabold uppercase tracking-wider">Your team</p>
-            )}
             <ul className="flex flex-col items-center gap-2">
               {players
                 .filter((p) => p.team_id === team.id)
