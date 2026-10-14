@@ -9,6 +9,7 @@ import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
+import { GuestHint } from "./SoloAuth";
 import { StatTile } from "./StatTile";
 
 interface HomeScreenProps {
@@ -145,6 +146,8 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
           <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
         </Button>
       </motion.div>
+
+      <GuestHint />
 
       <Link
         href="/multiplayer"
