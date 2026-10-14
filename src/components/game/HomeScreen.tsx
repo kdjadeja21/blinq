@@ -9,7 +9,6 @@ import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
-import { SoloAccountCard } from "./SoloAuth";
 import { StatTile } from "./StatTile";
 
 interface HomeScreenProps {
@@ -129,8 +128,6 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
           Memorize the table. Recall it against the clock. Come back tomorrow for a new one.
         </p>
       </div>
-
-      <SoloAccountCard />
 
       <motion.div
         animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
