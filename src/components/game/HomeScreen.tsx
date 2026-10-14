@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword } from "lucide-react";
+import { Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword, Trophy } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -237,6 +237,12 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
             </Button>
           </>
         )}
+        <Link
+          href="/leaderboard"
+          className="mt-3 flex items-center justify-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <Trophy className="size-4 text-gold" aria-hidden /> Leaderboard
+        </Link>
       </section>
 
       <dl className="grid grid-cols-3 gap-2 text-center">
