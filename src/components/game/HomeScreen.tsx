@@ -51,7 +51,7 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
     <span aria-hidden className="relative inline-flex size-7 items-center justify-center">
       <motion.span
         className="absolute inset-0 flex items-center justify-center"
-        initial={false}
+        initial={{ x: -8, rotate: -40 }}
         animate={reduce ? undefined : { x: [-8, -8, 1, -1, -8], rotate: [-40, -40, 0, -6, -40] }}
         transition={transition}
       >
@@ -59,7 +59,7 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
       </motion.span>
       <motion.span
         className="absolute inset-0 flex items-center justify-center"
-        initial={false}
+        initial={{ x: 8, rotate: 40 }}
         animate={reduce ? undefined : { x: [8, 8, -1, 1, 8], rotate: [40, 40, 0, 6, 40] }}
         transition={transition}
       >
@@ -68,7 +68,7 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
       {reduce ? null : (
         <motion.span
           className="absolute size-3 rounded-full bg-gold blur-[2px]"
-          initial={false}
+          initial={{ opacity: 0, scale: 0.4 }}
           animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.8, 2.4, 0.4] }}
           transition={transition}
         />
