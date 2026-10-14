@@ -4,6 +4,7 @@ import { Flame, GraduationCap, Lock, Play, Share2, Sword } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
+import { cn } from "cn";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
@@ -48,6 +49,9 @@ function useResetCountdown(): string {
 }
 
 const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
+
+const ACTION_TILE =
+  "min-h-16 w-full flex-col gap-1 rounded-3xl px-2 py-2.5 text-center text-base font-extrabold leading-tight whitespace-normal shadow-lg ring-1 ring-black/10";
 
 function ClashingSwords({ reduce }: { reduce: boolean }) {
   const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
@@ -136,47 +140,53 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
 
       <div className="flex flex-col gap-2">
         <motion.div
-          animate={reduce || locked ? undefined : { scale: [1, 1.03, 1] }}
-          transition={{ duration: 2, repeat: Infinity }}
+          className="grid grid-cols-2 gap-2.5"
+          animate={reduce || locked ? undefined : { scale: [1, 1.02, 1] }}
+          transition={{ duration: 2.4, repeat: Infinity }}
         >
           <Button
             variant="game"
-            className="h-16 w-full rounded-3xl text-xl"
+            className={cn(ACTION_TILE, "min-w-0")}
             onClick={() => {
               playCue("tap");
               if (locked) onSignIn();
               else onPlayLevel();
             }}
           >
-            {locked ? (
-              <>
-                <Lock className="size-5" /> Unlock level {stats.level}
-              </>
-            ) : (
-              <>
-                <Play className="size-6 fill-current" /> Play level {stats.level}
-                <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
-              </>
-            )}
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 shadow-inner">
+              {locked ? <Lock className="size-4" aria-hidden /> : <Play className="size-5 fill-current" aria-hidden />}
+            </span>
+            <span className="tracking-tight">{locked ? "Unlock" : "Play"}</span>
+            <span className="text-[0.6875rem] font-semibold tabular-nums text-primary-foreground/85">
+              Level {stats.level}
+              {locked ? null : (
+                <>
+                  {" · "}
+                  {getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items
+                </>
+              )}
+            </span>
           </Button>
+          <Link
+            href="/multiplayer"
+            onClick={() => playCue("battle")}
+            aria-label="Multiplayer team battle"
+            className={buttonVariants({
+              variant: "battle",
+              className: cn(ACTION_TILE, "min-w-0 gap-1.5"),
+            })}
+          >
+            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-inner">
+              <ClashingSwords reduce={!!reduce} />
+            </span>
+            <span className="tracking-tight">Multiplayer</span>
+            <span className="rounded-full bg-black/30 px-2 py-px text-[0.625rem] font-extrabold uppercase tracking-widest text-gold">
+              Team battle
+            </span>
+          </Link>
         </motion.div>
         {guest ? <GuestHint locked={locked} /> : null}
       </div>
-
-      <Link
-        href="/multiplayer"
-        onClick={() => playCue("battle")}
-        className={buttonVariants({
-          variant: "battle",
-          className: "h-14 w-full gap-2.5 rounded-3xl text-lg font-extrabold",
-        })}
-      >
-        <ClashingSwords reduce={!!reduce} />
-        Multiplayer
-        <span className="rounded-full bg-black/25 px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider text-gold">
-          Team Battle
-        </span>
-      </Link>
 
       <section
         className="rounded-3xl border-2 bg-card p-4 shadow-lg"
