@@ -10,11 +10,13 @@ import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
 import { PlayScreen } from "./PlayScreen";
 import { ResultScreen } from "./ResultScreen";
+import { SoloAuthControl } from "./SoloAuth";
 import { SoundToggle } from "./SoundToggle";
 import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
 import { TrainingPrompt } from "./TrainingPrompt";
 import { useGameMusic } from "./useGameMusic";
+import { useSoloSync } from "./useSoloSync";
 
 const TRAINING_PROMPT_DELAY_MS = 2000;
 
@@ -44,6 +46,8 @@ export function Game() {
   const keyRef = useRef(0);
   const committedRef = useRef(-1);
 
+  const { recordRound } = useSoloSync();
+
   useGameMusic(round, now);
 
   const timed = round?.phase === "memorize" || round?.phase === "hide" || round?.phase === "recall";
@@ -63,7 +67,8 @@ export function Game() {
     if (!round?.result || committedRef.current === round.key) return;
     committedRef.current = round.key;
     saveStats(applyRoundResult(loadStats(), round, Date.now()));
-  }, [round]);
+    if (round.mode !== "training") recordRound(round);
+  }, [round, recordRound]);
 
   const start = useCallback((mode: Mode) => {
     const t = Date.now();
@@ -144,7 +149,8 @@ export function Game() {
       <div className="flex flex-1 flex-col" inert={offerTraining ? true : undefined}>
         <header className="flex h-14 items-center justify-between">
           <span className="text-xl font-extrabold tracking-tight">Blinq</span>
-          <div className="flex">
+          <div className="flex items-center gap-1">
+            <SoloAuthControl showSignIn={!round} />
             <SoundToggle />
             <ThemeToggle />
           </div>

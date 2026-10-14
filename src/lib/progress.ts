@@ -1,8 +1,13 @@
 import type { Round } from "./game";
 import { previousDateKey, utcDateKey } from "./rng";
-import type { Stats } from "./storage";
+import type { Stats } from "./stats";
 
-export function applyRoundResult(stats: Stats, round: Round, now: number): Stats {
+export type RoundSummary = Pick<Round, "mode" | "level" | "result"> & {
+  recalled: ReadonlyArray<{ id: string }>;
+  items: ReadonlyArray<{ id: string }>;
+};
+
+export function applyRoundResult(stats: Stats, round: RoundSummary, now: number): Stats {
   const result = round.result;
   if (!result) return stats;
 
@@ -58,4 +63,34 @@ export function shareText(daily: NonNullable<Stats["daily"]>): string {
   for (let i = 0; i < cells.length; i += 4) rows.push(cells.slice(i, i + 4).join(""));
   const stars = "⭐".repeat(daily.stars) || "·";
   return [`Blinq ${daily.date} ${stars}`, `${daily.correct}/${daily.total} remembered`, ...rows].join("\n");
+}
+
+/**
+ * Combines two cumulative stats snapshots of the same player (guest device and account).
+ * Counters are cumulative, so taking the max keeps the merge idempotent: syncing twice never double counts.
+ */
+export function mergeStats(a: Stats, b: Stats): Stats {
+  const latest = (a.lastDailyDate ?? "") >= (b.lastDailyDate ?? "") ? a : b;
+  const other = latest === a ? b : a;
+  const sameDay = latest.lastDailyDate === other.lastDailyDate;
+  return {
+    level: Math.max(a.level, b.level),
+    bestLevel: Math.max(a.bestLevel, b.bestLevel),
+    roundsPlayed: Math.max(a.roundsPlayed, b.roundsPlayed),
+    wins: Math.max(a.wins, b.wins),
+    perfectRounds: Math.max(a.perfectRounds, b.perfectRounds),
+    correctItems: Math.max(a.correctItems, b.correctItems),
+    totalItems: Math.max(a.totalItems, b.totalItems),
+    wrongGuesses: Math.max(a.wrongGuesses, b.wrongGuesses),
+    bestScore: Math.max(a.bestScore, b.bestScore),
+    bestStreak: Math.max(a.bestStreak, b.bestStreak),
+    streak: sameDay ? Math.max(a.streak, b.streak) : latest.streak,
+    lastDailyDate: latest.lastDailyDate,
+    daily: latest.daily ?? other.daily,
+    trainingDone: a.trainingDone || b.trainingDone,
+  };
+}
+
+export function statsEqual(a: Stats, b: Stats): boolean {
+  return JSON.stringify(a) === JSON.stringify(b);
 }
