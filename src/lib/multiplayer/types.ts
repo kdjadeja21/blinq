@@ -19,6 +19,10 @@ export type Pacing = "manual" | "auto";
 export const ROOM_MODES = ["individual", "team"] as const;
 export type RoomMode = (typeof ROOM_MODES)[number];
 
+/** Team mode only. Duel: one duel at a time. Squad: every duel of a level runs at once. */
+export const TEAM_STYLES = ["squad", "duel"] as const;
+export type TeamStyle = (typeof TEAM_STYLES)[number];
+
 export interface RoomRow {
   id: string;
   code: string;
@@ -32,6 +36,7 @@ export interface RoomRow {
   difficulty: Difficulty;
   pacing: Pacing;
   mode: RoomMode;
+  team_style: TeamStyle;
   duel_index: number;
   expires_at: string;
   created_at: string;
