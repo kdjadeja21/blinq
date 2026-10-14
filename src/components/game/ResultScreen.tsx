@@ -1,10 +1,11 @@
 "use client";
 
-import { ArrowRight, Check, Copy, House, LogIn, RotateCcw, Star } from "lucide-react";
+import { ArrowRight, Check, Copy, House, LogIn, RotateCcw, Star, Trophy } from "lucide-react";
+import Link from "next/link";
 import { cn } from "cn";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
@@ -156,6 +157,9 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
             <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={share}>
               {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied!" : "Share result"}
             </Button>
+            <Link href="/leaderboard" className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-2xl text-base")}>
+              <Trophy className="size-4" /> Leaderboard
+            </Link>
             <Button variant="secondary" className="h-12 rounded-2xl text-base" onClick={onHome}>
               <House className="size-4" /> Home
             </Button>
