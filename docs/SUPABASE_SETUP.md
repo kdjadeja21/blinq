@@ -55,7 +55,7 @@ If the remote database already has objects not in git, run `npx supabase db pull
 ### Option B — SQL Editor
 
 1. **SQL → New query**.
-2. Paste and **Run** each file in `supabase/migrations/` once, in filename order (`20261013000000_multiplayer.sql`, then `20261013010000_duel_feedback.sql`, then `20261013020000_player_avatar.sql`, then `20261013030000_room_cleanup.sql`, then `20261013040000_duel_rules.sql`). Re-running can fail on types/tables/columns that already exist. If you already ran the first file, only run the new ones.
+2. Paste and **Run** each file in `supabase/migrations/` once, in filename order (`20261013000000_multiplayer.sql`, then `20261013010000_duel_feedback.sql`, then `20261013020000_player_avatar.sql`, then `20261013030000_room_cleanup.sql`, then `20261013040000_duel_rules.sql`, ... and `20261014010000_individual_mode.sql` for individual mode, after the earlier ones). Re-running can fail on types/tables/columns that already exist. If you already ran the first file, only run the new ones.
 
 ### Realtime (Postgres Changes)
 
@@ -63,7 +63,9 @@ The migration runs `alter publication supabase_realtime add table ...`. Confirm 
 
 **Database → [Publications](https://supabase.com/docs/guides/realtime/postgres-changes#enable-postgres-replication) → `supabase_realtime`**
 
-These tables must be enabled: `rooms`, `teams`, `players`, `duels`, `duel_progress`, `duel_results`.
+These tables must be enabled: `rooms`, `teams`, `players`, `duels`, `duel_progress`, `duel_results`, and for individual mode `rounds`, `round_done`, `round_results`.
+
+**Quotas:** Realtime limits (concurrent connections, messages per second) are project-wide and depend on your plan; check the current numbers in the dashboard and the Supabase Realtime limits page. Postgres Changes checks RLS once per subscriber for every change, so individual rooms are capped at 21 players (`MAX_PLAYERS_BY_MODE`) and per-pick progress is not stored in that mode.
 
 If a table is missing, run:
 

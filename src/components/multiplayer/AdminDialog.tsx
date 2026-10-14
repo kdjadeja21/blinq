@@ -81,7 +81,7 @@ export function AdminDialog({ state }: { state: RoomState }) {
           )}
 
           <Segmented
-            label="Pacing between duels"
+            label={room.mode === "individual" ? "Pacing between levels" : "Pacing between duels"}
             value={room.pacing}
             options={[...PACING_OPTIONS]}
             onChange={(pacing) => void run("update_settings", { roomId: room.id, pacing })}

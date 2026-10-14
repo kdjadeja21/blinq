@@ -12,7 +12,7 @@ import {
   roomInviteShareText,
   roomInviteShareTitle,
 } from "@/lib/multiplayer/share";
-import { MAX_PLAYERS, MIN_HUMANS } from "@/lib/multiplayer/config";
+import { MIN_HUMANS, maxPlayersFor } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip, Spinner } from "./shared";
 import { GameStartOverlay } from "./GameStartOverlay";
@@ -106,20 +106,30 @@ function ShareCard({ code, hostName }: { code: string; hostName: string }) {
 }
 
 export function LobbyView({ state }: { state: RoomState }) {
-  const { room, players, me, isAdmin, online } = state;
+  const { room, players, me, isAdmin, online, refresh } = state;
   const { busy, error, run } = useAction();
+  const [starting, setStarting] = useState(false);
   if (!room) return null;
+  async function startIndividual() {
+    if (!room) return;
+    setStarting(true);
+    const result = await run("start_game", { roomId: room.id });
+    if (result === null) setStarting(false);
+    else await refresh().catch(() => undefined);
+  }
   const humans = players.filter((p) => !p.is_bot).length;
-  const odd = humans % 2 === 1;
+  const individual = room.mode === "individual";
+  const odd = !individual && humans % 2 === 1;
 
   return (
     <div className="flex flex-1 flex-col gap-3">
       {isAdmin ? <ShareCard code={room.code} hostName={me?.name ?? ""} /> : <CodeCard code={room.code} />}
+      {starting && <GameStartOverlay />}
       <section className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-labelledby="players-title">
         <h2 id="players-title" className="text-base font-bold">
           Players{" "}
           <span className="text-sm font-medium text-muted-foreground tabular-nums">
-            {humans}/{MAX_PLAYERS}
+            {humans}/{maxPlayersFor(room.mode)}
           </span>
         </h2>
         <ul className="mt-2 flex max-h-32 flex-wrap gap-2 overflow-y-auto overscroll-contain" aria-live="polite">
@@ -142,14 +152,16 @@ export function LobbyView({ state }: { state: RoomState }) {
               variant="game"
               className="h-14 rounded-3xl text-lg"
               disabled={busy || humans < MIN_HUMANS}
-              onClick={() => run("create_teams", { roomId: room.id })}
+              onClick={() => (individual ? startIndividual() : run("create_teams", { roomId: room.id }))}
             >
-              {busy ? (
+              {busy || starting ? (
                 <>
-                  <Spinner /> Creating teams...
+                  <Spinner /> {individual ? "Starting..." : "Creating teams..."}
                 </>
               ) : humans < MIN_HUMANS ? (
                 `Waiting for ${MIN_HUMANS - humans} more`
+              ) : individual ? (
+                "Start game"
               ) : (
                 "Create teams"
               )}
@@ -157,7 +169,7 @@ export function LobbyView({ state }: { state: RoomState }) {
           </>
         ) : (
           <p className="rounded-2xl bg-muted px-4 py-3 text-center text-muted-foreground" role="status">
-            Waiting for the admin to create teams...
+            {individual ? "Waiting for the admin to start..." : "Waiting for the admin to create teams..."}
           </p>
         )}
       </div>

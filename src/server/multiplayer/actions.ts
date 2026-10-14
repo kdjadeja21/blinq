@@ -11,6 +11,7 @@ import {
   updateSettings,
 } from "./lobby";
 import { requireMember } from "./queries";
+import { finishRoundEarly, submitRoundGuess } from "./rounds";
 import { advancePhase, finishEarly, nextStep, submitGuess, sweep } from "./phases";
 
 export const USER_ACTIONS = [
@@ -56,9 +57,11 @@ export async function runUserAction(action: UserAction, userId: string, body: Bo
     case "play_again":
       return playAgain(userId, str(body, "roomId"));
     case "submit_guess":
-      return submitGuess(userId, body.duelId, body.itemKey, body.at);
+      return body.roundId === undefined
+        ? submitGuess(userId, body.duelId, body.itemKey, body.at)
+        : submitRoundGuess(userId, body.roundId, body.itemKey, body.at);
     case "finish_early":
-      return finishEarly(userId, body.duelId);
+      return body.roundId === undefined ? finishEarly(userId, body.duelId) : finishRoundEarly(userId, body.roundId);
     case "advance_phase": {
       const roomId = str(body, "roomId");
       await requireMember(roomId, userId);
