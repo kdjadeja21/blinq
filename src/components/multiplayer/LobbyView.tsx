@@ -7,6 +7,11 @@ import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { cn } from "cn";
 import { Button } from "@/components/ui/button";
 import { callMp, shareUrl } from "@/lib/multiplayer/api";
+import {
+  roomInviteShareMessage,
+  roomInviteShareText,
+  roomInviteShareTitle,
+} from "@/lib/multiplayer/share";
 import { MAX_PLAYERS, MIN_HUMANS } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip, Spinner } from "./shared";
@@ -40,16 +45,23 @@ function CodeCard({ code }: { code: string }) {
   );
 }
 
-function ShareCard({ code }: { code: string }) {
+function ShareCard({ code, hostName }: { code: string; hostName: string }) {
   const [copied, setCopied] = useState(false);
+  const [shareCopied, setShareCopied] = useState(false);
   async function share() {
     const url = shareUrl(code);
+    const fullText = roomInviteShareText(code, hostName, url);
     try {
-      if (navigator.share) await navigator.share({ title: "Join my Blinq room", text: `Room ${code}`, url });
-      else {
-        await navigator.clipboard.writeText(url);
-        setCopied(true);
-        setTimeout(() => setCopied(false), 2000);
+      if (navigator.share) {
+        await navigator.share({
+          title: roomInviteShareTitle(),
+          text: roomInviteShareMessage(code, hostName),
+          url,
+        });
+      } else {
+        await navigator.clipboard.writeText(fullText);
+        setShareCopied(true);
+        setTimeout(() => setShareCopied(false), 2000);
       }
     } catch {
       // share cancelled
@@ -85,7 +97,8 @@ function ShareCard({ code }: { code: string }) {
           {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied" : "Copy code"}
         </Button>
         <Button variant="secondary" className="h-11 rounded-2xl" onClick={share}>
-          <Share2 className="size-4" /> Share link
+          {shareCopied ? <Check className="size-4" /> : <Share2 className="size-4" />}{" "}
+          {shareCopied ? "Copied invite" : "Share link"}
         </Button>
       </div>
     </section>
@@ -101,7 +114,7 @@ export function LobbyView({ state }: { state: RoomState }) {
 
   return (
     <div className="flex flex-1 flex-col gap-3">
-      {isAdmin ? <ShareCard code={room.code} /> : <CodeCard code={room.code} />}
+      {isAdmin ? <ShareCard code={room.code} hostName={me?.name ?? ""} /> : <CodeCard code={room.code} />}
       <section className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-labelledby="players-title">
         <h2 id="players-title" className="text-base font-bold">
           Players{" "}
