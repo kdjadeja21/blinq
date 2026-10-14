@@ -10,11 +10,12 @@ import { loadStats, saveStats } from "@/lib/storage";
  * Keeps signed-in players' solo stats in the database. Local storage stays the source the UI renders from;
  * a failed save only marks the account as behind, and the next call re-syncs the full local stats first.
  */
-export function useSoloSync(): { signedIn: boolean; recordRound: (round: RoundSummary) => void } {
+export function useSoloSync(): { signedIn: boolean; guest: boolean; recordRound: (round: RoundSummary) => void } {
   const { isLoaded, isSignedIn, userId } = useAuth();
   const queue = useRef<Promise<void>>(Promise.resolve());
   const behind = useRef(true);
   const signedIn = Boolean(isLoaded && isSignedIn && userId);
+  const guest = Boolean(isLoaded && !isSignedIn);
 
   const enqueue = useCallback((task: () => Promise<void>) => {
     queue.current = queue.current.then(task, task);
@@ -56,5 +57,5 @@ export function useSoloSync(): { signedIn: boolean; recordRound: (round: RoundSu
     [signedIn, enqueue, runSync],
   );
 
-  return { signedIn, recordRound };
+  return { signedIn, guest, recordRound };
 }

@@ -1,11 +1,13 @@
 "use client";
 
+import { useClerk } from "@clerk/nextjs";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { SOLO_DIFFICULTY, generateRound, getRoundSpec } from "@/lib/engine";
 import { roundReducer, type Mode } from "@/lib/game";
 import { applyRoundResult } from "@/lib/progress";
 import { hash, mulberry32, utcDateKey } from "@/lib/rng";
+import { isGuestLocked } from "@/lib/solo/guest";
 import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
 import { PlayScreen } from "./PlayScreen";
@@ -46,7 +48,8 @@ export function Game() {
   const keyRef = useRef(0);
   const committedRef = useRef(-1);
 
-  const { recordRound } = useSoloSync();
+  const { guest, recordRound } = useSoloSync();
+  const { openSignIn } = useClerk();
 
   useGameMusic(round, now);
 
@@ -73,12 +76,17 @@ export function Game() {
   const start = useCallback((mode: Mode) => {
     const t = Date.now();
     const level = mode === "level" ? loadStats().level : 1;
+    if (mode === "level" && isGuestLocked(guest, level)) {
+      dispatch({ type: "quit" });
+      void openSignIn();
+      return;
+    }
     const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
     const seed = mode === "training" ? "blinq:training" : mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
     const { items, choices } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
     keyRef.current += 1;
     dispatch({ type: "start", mode, spec, items, choices, level, now: t, key: keyRef.current });
-  }, []);
+  }, [guest, openSignIn]);
 
   const finishTraining = useCallback(() => {
     saveStats({ ...loadStats(), trainingDone: true });
@@ -103,6 +111,8 @@ export function Game() {
       <HomeScreen
         stats={stats}
         today={today}
+        guest={guest}
+        onSignIn={() => void openSignIn()}
         onPlayLevel={() => start("level")}
         onPlayDaily={() => start("daily")}
         onTraining={() => start("training")}
@@ -122,6 +132,7 @@ export function Game() {
         key={round.key}
         round={round}
         stats={stats}
+        guest={guest}
         onRetry={retry}
         onNextLevel={() => start("level")}
         onHome={() => dispatch({ type: "quit" })}

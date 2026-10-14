@@ -1,7 +1,8 @@
 "use client";
 
-import { GoogleOneTap, Show, SignInButton, UserButton, useAuth } from "@clerk/nextjs";
+import { GoogleOneTap, Show, SignInButton, UserButton } from "@clerk/nextjs";
 import { Button } from "@/components/ui/button";
+import { GUEST_MAX_LEVEL } from "@/lib/solo/guest";
 
 /** Header control for solo play: sign in when signed out, account menu when signed in. */
 export function SoloAuthControl({ showSignIn }: { showSignIn: boolean }) {
@@ -26,16 +27,14 @@ export function SoloAuthControl({ showSignIn }: { showSignIn: boolean }) {
   );
 }
 
-/** One-liner under the main play button. Renders nothing once the player is signed in. */
-export function GuestHint() {
-  const { isLoaded, isSignedIn } = useAuth();
-  if (!isLoaded || isSignedIn) return null;
+/** Solo-only note shown under the play button for guests. Never rendered for signed-in players. */
+export function GuestHint({ locked }: { locked: boolean }) {
   return (
-    <p className="-mt-2 text-center text-xs text-muted-foreground">
-      Playing as guest, progress stays on this device.{" "}
+    <p className="text-center text-xs text-muted-foreground">
+      {locked ? "Guest levels cleared. " : `Solo guests can play levels 1-${GUEST_MAX_LEVEL}. `}
       <SignInButton mode="modal">
         <button type="button" className="font-bold text-primary underline underline-offset-2">
-          Sign in to save
+          {locked ? "Sign in to keep going" : "Sign in to unlock more"}
         </button>
       </SignInButton>
     </p>
