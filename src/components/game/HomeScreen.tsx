@@ -1,16 +1,15 @@
 "use client";
 
-import { Flame, GraduationCap, Lock, Play, Share2, Sword } from "lucide-react";
-import Link from "next/link";
+import { Flame, GraduationCap, Lock, Play, Share2 } from "lucide-react";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
-import { cn } from "cn";
-import { Button, buttonVariants } from "@/components/ui/button";
+import { Button } from "@/components/ui/button";
 import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
 import { isGuestLocked } from "@/lib/solo/guest";
 import type { Stats } from "@/lib/storage";
+import { ClashingSwords, HomeActionTile } from "./HomeActionTile";
 import { GuestHint } from "./SoloAuth";
 import { StatTile } from "./StatTile";
 
@@ -25,10 +24,10 @@ interface HomeScreenProps {
 }
 
 const FLOATERS = [
-  { emoji: "🍎", className: "left-2 top-2", delay: 0 },
-  { emoji: "🎧", className: "right-3 top-6", delay: 0.6 },
-  { emoji: "🔑", className: "left-0 top-24", delay: 1.2 },
-  { emoji: "☕", className: "right-0 top-24", delay: 1.8 },
+  { emoji: "🍎", className: "left-2 top-1", delay: 0 },
+  { emoji: "🎧", className: "right-3 top-4", delay: 0.6 },
+  { emoji: "🔑", className: "left-0 top-16", delay: 1.2 },
+  { emoji: "☕", className: "right-0 top-16", delay: 1.8 },
 ];
 
 function useResetCountdown(): string {
@@ -48,54 +47,6 @@ function useResetCountdown(): string {
   return text;
 }
 
-const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
-
-const ACTION_TILE =
-  "flex !h-auto min-h-14 w-full min-w-0 max-w-full shrink flex-row items-center justify-center overflow-hidden rounded-2xl px-2.5 py-2 text-sm font-extrabold leading-tight whitespace-normal shadow-lg ring-1 ring-black/10";
-
-const ACTION_BODY = "flex w-fit max-w-[calc(100%-0.25rem)] min-w-0 flex-row items-center gap-2";
-
-const ACTION_TEXT = "flex min-w-0 flex-col items-start justify-center gap-px text-left";
-
-const ACTION_ICON =
-  "flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-inner";
-
-function ClashingSwords({ reduce, compact }: { reduce: boolean; compact?: boolean }) {
-  const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
-  const travel = compact ? 4 : 8;
-  const box = compact ? "size-6" : "size-7";
-  const blade = compact ? "size-4" : "size-6";
-  const spark = compact ? "size-2" : "size-3";
-  return (
-    <span aria-hidden className={cn("relative inline-flex items-center justify-center overflow-hidden", box)}>
-      <motion.span
-        className="absolute inset-0 flex items-center justify-center"
-        initial={{ x: -travel, rotate: -40 }}
-        animate={reduce ? undefined : { x: [-travel, -travel, 0, -1, -travel], rotate: [-40, -40, 0, -6, -40] }}
-        transition={transition}
-      >
-        <Sword className={cn(blade, "text-gold drop-shadow-sm")} />
-      </motion.span>
-      <motion.span
-        className="absolute inset-0 flex items-center justify-center"
-        initial={{ x: travel, rotate: 40 }}
-        animate={reduce ? undefined : { x: [travel, travel, 0, 1, travel], rotate: [40, 40, 0, 6, 40] }}
-        transition={transition}
-      >
-        <Sword className={cn(blade, "-scale-x-100 text-white drop-shadow-sm")} />
-      </motion.span>
-      {reduce ? null : (
-        <motion.span
-          className={cn("absolute rounded-full bg-gold blur-[1px]", spark)}
-          initial={{ opacity: 0, scale: 0.4 }}
-          animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.4, 1.8, 0.4] }}
-          transition={transition}
-        />
-      )}
-    </span>
-  );
-}
-
 export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
   const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
@@ -104,6 +55,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
   const accuracy = stats.totalItems ? Math.round((stats.correctItems / stats.totalItems) * 100) : null;
   const streak = currentStreak(stats, today);
   const locked = isGuestLocked(guest, stats.level);
+  const itemCount = getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount;
 
   async function share() {
     if (!playedToday) return;
@@ -119,91 +71,66 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
   }
 
   return (
-    <div className="flex w-full flex-1 flex-col gap-5">
-      <div className="relative py-6 text-center">
+    <div className="flex w-full flex-1 flex-col gap-4">
+      <div className="relative pt-2 pb-3 text-center">
         {FLOATERS.map((f) => (
           <motion.span
             key={f.emoji}
             aria-hidden
-            className={`absolute text-3xl opacity-80 ${f.className}`}
-            animate={reduce ? undefined : { y: [0, -10, 0], rotate: [-6, 6, -6] }}
+            className={`absolute text-2xl opacity-70 ${f.className}`}
+            animate={reduce ? undefined : { y: [0, -6, 0], rotate: [-4, 4, -4] }}
             transition={{ duration: 3.5, repeat: Infinity, delay: f.delay }}
           >
             {f.emoji}
           </motion.span>
         ))}
         <motion.p
-          className="text-7xl"
+          className="text-6xl"
           aria-hidden
-          initial={reduce ? false : { scale: 0, rotate: -30 }}
+          initial={reduce ? false : { scale: 0.9, rotate: -12 }}
           animate={{ scale: 1, rotate: 0 }}
-          transition={{ type: "spring", stiffness: 260, damping: 12 }}
+          transition={{ type: "spring", stiffness: 260, damping: 14 }}
         >
           🧠
         </motion.p>
-        <h1 className="mt-2 bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-6xl font-extrabold tracking-tight text-transparent">
-          Blinq
-        </h1>
-        <p className="mx-auto mt-2 max-w-xs text-muted-foreground">
-          Memorize the table. Recall it against the clock. Come back tomorrow for a new one.
+        <p className="mx-auto mt-2 max-w-xs text-sm text-muted-foreground">
+          Memorize the table, then recall it before time runs out.
         </p>
       </div>
 
       <div className="flex flex-col gap-2">
-        <motion.div
-          className="grid grid-cols-2 gap-2.5"
-          animate={reduce || locked ? undefined : { scale: [1, 1.02, 1] }}
-          transition={{ duration: 2.4, repeat: Infinity }}
-        >
-          <Button
-            variant="game"
-            className={ACTION_TILE}
-            onClick={() => {
-              playCue("tap");
-              if (locked) onSignIn();
-              else onPlayLevel();
-            }}
-          >
-            <span className={ACTION_BODY}>
-              <span className={cn(ACTION_ICON, "bg-primary-foreground/15")}>
-                {locked ? <Lock className="size-3.5" aria-hidden /> : <Play className="size-3.5 fill-current" aria-hidden />}
-              </span>
-              <span className={ACTION_TEXT}>
-                <span className="max-w-full truncate tracking-tight">{locked ? "Unlock" : "Play"}</span>
-                <span className="max-w-full truncate text-[0.625rem] font-semibold tabular-nums text-primary-foreground/85">
-                  Level {stats.level}
-                  {locked
-                    ? null
-                    : ` · ${getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items`}
-                </span>
-              </span>
-            </span>
-          </Button>
-          <Link
-            href="/multiplayer"
-            onClick={() => playCue("battle")}
-            aria-label="Multiplayer team battle"
-            className={buttonVariants({
-              variant: "battle",
-              className: ACTION_TILE,
-            })}
-          >
-            <span className={ACTION_BODY}>
-              <span className={cn(ACTION_ICON, "bg-white/15")}>
-                <ClashingSwords reduce={!!reduce} compact />
-              </span>
-              <span className={ACTION_TEXT}>
-                <span className="max-w-full truncate text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
-                <span className="max-w-full truncate text-[0.5625rem] font-extrabold uppercase tracking-wide text-gold">Team battle</span>
-              </span>
-            </span>
-          </Link>
-        </motion.div>
+        <HomeActionTile
+          variant="primary"
+          pulse={!locked}
+          icon={
+            locked ? (
+              <Lock className="size-5" aria-hidden />
+            ) : (
+              <Play className="size-5 fill-current" aria-hidden />
+            )
+          }
+          title={locked ? "Unlock level" : "Play level"}
+          subtitle={locked ? `Level ${stats.level}` : `Level ${stats.level} · ${itemCount} items`}
+          onClick={() => {
+            playCue("tap");
+            if (locked) onSignIn();
+            else onPlayLevel();
+          }}
+        />
+        <HomeActionTile
+          variant="secondary"
+          icon={<ClashingSwords reduce={!!reduce} compact />}
+          title="Multiplayer"
+          subtitle="Team battle"
+          href="/multiplayer"
+          ariaLabel="Multiplayer team battle"
+          onClick={() => playCue("battle")}
+        />
         {guest ? <GuestHint locked={locked} /> : null}
       </div>
 
       <section
-        className="rounded-3xl border-2 bg-card p-4 shadow-lg"
+        className="rounded-3xl border-2 bg-card p-4 shadow-md"
         aria-labelledby="daily-title"
       >
         <div className="flex items-center justify-between">
@@ -232,12 +159,12 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         ) : (
           <>
             <p className="mt-1 text-sm text-muted-foreground">
-              One table for everyone. One attempt. Resets in{" "}
+              One shared table per day. Resets in{" "}
               <span className="font-bold tabular-nums">{countdown}</span>
             </p>
             <Button
-              variant="success"
-              className="mt-3 h-12 w-full rounded-2xl text-base"
+              variant="outline"
+              className="mt-3 h-12 w-full rounded-2xl border-2 font-bold"
               onClick={() => {
                 playCue("tap");
                 onPlayDaily();
