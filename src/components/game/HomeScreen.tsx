@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, GraduationCap, Lock, Play, Share2, Sword } from "lucide-react";
+import { Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -89,6 +89,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
   const accuracy = stats.totalItems ? Math.round((stats.correctItems / stats.totalItems) * 100) : null;
   const streak = currentStreak(stats, today);
   const locked = isGuestLocked(guest, stats.level);
+  const dailySignedOut = guest;
 
   async function share() {
     if (!playedToday) return;
@@ -184,16 +185,34 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
       >
         <div className="flex items-center justify-between">
           <h2 id="daily-title" className="text-lg font-bold">
-            Daily challenge
+            {dailySignedOut ? "Sign in to play" : "Daily challenge"}
           </h2>
-          <span
-            className="flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold"
-            aria-label={`Streak: ${streak} days`}
-          >
-            <Flame className="size-4 fill-flame text-flame" /> {streak}
-          </span>
+          {!dailySignedOut && (
+            <span
+              className="flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold"
+              aria-label={`Streak: ${streak} days`}
+            >
+              <Flame className="size-4 fill-flame text-flame" /> {streak}
+            </span>
+          )}
         </div>
-        {playedToday ? (
+        {dailySignedOut ? (
+          <>
+            <p className="mt-1 text-sm text-muted-foreground">
+              One table for everyone, one attempt per day. Sign in so your run is saved for the leaderboard.
+            </p>
+            <Button
+              variant="success"
+              className="mt-3 h-12 w-full rounded-2xl text-base"
+              onClick={() => {
+                playCue("tap");
+                onSignIn();
+              }}
+            >
+              <LogIn className="size-4" /> Sign in to play
+            </Button>
+          </>
+        ) : playedToday ? (
           <>
             <p className="mt-1 text-sm text-muted-foreground">
               Done: {playedToday.correct}/{playedToday.total} remembered, {playedToday.score} pts.

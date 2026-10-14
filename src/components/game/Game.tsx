@@ -76,7 +76,7 @@ export function Game() {
   const start = useCallback((mode: Mode) => {
     const t = Date.now();
     const level = mode === "level" ? loadStats().level : 1;
-    if (mode === "level" && isGuestLocked(guest, level)) {
+    if (guest && (mode === "daily" || (mode === "level" && isGuestLocked(guest, level)))) {
       dispatch({ type: "quit" });
       void openSignIn();
       return;
