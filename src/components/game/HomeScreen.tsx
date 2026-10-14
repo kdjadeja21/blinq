@@ -1,8 +1,8 @@
 "use client";
 
-import { Flame, GraduationCap, Play, Share2, Swords } from "lucide-react";
+import { Flame, GraduationCap, Play, Share2, Sword } from "lucide-react";
 import Link from "next/link";
-import { motion } from "framer-motion";
+import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
@@ -43,8 +43,43 @@ function useResetCountdown(): string {
   return text;
 }
 
+const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
+
+function ClashingSwords({ reduce }: { reduce: boolean }) {
+  const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
+  return (
+    <span aria-hidden className="relative inline-flex size-7 items-center justify-center">
+      <motion.span
+        className="absolute inset-0 flex items-center justify-center"
+        initial={false}
+        animate={reduce ? undefined : { x: [-8, -8, 1, -1, -8], rotate: [-40, -40, 0, -6, -40] }}
+        transition={transition}
+      >
+        <Sword className="size-6 text-gold drop-shadow-sm" />
+      </motion.span>
+      <motion.span
+        className="absolute inset-0 flex items-center justify-center"
+        initial={false}
+        animate={reduce ? undefined : { x: [8, 8, -1, 1, 8], rotate: [40, 40, 0, 6, 40] }}
+        transition={transition}
+      >
+        <Sword className="size-6 -scale-x-100 text-white drop-shadow-sm" />
+      </motion.span>
+      {reduce ? null : (
+        <motion.span
+          className="absolute size-3 rounded-full bg-gold blur-[2px]"
+          initial={false}
+          animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.8, 2.4, 0.4] }}
+          transition={transition}
+        />
+      )}
+    </span>
+  );
+}
+
 export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
   const [copied, setCopied] = useState(false);
+  const reduce = useReducedMotion();
   const countdown = useResetCountdown();
   const playedToday = stats.daily?.date === today ? stats.daily : null;
   const accuracy = stats.totalItems ? Math.round((stats.correctItems / stats.totalItems) * 100) : null;
@@ -71,7 +106,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
             key={f.emoji}
             aria-hidden
             className={`absolute text-3xl opacity-80 ${f.className}`}
-            animate={{ y: [0, -10, 0], rotate: [-6, 6, -6] }}
+            animate={reduce ? undefined : { y: [0, -10, 0], rotate: [-6, 6, -6] }}
             transition={{ duration: 3.5, repeat: Infinity, delay: f.delay }}
           >
             {f.emoji}
@@ -80,7 +115,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
         <motion.p
           className="text-7xl"
           aria-hidden
-          initial={{ scale: 0, rotate: -30 }}
+          initial={reduce ? false : { scale: 0, rotate: -30 }}
           animate={{ scale: 1, rotate: 0 }}
           transition={{ type: "spring", stiffness: 260, damping: 12 }}
         >
@@ -95,7 +130,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
       </div>
 
       <motion.div
-        animate={{ scale: [1, 1.03, 1] }}
+        animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
         transition={{ duration: 2, repeat: Infinity }}
       >
         <Button
@@ -113,10 +148,17 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
 
       <Link
         href="/multiplayer"
-        className={buttonVariants({ variant: "secondary", className: "h-14 w-full rounded-3xl text-lg font-bold" })}
+        onClick={() => playCue("battle")}
+        className={buttonVariants({
+          variant: "battle",
+          className: "h-14 w-full gap-2.5 rounded-3xl text-lg font-extrabold",
+        })}
       >
-        <Swords className="size-5" /> Multiplayer
-        <span className="text-sm font-normal opacity-80">(team battle)</span>
+        <ClashingSwords reduce={!!reduce} />
+        Multiplayer
+        <span className="rounded-full bg-black/25 px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider text-gold">
+          Team Battle
+        </span>
       </Link>
 
       <section
@@ -152,7 +194,14 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
               One table for everyone. One attempt. Resets in{" "}
               <span className="font-bold tabular-nums">{countdown}</span>
             </p>
-            <Button variant="success" className="mt-3 h-12 w-full rounded-2xl text-base" onClick={onPlayDaily}>
+            <Button
+              variant="success"
+              className="mt-3 h-12 w-full rounded-2xl text-base"
+              onClick={() => {
+                playCue("tap");
+                onPlayDaily();
+              }}
+            >
               Play today&apos;s table
             </Button>
           </>
@@ -165,7 +214,14 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
         <StatTile label="Best score" value={String(stats.bestScore)} />
       </dl>
 
-      <Button variant="ghost" className="mt-auto h-11" onClick={onTraining}>
+      <Button
+        variant="ghost"
+        className="mt-auto h-11"
+        onClick={() => {
+          playCue("tap");
+          onTraining();
+        }}
+      >
         <GraduationCap className="size-4" /> {stats.trainingDone ? "Replay training" : "Practice round"}
       </Button>
     </div>

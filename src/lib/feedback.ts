@@ -31,7 +31,7 @@ export function setFeedbackEnabled(enabled: boolean) {
   listeners.forEach((l) => l());
 }
 
-export type Cue = "correct" | "wrong" | "duplicate" | "tick" | "win" | "lose" | "tap";
+export type Cue = "correct" | "wrong" | "duplicate" | "tick" | "win" | "lose" | "tap" | "battle";
 
 interface Note {
   freq: number;
@@ -53,6 +53,13 @@ const CUES: Record<Cue, { notes: Note[]; vibrate: number | number[] }> = {
   duplicate: { notes: [{ freq: 330, start: 0, duration: 0.1, type: "triangle" }], vibrate: 10 },
   tick: { notes: [{ freq: 1000, start: 0, duration: 0.04, type: "square", gain: 0.04 }], vibrate: 0 },
   tap: { notes: [{ freq: 520, start: 0, duration: 0.05, type: "triangle", gain: 0.07 }], vibrate: 8 },
+  battle: {
+    notes: [
+      { freq: 587.33, start: 0, duration: 0.07, type: "triangle", gain: 0.09 },
+      { freq: 880, start: 0.055, duration: 0.12, type: "triangle", gain: 0.11 },
+    ],
+    vibrate: [12, 30, 18],
+  },
   win: {
     notes: [523, 659, 784, 1047].map((freq, i) => ({ freq, start: i * 0.11, duration: 0.2 })),
     vibrate: [30, 50, 30, 50, 80],

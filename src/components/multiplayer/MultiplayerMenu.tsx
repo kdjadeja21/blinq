@@ -3,6 +3,7 @@
 import { ArrowLeft, DoorOpen, PlusCircle } from "lucide-react";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
+import { playCue } from "@/lib/feedback";
 import { isSupabaseConfigured } from "@/lib/supabase/client";
 
 export function MultiplayerMenu() {
@@ -26,10 +27,18 @@ export function MultiplayerMenu() {
           Multiplayer is not configured yet. Add the Supabase keys from docs/SUPABASE_SETUP.md.
         </p>
       )}
-      <Link href="/room/create" className={buttonVariants({ variant: "game", className: "h-16 w-full rounded-3xl text-xl" })}>
+      <Link
+        href="/room/create"
+        onClick={() => playCue("tap")}
+        className={buttonVariants({ variant: "game", className: "h-16 w-full rounded-3xl text-xl" })}
+      >
         <PlusCircle className="size-6" /> Create a room
       </Link>
-      <Link href="/join" className={buttonVariants({ variant: "success", className: "h-16 w-full rounded-3xl text-xl" })}>
+      <Link
+        href="/join"
+        onClick={() => playCue("tap")}
+        className={buttonVariants({ variant: "success", className: "h-16 w-full rounded-3xl text-xl" })}
+      >
         <DoorOpen className="size-6" /> Join a room
       </Link>
     </main>

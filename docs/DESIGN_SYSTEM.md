@@ -25,6 +25,8 @@ Colors use OKLCH and are defined as CSS variables for `:root` (light) and `.dark
 | `success` | Correct and positive | Correct recall, daily CTA |
 | `gold` | Reward | Stars, score badges |
 | `flame` | Momentum | Streaks and combos |
+| `team-a` / `team-a-deep` | Team A (Blue) | Multiplayer Team A surfaces, borders, gradients |
+| `team-b` / `team-b-deep` | Team B (Crimson) | Multiplayer Team B surfaces, borders, gradients |
 | `border`, `input`, `ring` | Structure | Outlines, form fields, focus ring |
 | `--blob-a`, `--blob-b` | Ambient background | `.game-bg` only |
 
@@ -34,7 +36,7 @@ Rules:
 - Body text must reach 4.5:1 contrast in both themes. Text on `gold`, `flame` and `success` fills is black, as in the existing badges.
 - Opacity modifiers on tokens are fine (`bg-flame/20`, `shadow-primary/30`).
 - Exception: the confetti palette in `Confetti.tsx` is decorative and intentionally uses fixed colors.
-- The title gradient (`from-primary to-fuchsia-500`) and the revealed board cell are the only gradients. Do not add new ones without updating this doc.
+- The title gradient (`from-primary to-fuchsia-500`), the revealed board cell, and the multiplayer team-clash gradients (`from-team-a-deep via-primary to-team-b-deep` on the `battle` CTA and team banners) are the only gradients. Do not add new ones without updating this doc.
 
 ## Typography
 
@@ -68,7 +70,7 @@ Always use `tabular-nums` for values that change (score, countdown, percentages)
 | Secondary CTA | `rounded-2xl`, height `h-12` |
 | Badges and pills | `rounded-full` |
 
-- Interactive "chunky" controls have a thicker bottom edge (`border-b-4`) and press down on active. This is built into the `game` and `success` button variants and the choice tiles.
+- Interactive "chunky" controls have a thicker bottom edge (`border-b-4`) and press down on active. This is built into the `game`, `battle` and `success` button variants and the choice tiles.
 
 ## Motion
 
@@ -117,7 +119,7 @@ Reduced motion is mandatory:
 
 ### Foundation: `ui/Button`
 
-Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plus the game-specific `game` (primary chunky CTA, violet) and `success` (positive chunky CTA, green). Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`. In screens, override height and radius for hierarchy: primary `h-16 rounded-3xl`, secondary `h-12 rounded-2xl`, tertiary `variant="ghost"`.
+Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plus the game-specific `game` (primary chunky CTA, violet), `battle` (team-clash chunky CTA, Team A blue to Team B crimson gradient) and `success` (positive chunky CTA, green). Sizes: `default`, `xs`, `sm`, `lg`, `icon`, `icon-xs`, `icon-sm`, `icon-lg`. In screens, override height and radius for hierarchy: primary `h-16 rounded-3xl`, secondary `h-12 rounded-2xl`, tertiary `variant="ghost"`.
 
 ### Game components
 
