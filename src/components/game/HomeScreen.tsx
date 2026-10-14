@@ -51,7 +51,10 @@ function useResetCountdown(): string {
 const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
 
 const ACTION_TILE =
-  "flex !h-auto min-h-[5.25rem] w-full min-w-0 max-w-full shrink flex-col items-center justify-center gap-0.5 overflow-hidden rounded-3xl px-2 py-2.5 text-center text-sm font-extrabold leading-snug whitespace-normal shadow-lg ring-1 ring-black/10";
+  "flex !h-auto min-h-14 w-full min-w-0 max-w-full shrink flex-row items-center gap-2 overflow-hidden rounded-2xl px-2.5 py-2 text-left text-sm font-extrabold leading-tight whitespace-normal shadow-lg ring-1 ring-black/10";
+
+const ACTION_ICON =
+  "flex size-7 shrink-0 items-center justify-center overflow-hidden rounded-full shadow-inner";
 
 function ClashingSwords({ reduce, compact }: { reduce: boolean; compact?: boolean }) {
   const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
@@ -157,15 +160,17 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
               else onPlayLevel();
             }}
           >
-            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-foreground/15 shadow-inner">
-              {locked ? <Lock className="size-4" aria-hidden /> : <Play className="size-4 fill-current" aria-hidden />}
+            <span className={cn(ACTION_ICON, "bg-primary-foreground/15")}>
+              {locked ? <Lock className="size-3.5" aria-hidden /> : <Play className="size-3.5 fill-current" aria-hidden />}
             </span>
-            <span className="max-w-full truncate tracking-tight">{locked ? "Unlock" : "Play"}</span>
-            <span className="max-w-full truncate px-0.5 text-[0.6875rem] font-semibold leading-tight tabular-nums text-primary-foreground/85">
-              Level {stats.level}
-              {locked
-                ? null
-                : ` · ${getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items`}
+            <span className="flex min-w-0 flex-1 flex-col gap-px">
+              <span className="truncate tracking-tight">{locked ? "Unlock" : "Play"}</span>
+              <span className="truncate text-[0.625rem] font-semibold tabular-nums text-primary-foreground/85">
+                Level {stats.level}
+                {locked
+                  ? null
+                  : ` · ${getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items`}
+              </span>
             </span>
           </Button>
           <Link
@@ -177,12 +182,12 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
               className: ACTION_TILE,
             })}
           >
-            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 shadow-inner">
+            <span className={cn(ACTION_ICON, "bg-white/15")}>
               <ClashingSwords reduce={!!reduce} compact />
             </span>
-            <span className="max-w-full text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
-            <span className="inline-flex max-w-full items-center justify-center rounded-full bg-black/30 px-2 py-0.5 text-[0.5625rem] font-extrabold leading-none uppercase tracking-wide text-gold">
-              Team battle
+            <span className="flex min-w-0 flex-1 flex-col gap-px">
+              <span className="truncate text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
+              <span className="truncate text-[0.5625rem] font-extrabold uppercase tracking-wide text-gold">Team battle</span>
             </span>
           </Link>
         </motion.div>
