@@ -11,11 +11,32 @@ Setup: [SUPABASE_SETUP.md](SUPABASE_SETUP.md).
 3. **Join:** code (or `/join/CODE`) plus a name for this room.
 4. **Lobby:** everyone appears live. The admin can remove players and edit settings.
 5. **Create teams (admin):** players are shuffled into Team A and Team B. With an odd count a computer player (Botty) joins the smaller team.
-6. **Start game (admin):** duels run one at a time. A banner such as **John X Vin** shows on every screen, including for waiting players.
+6. **Start game (admin):** duels run one at a time (Duel style) or all at once (Squad style, see below). A banner such as **John X Vin** shows on every screen, including for waiting players.
 7. **Duel:** both see the same table (memorize), then pick the items out of a crowd (recall).
 8. **Duel result:** winner, points, team totals. Next duel after the admin taps Next, or automatically in auto mode.
 9. **Level result:** the team with the most points that level wins it. The next level has more items and freshly shuffled pairings.
 10. **Final:** the team with the highest total wins.
+
+## Team style: Squad and Duel
+
+When the creator picks **Team**, a second choice, **Team style**, appears. Squad is the default.
+
+- **Duel:** one duel at a time, as described above.
+- **Squad:** "Everyone plays every level at the same time. Your team's combined score wins." It is Duel with every pairing of a level running simultaneously, so nobody waits.
+
+The style is stored in `rooms.team_style` (`duel` or `squad`, existing rooms are `duel`) and can be set only at creation or in the lobby, like the mode. `isSquad(room)` in `src/lib/multiplayer/config.ts` is the single switch; every Squad branch is guarded by it, so Duel rooms behave as before. The lobby shows the style to everyone.
+
+Squad reuses the Duel engine: `create_teams` (bot on the smaller team when the count is odd), pairings that avoid earlier pairs, `ensureLevel`, `scoreRecall`, `resolveDuel` and the same team score (sum of players' points). What differs:
+
+- **One intro, memorize and recall per level.** All duels of the level are live together and each player sees only their own. `room.duel_index` stays 0 and `duel_result` is never used.
+- **Waiting:** a player whose duel is over sees "Your duel is done. Waiting for the other duels (x of N finished)" until the level result.
+- **A resolved duel refuses picks.** The room stays in `recall` while other duels continue, so `loadRecall` rejects picks on a finished duel.
+- **Recall ends** when every duel of the level is resolved or the timer ends. Remaining duels are resolved, team totals update once, and the room moves to `level_result`.
+- **No live opponent progress.** `duel_progress` is written only when a player is done, not on every pick, so up to six simultaneous duels do not flood Realtime. The opponent progress bar is hidden.
+- **Level winner:** the team with the most combined points that level. The final winner has the highest total.
+- **Standings:** the level result lists every duel of the level and the individual leaderboard (overall with rank-change arrows, or this level), built from `duel_results` with `duelScores` and `cumulativeStandings`. The bot is ranked too, because its points count for its team.
+- **RLS:** `can_read_duel_items` and `can_read_duel_choices` compare only the level for Squad rooms (Duel keeps the `(level, duel_index)` rules).
+- **Size:** 2 to 12 human players plus at most one bot, same as Duel.
 
 ## Individual mode
 
@@ -63,8 +84,8 @@ The room phase is one column, and every screen renders from it.
 | `teams_ready` | open | Admin starts the game |
 | `duel_intro` | 5s | Timer ends |
 | `memorize` | stored on the duel | Timer ends |
-| `recall` | stored on the duel | Timer ends, or a player recalls every item |
-| `duel_result` | 8s in auto mode | Auto: timer. Manual: admin taps Next |
+| `recall` | stored on the duel | Timer ends, or a player recalls every item. Squad: timer ends, or every duel of the level is resolved |
+| `duel_result` | 8s in auto mode | Auto: timer. Manual: admin taps Next. Not used in Squad |
 | `level_result` | 10s in auto mode | Auto: timer. Manual: admin taps Next level |
 | `finished` | n/a | Hourly cleanup deletes rooms over 1 hour old with no player active for 15 minutes (24h hard cap) |
 
@@ -93,7 +114,7 @@ All are `POST /api/mp/<action>` with the user's access token. Code in `src/serve
 
 | Action | Caller | What it does |
 | --- | --- | --- |
-| `create_room` | Anyone | Room, unique code, admin player. Max 5 rooms per hour per user. |
+| `create_room` | Anyone | Room, unique code, admin player. Accepts `mode` and, for team rooms, `teamStyle` (`squad` default, or `duel`). Max 5 rooms per hour per user. |
 | `join_room` | Anyone | Lobby only, max 12, unique name. Existing members rejoin at any time. |
 | `create_teams` | Admin | Shuffle into two teams, add a bot when odd, phase `teams_ready`. |
 | `start_game` | Admin | Build level 1 (pairings, items, timers), phase `duel_intro`. |
@@ -102,7 +123,7 @@ All are `POST /api/mp/<action>` with the user's access token. Code in `src/serve
 | `play_again` | Admin | After the final result: deletes the finished game and returns the room to the lobby. |
 | `advance_phase` | Member / cron | Moves on after the deadline. Resolves duels, updates team scores, builds the next level. |
 | `next_step` | Admin | Skips a result screen. |
-| `update_settings` | Admin | Levels and difficulty before the game; pacing any time. |
+| `update_settings` | Admin | Levels and difficulty before the game; pacing any time; `mode` and `teamStyle` in the lobby only. |
 | `leave_room`, `kick_player` | Player / Admin | Remove from lobby or `teams_ready` (teams reset). |
 | `heartbeat` | Member | Marks the player online, triggers admin hand-over. |
 | `time` | Anyone signed in | Server clock for countdown correction. |

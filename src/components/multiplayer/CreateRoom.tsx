@@ -7,8 +7,20 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
-import { DEFAULT_DIFFICULTY, DEFAULT_LEVELS, DEFAULT_MODE, DEFAULT_PACING, DIFFICULTIES, MAX_ROOM_LEVELS, MODES, NAME_MAX, maxPlayersFor } from "@/lib/multiplayer/config";
-import type { Difficulty, Pacing, RoomMode } from "@/lib/multiplayer/types";
+import {
+  DEFAULT_DIFFICULTY,
+  DEFAULT_LEVELS,
+  DEFAULT_MODE,
+  DEFAULT_PACING,
+  DEFAULT_TEAM_STYLE,
+  DIFFICULTIES,
+  MAX_ROOM_LEVELS,
+  MODES,
+  NAME_MAX,
+  TEAM_STYLES_INFO,
+  maxPlayersFor,
+} from "@/lib/multiplayer/config";
+import { TEAM_STYLES, type Difficulty, type Pacing, type RoomMode, type TeamStyle } from "@/lib/multiplayer/types";
 import { ErrorNote, Segmented, Spinner, TextField } from "./shared";
 
 const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((value) => ({
@@ -19,6 +31,11 @@ const MODE_OPTIONS: { value: RoomMode; label: string }[] = [
   { value: "individual", label: MODES.individual.label },
   { value: "team", label: MODES.team.label },
 ];
+const TEAM_STYLE_OPTIONS: { value: TeamStyle; label: string; description: string }[] = TEAM_STYLES.map((value) => ({
+  value,
+  label: TEAM_STYLES_INFO[value].label,
+  description: TEAM_STYLES_INFO[value].description,
+}));
 const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "manual", label: "Manual" },
   { value: "auto", label: "Auto" },
@@ -31,6 +48,7 @@ export function CreateRoom() {
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
   const [mode, setMode] = useState<RoomMode>(DEFAULT_MODE);
+  const [teamStyle, setTeamStyle] = useState<TeamStyle>(DEFAULT_TEAM_STYLE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -49,6 +67,7 @@ export function CreateRoom() {
         difficulty,
         pacing,
         mode,
+        ...(mode === "team" ? { teamStyle } : {}),
       });
       router.push(`/room/${room.code}`);
     } catch (e) {
@@ -77,6 +96,7 @@ export function CreateRoom() {
         <p className="-mt-2 text-xs text-muted-foreground">
           {MODES[mode].description} Up to {maxPlayersFor(mode)} players.
         </p>
+        {mode === "team" && <Segmented label="Team style" value={teamStyle} options={TEAM_STYLE_OPTIONS} onChange={setTeamStyle} />}
         <div className="flex flex-col gap-1.5">
           <label htmlFor="levels" className="text-sm font-semibold">
             Levels: <span className="tabular-nums">{levels}</span>

@@ -9,8 +9,7 @@ export function maxPlayersFor(mode: RoomMode): number {
   return MAX_PLAYERS_BY_MODE[mode];
 }
 export const DEFAULT_TEAM_STYLE: TeamStyle = "squad";
-/** Flipped on once the Squad flow is complete end to end. */
-export const SQUAD_ENABLED = false;
+export const SQUAD_ENABLED = true;
 
 /** True for Squad rooms: team mode with every duel of a level played at the same time. */
 export function isSquad(room: Pick<RoomRow, "mode" | "team_style">): boolean {

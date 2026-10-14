@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { useEffect, useState } from "react";
+import { useEffect, useId, useState } from "react";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
@@ -29,12 +29,15 @@ export function useServerNow(now: () => number, intervalMs = 250): number {
 interface SegmentedProps<T extends string> {
   label: string;
   value: T;
-  options: { value: T; label: string }[];
+  options: { value: T; label: string; description?: string }[];
   onChange: (value: T) => void;
   disabled?: boolean;
 }
 
 export function Segmented<T extends string>({ label, value, options, onChange, disabled }: SegmentedProps<T>) {
+  const groupId = useId();
+  const describedBy = (option: { value: T; description?: string }) =>
+    option.description ? `${groupId}-${option.value}` : undefined;
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
       <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
@@ -44,6 +47,7 @@ export function Segmented<T extends string>({ label, value, options, onChange, d
             key={option.value}
             type="button"
             aria-pressed={value === option.value}
+            aria-describedby={describedBy(option)}
             onClick={() => onChange(option.value)}
             className={cn(
               "min-h-11 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
@@ -54,6 +58,19 @@ export function Segmented<T extends string>({ label, value, options, onChange, d
           </button>
         ))}
       </div>
+      {options.some((o) => o.description) && (
+        <ul className="flex flex-col gap-1 text-xs text-muted-foreground">
+          {options.map((option) => (
+            <li
+              key={option.value}
+              id={describedBy(option)}
+              className={cn(value === option.value && "font-semibold text-foreground")}
+            >
+              <span className="font-semibold">{option.label}:</span> {option.description}
+            </li>
+          ))}
+        </ul>
+      )}
     </fieldset>
   );
 }
