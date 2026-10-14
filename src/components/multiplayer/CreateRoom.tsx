@@ -7,14 +7,15 @@ import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { ensureSession, isSupabaseConfigured } from "@/lib/supabase/client";
-import { DEFAULT_DIFFICULTY, DEFAULT_LEVELS, DEFAULT_PACING, DIFFICULTIES, MAX_ROOM_LEVELS, NAME_MAX } from "@/lib/multiplayer/config";
-import type { Difficulty, Pacing } from "@/lib/multiplayer/types";
+import { DEFAULT_DIFFICULTY, DEFAULT_LEVELS, DEFAULT_MODE, DEFAULT_PACING, DIFFICULTIES, MAX_ROOM_LEVELS, MODES, NAME_MAX, maxPlayersFor } from "@/lib/multiplayer/config";
+import type { Difficulty, Pacing, RoomMode } from "@/lib/multiplayer/types";
 import { ErrorNote, Segmented, Spinner, TextField } from "./shared";
 
 const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((value) => ({
   value,
   label: DIFFICULTIES[value].label,
 }));
+const MODE_OPTIONS = (Object.keys(MODES) as RoomMode[]).map((value) => ({ value, label: MODES[value].label }));
 const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "manual", label: "Manual" },
   { value: "auto", label: "Auto" },
@@ -26,6 +27,7 @@ export function CreateRoom() {
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
+  const [mode, setMode] = useState<RoomMode>(DEFAULT_MODE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -43,6 +45,7 @@ export function CreateRoom() {
         maxLevels: levels,
         difficulty,
         pacing,
+        mode,
       });
       router.push(`/room/${room.code}`);
     } catch (e) {
@@ -67,6 +70,10 @@ export function CreateRoom() {
           autoComplete="nickname"
           required
         />
+        <Segmented label="Mode" value={mode} options={MODE_OPTIONS} onChange={setMode} />
+        <p className="-mt-2 text-xs text-muted-foreground">
+          {MODES[mode].description} Up to {maxPlayersFor(mode)} players.
+        </p>
         <div className="flex flex-col gap-1.5">
           <label htmlFor="levels" className="text-sm font-semibold">
             Levels: <span className="tabular-nums">{levels}</span>

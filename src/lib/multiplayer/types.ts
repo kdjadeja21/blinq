@@ -16,6 +16,9 @@ export type RoomPhase = (typeof ROOM_PHASES)[number];
 
 export type Pacing = "manual" | "auto";
 
+export const ROOM_MODES = ["team", "individual"] as const;
+export type RoomMode = (typeof ROOM_MODES)[number];
+
 export interface RoomRow {
   id: string;
   code: string;
@@ -28,6 +31,7 @@ export interface RoomRow {
   max_levels: number;
   difficulty: Difficulty;
   pacing: Pacing;
+  mode: RoomMode;
   duel_index: number;
   expires_at: string;
   created_at: string;
@@ -110,6 +114,44 @@ export interface DuelResultRow {
 
 export interface SubmissionRow {
   duel_id: string;
+  player_id: string;
+  item_key: string;
+  correct: boolean;
+  created_at: string;
+}
+
+/** Individual mode: one shared round per level. */
+export interface RoundRow {
+  id: string;
+  room_id: string;
+  level: number;
+  item_count: number;
+  memorize_ms: number;
+  recall_ms: number;
+  rules: DuelRules;
+  resolved: boolean;
+}
+
+export interface RoundDoneRow {
+  round_id: string;
+  player_id: string;
+  done_ms: number | null;
+}
+
+export interface RoundResultRow {
+  round_id: string;
+  player_id: string;
+  level: number;
+  correct_count: number;
+  wrong_count: number;
+  speed_bonus: number;
+  found_keys: string[];
+  finished_ms: number | null;
+  points: number;
+}
+
+export interface RoundSubmissionRow {
+  round_id: string;
   player_id: string;
   item_key: string;
   correct: boolean;

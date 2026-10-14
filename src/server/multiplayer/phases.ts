@@ -10,6 +10,8 @@ import { after } from "next/server";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { countDuels, ensureLevel, resolveDuel, toPicks } from "./duels";
 import { ensureAdminOnline } from "./lobby";
+import { tapTime } from "./taps";
+import { currentRound, endRoundRecall, ensureRound } from "./rounds";
 import { findDuel, findRoom, listPlayers, requireAdmin, requireMember, swapPhase, timedPhase } from "./queries";
 
 const TIMED_PHASES = ["duel_intro", "memorize", "recall", "duel_result", "level_result"] as const;
@@ -45,7 +47,8 @@ async function moveOnFromResult(room: RoomRow): Promise<RoomRow | null> {
   if (room.level >= room.max_levels) {
     return swapPhase(room, { phase: "finished", ...timedPhase(null) });
   }
-  await ensureLevel(room, room.level + 1);
+  if (room.mode === "individual") await ensureRound(room, room.level + 1);
+  else await ensureLevel(room, room.level + 1);
   return swapPhase(room, {
     phase: "duel_intro",
     level: room.level + 1,
@@ -55,6 +58,7 @@ async function moveOnFromResult(room: RoomRow): Promise<RoomRow | null> {
 }
 
 async function endRecall(room: RoomRow): Promise<RoomRow | null> {
+  if (room.mode === "individual") return endRoundRecall(room);
   await resolveDuel(room, await currentDuel(room));
   return swapPhase(room, { phase: "duel_result", ...timedPhase(resultDuration(room, "duel_result")) });
 }
@@ -72,13 +76,13 @@ export async function advancePhase(roomId: string, expectedVersion: number) {
   let next: RoomRow | null = null;
   switch (room.phase) {
     case "duel_intro": {
-      const duel = await currentDuel(room);
-      next = await swapPhase(room, { phase: "memorize", ...timedPhase(duel.memorize_ms) });
+      const stage = room.mode === "individual" ? await currentRound(room) : await currentDuel(room);
+      next = await swapPhase(room, { phase: "memorize", ...timedPhase(stage.memorize_ms) });
       break;
     }
     case "memorize": {
-      const duel = await currentDuel(room);
-      next = await swapPhase(room, { phase: "recall", ...timedPhase(duel.recall_ms) });
+      const stage = room.mode === "individual" ? await currentRound(room) : await currentDuel(room);
+      next = await swapPhase(room, { phase: "recall", ...timedPhase(stage.recall_ms) });
       break;
     }
     case "recall":
@@ -112,14 +116,6 @@ export async function nextStep(userId: string, roomId: string, expectedVersion: 
 }
 
 type GuessRow = Pick<SubmissionRow, "player_id" | "item_key" | "correct" | "created_at">;
-
-/** Clients stamp taps with the server-corrected clock so queued sends keep their real spacing. */
-const MAX_TAP_AGE_MS = 5_000;
-
-function tapTime(now: number, claimed: unknown, startedAt: number): number {
-  if (typeof claimed !== "number" || !Number.isFinite(claimed)) return now;
-  return Math.min(now, Math.max(claimed, now - MAX_TAP_AGE_MS, startedAt));
-}
 
 async function loadRecall(userId: string, duelId: string) {
   const duel = must(await db().from("duels").select("*").eq("id", duelId).maybeSingle<DuelRow>());

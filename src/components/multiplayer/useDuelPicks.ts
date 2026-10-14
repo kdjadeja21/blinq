@@ -28,8 +28,17 @@ interface GuessResponse {
 const RETRIES = 3;
 const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
+export interface PickStage {
+  id: string;
+  item_count: number;
+  recall_ms: number;
+  rules: DuelRow["rules"];
+}
+
 interface Options {
-  duel: DuelRow;
+  /** the duel, or the shared round in individual mode */
+  duel: PickStage;
+  kind?: "duel" | "round";
   /** server-clock ms when recall started */
   startedAt: number;
   /** keys seen during memorize; empty when this client joined late and must wait for the server */
@@ -42,7 +51,8 @@ interface Options {
  * instant (same model as single-player). Each tap is queued and sent to the server in order;
  * the server stays authoritative and its answer only corrects the local state if they differ.
  */
-export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
+export function useDuelPicks({ duel, kind = "duel", startedAt, memorized, now }: Options) {
+  const stageKey = kind === "round" ? "roundId" : "duelId";
   const [picks, setPicks] = useState<Pick[]>([]);
   const [finished, setFinished] = useState(false);
   const [popup, setPopup] = useState<Popup | null>(null);
@@ -70,7 +80,7 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
     async (id: string, claimedAt: number): Promise<void> => {
       for (let attempt = 0; ; attempt += 1) {
         try {
-          const result = await callMp<GuessResponse>("submit_guess", { duelId: duel.id, itemKey: id, at: claimedAt });
+          const result = await callMp<GuessResponse>("submit_guess", { [stageKey]: duel.id, itemKey: id, at: claimedAt });
           if (typeof result.correct === "boolean") {
             const correct = result.correct;
             setPicks((list) => list.map((p) => (p.id === id && p.correct !== correct ? { ...p, correct } : p)));
@@ -88,7 +98,7 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
         }
       }
     },
-    [duel.id, drop],
+    [duel.id, stageKey, drop],
   );
 
   const pick = useCallback(
@@ -119,12 +129,12 @@ export function useDuelPicks({ duel, startedAt, memorized, now }: Options) {
     setFinished(true);
     queue.current = queue.current.then(async () => {
       try {
-        await callMp("finish_early", { duelId: duel.id });
+        await callMp("finish_early", { [stageKey]: duel.id });
       } catch {
         setFinished(false);
       }
     });
-  }, [stopped, duel.id]);
+  }, [stopped, duel.id, stageKey]);
 
   return {
     right,

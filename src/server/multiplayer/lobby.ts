@@ -4,7 +4,7 @@ import {
   DEFAULT_DIFFICULTY,
   DEFAULT_LEVELS,
   DEFAULT_PACING,
-  MAX_PLAYERS,
+  DEFAULT_MODE,
   MAX_ROOM_LEVELS,
   MIN_HUMANS,
   ONLINE_WITHIN_MS,
@@ -13,13 +13,15 @@ import {
   ROOM_CODE_LENGTH,
   ROOM_TTL_MS,
   autoResultMs,
+  maxPlayersFor,
 } from "@/lib/multiplayer/config";
 import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
-import type { Difficulty, Pacing, PlayerRow, RoomRow } from "@/lib/multiplayer/types";
+import { ROOM_MODES, type Difficulty, type Pacing, type PlayerRow, type RoomMode, type RoomRow } from "@/lib/multiplayer/types";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { ensureLevel } from "./duels";
+import { ensureRound } from "./rounds";
 import {
   findRoom,
   findRoomByCode,
@@ -43,7 +45,14 @@ function validName(raw: unknown): string {
   return checked.name;
 }
 
-function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown }) {
+function validMode(raw: unknown): RoomMode {
+  const mode = raw ?? DEFAULT_MODE;
+  const found = ROOM_MODES.find((m) => m === mode);
+  if (!found) throw new ApiError(400, "Pick team or individual.");
+  return found;
+}
+
+function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown; mode?: unknown }) {
   const levels = input.maxLevels === undefined ? DEFAULT_LEVELS : Number(input.maxLevels);
   if (!Number.isInteger(levels) || levels < 1 || levels > MAX_ROOM_LEVELS) {
     throw new ApiError(400, `Pick 1 to ${MAX_ROOM_LEVELS} levels.`);
@@ -54,13 +63,13 @@ function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacin
   }
   const pacing = input.pacing ?? DEFAULT_PACING;
   if (pacing !== "manual" && pacing !== "auto") throw new ApiError(400, "Pick manual or auto.");
-  return { levels, difficulty: difficulty as Difficulty, pacing: pacing as Pacing };
+  return { levels, difficulty: difficulty as Difficulty, pacing: pacing as Pacing, mode: validMode(input.mode) };
 }
 
 export async function createRoom(
   userId: string,
   rawName: unknown,
-  rawSettings: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown } = {},
+  rawSettings: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown; mode?: unknown } = {},
 ) {
   const name = validName(rawName);
   const settings = validSettings(rawSettings);
@@ -81,6 +90,7 @@ export async function createRoom(
         max_levels: settings.levels,
         difficulty: settings.difficulty,
         pacing: settings.pacing,
+        mode: settings.mode,
         expires_at: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
       })
       .select()
@@ -108,7 +118,8 @@ export async function joinRoom(userId: string, rawCode: unknown, rawName: unknow
   if (room.phase !== "lobby") throw new ApiError(409, "That game already started.");
   for (let attempt = 0; attempt < 4; attempt++) {
     const players = await listPlayers(room.id);
-    if (players.length >= MAX_PLAYERS) throw new ApiError(409, `The room is full (${MAX_PLAYERS} players).`);
+    const cap = maxPlayersFor(room.mode);
+    if (players.length >= cap) throw new ApiError(409, `The room is full (${cap} players).`);
     if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
       throw new ApiError(409, "That name is taken in this room.");
     }
@@ -136,6 +147,7 @@ async function resetTeams(room: RoomRow) {
 
 export async function createTeams(userId: string, roomId: string) {
   const room = await requireAdmin(roomId, userId);
+  if (room.mode !== "team") throw new ApiError(409, "Individual rooms have no teams.");
   if (room.phase !== "lobby" && room.phase !== "teams_ready") throw new ApiError(409, "The game already started.");
   await removeBots(room.id);
   const humans = await listPlayers(room.id);
@@ -189,6 +201,7 @@ export async function playAgain(userId: string, roomId: string) {
   if (room.phase !== "finished") throw new ApiError(409, "The game is not over yet.");
   await removeBots(room.id);
   must(await db().from("duels").delete().eq("room_id", room.id));
+  must(await db().from("rounds").delete().eq("room_id", room.id));
   must(await db().from("teams").update({ score: 0 }).eq("room_id", room.id));
   must(await db().from("players").update({ team_id: null, seat: null }).eq("room_id", room.id));
   const next = await swapPhase(room, { phase: "lobby", level: 1, duel_index: 0, ...timedPhase(null) });
@@ -196,8 +209,24 @@ export async function playAgain(userId: string, roomId: string) {
   return { roomId: room.id };
 }
 
+async function startIndividualGame(room: RoomRow) {
+  if (room.phase !== "lobby") throw new ApiError(409, "The game already started.");
+  const humans = (await listPlayers(room.id)).filter((p) => !p.is_bot);
+  if (humans.length < MIN_HUMANS) throw new ApiError(409, `You need at least ${MIN_HUMANS} players.`);
+  await ensureRound(room, 1);
+  const next = await swapPhase(room, {
+    phase: "duel_intro",
+    level: 1,
+    duel_index: 0,
+    ...timedPhase(DUEL_INTRO_MS),
+  });
+  if (!next) throw new ApiError(409, "The room changed. Try again.");
+  return { roomId: room.id };
+}
+
 export async function startGame(userId: string, roomId: string) {
   const room = await requireAdmin(roomId, userId);
+  if (room.mode === "individual") return startIndividualGame(room);
   if (room.phase !== "teams_ready") throw new ApiError(409, "Create teams first.");
   const [, resetScores] = await Promise.all([
     ensureLevel(room, 1),
@@ -215,6 +244,7 @@ export async function startGame(userId: string, roomId: string) {
 }
 
 export interface SettingsInput {
+  mode?: unknown;
   maxLevels?: unknown;
   difficulty?: unknown;
   pacing?: unknown;
@@ -225,6 +255,17 @@ export async function updateSettings(userId: string, roomId: string, input: Sett
   const patch: Partial<RoomRow> = {};
   const preGame = room.phase === "lobby" || room.phase === "teams_ready";
 
+  if (input.mode !== undefined) {
+    const mode = validMode(input.mode);
+    if (mode !== room.mode) {
+      if (room.phase !== "lobby") throw new ApiError(409, "The mode is locked once teams are made or the game starts.");
+      const humans = (await listPlayers(room.id)).filter((p) => !p.is_bot).length;
+      if (humans > maxPlayersFor(mode)) {
+        throw new ApiError(409, `${mode} rooms hold at most ${maxPlayersFor(mode)} players.`);
+      }
+      patch.mode = mode;
+    }
+  }
   if (input.maxLevels !== undefined || input.difficulty !== undefined) {
     if (!preGame) throw new ApiError(409, "Levels and difficulty are locked once the game starts.");
     if (input.maxLevels !== undefined) {

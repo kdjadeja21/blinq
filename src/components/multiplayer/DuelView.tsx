@@ -62,14 +62,14 @@ function DuelProgress({ state, duel, elapsedMs }: { state: RoomState; duel: Duel
   );
 }
 
-function useTickCue(seconds: number, active: boolean) {
+export function useTickCue(seconds: number, active: boolean) {
   const ticking = active && seconds > 0 && seconds <= 5;
   useEffect(() => {
     if (ticking) playCue("tick");
   }, [ticking, seconds]);
 }
 
-function Header({ label, seconds, progress, extra }: { label: string; seconds: number; progress: number; extra?: React.ReactNode }) {
+export function Header({ label, seconds, progress, extra }: { label: string; seconds: number; progress: number; extra?: React.ReactNode }) {
   return (
     <div className="flex items-center justify-between gap-3">
       <div className="flex min-w-0 flex-col gap-1">
@@ -81,7 +81,7 @@ function Header({ label, seconds, progress, extra }: { label: string; seconds: n
   );
 }
 
-function Popups({ kind, points, penaltyMs, id }: { kind: "good" | "bad"; points: number; penaltyMs: number; id: number }) {
+export function Popups({ kind, points, penaltyMs, id }: { kind: "good" | "bad"; points: number; penaltyMs: number; id: number }) {
   return (
     <motion.div
       key={id}
@@ -240,7 +240,7 @@ function SpectatorPanel({ state, duel, elapsedMs }: { state: RoomState; duel: Du
   );
 }
 
-function TimesUp() {
+export function TimesUp() {
   return (
     <motion.div
       initial={{ opacity: 0 }}

@@ -18,7 +18,7 @@ import { ErrorNote, useServerNow } from "./shared";
 import { useAction } from "./LobbyView";
 import type { RoomState } from "./useRoom";
 
-function NextControl({ state, label }: { state: RoomState; label: string }) {
+export function NextControl({ state, label }: { state: RoomState; label: string }) {
   const { room, isAdmin, now } = state;
   const clock = useServerNow(now);
   const { busy, error, run } = useAction();
@@ -55,7 +55,7 @@ function NextControl({ state, label }: { state: RoomState; label: string }) {
   );
 }
 
-function useResultCue(outcome: "win" | "lose" | null) {
+export function useResultCue(outcome: "win" | "lose" | null) {
   useEffect(() => {
     if (outcome) playCue(outcome);
   }, [outcome]);
