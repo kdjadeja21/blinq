@@ -183,7 +183,11 @@ export async function scorePlayer(
 }
 
 /** Idempotent: computes results from stored submissions, writes them, refreshes team totals. */
-export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
+export async function resolveDuel(
+  room: RoomRow,
+  duel: DuelRow,
+  options: { refreshScores?: boolean } = {},
+): Promise<void> {
   const startedAt = room.phase_started_at ?? new Date().toISOString();
   const players = await listPlayers(room.id);
   const bots = new Set(players.filter((p) => p.is_bot).map((p) => p.id));
@@ -247,10 +251,10 @@ export async function resolveDuel(room: RoomRow, duel: DuelRow): Promise<void> {
       .update({ winner_id: winner, resolved: true })
       .eq("id", duel.id),
   );
-  await refreshTeamScores(room.id, players);
+  if (options.refreshScores !== false) await refreshTeamScores(room.id, players);
 }
 
-async function refreshTeamScores(
+export async function refreshTeamScores(
   roomId: string,
   players: PlayerRow[],
 ): Promise<void> {
