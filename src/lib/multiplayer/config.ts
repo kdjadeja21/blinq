@@ -3,7 +3,7 @@ import type { Difficulty, Pacing, RoomMode } from "./types";
 /** Realtime Postgres Changes fans every row change out to every subscriber, so rooms stay small. */
 export const MAX_PLAYERS_BY_MODE: Record<RoomMode, number> = { team: 12, individual: 21 };
 export const MAX_PLAYERS = MAX_PLAYERS_BY_MODE.team;
-export const DEFAULT_MODE: RoomMode = "team";
+export const DEFAULT_MODE: RoomMode = "individual";
 
 export function maxPlayersFor(mode: RoomMode): number {
   return MAX_PLAYERS_BY_MODE[mode];

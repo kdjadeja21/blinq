@@ -16,7 +16,7 @@ export type RoomPhase = (typeof ROOM_PHASES)[number];
 
 export type Pacing = "manual" | "auto";
 
-export const ROOM_MODES = ["team", "individual"] as const;
+export const ROOM_MODES = ["individual", "team"] as const;
 export type RoomMode = (typeof ROOM_MODES)[number];
 
 export interface RoomRow {

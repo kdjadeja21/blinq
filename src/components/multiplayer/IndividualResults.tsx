@@ -37,11 +37,16 @@ export function RoundResultView({ state }: { state: RoomState }) {
   const { room, players, me } = state;
   const [view, setView] = useState<View>("overall");
   const standings = useStandings(state);
+  const rows = standings ? (view === "overall" ? standings.overall : standings.level) : [];
+  const leaders = rows.filter((r) => r.rank === 1);
+  const celebrate = leaders.some((r) => r.points > 0);
+  const iLead = celebrate && leaders.some((r) => r.playerId === me?.id);
+  useResultCue(iLead ? "win" : null);
   if (!room || !standings) return null;
   const last = room.level >= room.max_levels;
-  const rows = view === "overall" ? standings.overall : standings.level;
   return (
     <div className="flex flex-col gap-3">
+      {celebrate && <Confetti />}
       <section className="flex flex-col gap-3 rounded-3xl border-2 bg-card p-4 text-center shadow-lg" aria-labelledby="round-result-title">
         <p className="mx-auto w-fit rounded-full bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
           Level {room.level} of {room.max_levels}
@@ -81,10 +86,11 @@ export function IndividualFinalView({ state }: { state: RoomState }) {
   useResultCue(won ? "win" : null);
   if (!room || !standings) return null;
   const winners = standings.overall.filter((r) => r.rank === 1);
+  const celebrate = winners.some((r) => r.points > 0);
   const title = winners.length > 1 ? "It's a tie at the top!" : `${winners[0]?.name ?? "Nobody"} wins!`;
   return (
     <div className="flex flex-col gap-3 text-center">
-      {won && <Confetti />}
+      {celebrate && <Confetti />}
       <section className="flex flex-col gap-3 rounded-3xl border-2 bg-card p-4 shadow-lg">
         <Trophy className="mx-auto size-14 text-gold" aria-hidden />
         <h2 className="text-3xl font-extrabold">{title}</h2>

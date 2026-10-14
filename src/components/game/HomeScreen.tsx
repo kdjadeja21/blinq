@@ -173,9 +173,6 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
       >
         <ClashingSwords reduce={!!reduce} />
         Multiplayer
-        <span className="rounded-full bg-black/25 px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider text-gold">
-          Team Battle
-        </span>
       </Link>
 
       <section

@@ -15,7 +15,10 @@ const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((valu
   value,
   label: DIFFICULTIES[value].label,
 }));
-const MODE_OPTIONS = (Object.keys(MODES) as RoomMode[]).map((value) => ({ value, label: MODES[value].label }));
+const MODE_OPTIONS: { value: RoomMode; label: string }[] = [
+  { value: "individual", label: MODES.individual.label },
+  { value: "team", label: MODES.team.label },
+];
 const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "manual", label: "Manual" },
   { value: "auto", label: "Auto" },
