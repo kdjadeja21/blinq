@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, GraduationCap, Play, Share2, Swords } from "lucide-react";
+import { Flame, GraduationCap, Play, Share2, Sword } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -41,6 +41,40 @@ function useResetCountdown(): string {
     return () => window.clearInterval(id);
   }, []);
   return text;
+}
+
+const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
+
+function ClashingSwords({ reduce }: { reduce: boolean }) {
+  const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
+  return (
+    <span aria-hidden className="relative inline-flex size-7 items-center justify-center">
+      <motion.span
+        className="absolute inset-0 flex items-center justify-center"
+        initial={false}
+        animate={reduce ? undefined : { x: [-8, -8, 1, -1, -8], rotate: [-40, -40, 0, -6, -40] }}
+        transition={transition}
+      >
+        <Sword className="size-6 text-gold drop-shadow-sm" />
+      </motion.span>
+      <motion.span
+        className="absolute inset-0 flex items-center justify-center"
+        initial={false}
+        animate={reduce ? undefined : { x: [8, 8, -1, 1, 8], rotate: [40, 40, 0, 6, 40] }}
+        transition={transition}
+      >
+        <Sword className="size-6 -scale-x-100 text-white drop-shadow-sm" />
+      </motion.span>
+      {reduce ? null : (
+        <motion.span
+          className="absolute size-3 rounded-full bg-gold blur-[2px]"
+          initial={false}
+          animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.8, 2.4, 0.4] }}
+          transition={transition}
+        />
+      )}
+    </span>
+  );
 }
 
 export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
@@ -120,14 +154,7 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
           className: "h-14 w-full gap-2.5 rounded-3xl text-lg font-extrabold",
         })}
       >
-        <motion.span
-          aria-hidden
-          className="inline-flex"
-          animate={reduce ? undefined : { rotate: [0, -12, 12, 0], scale: [1, 1.12, 1] }}
-          transition={{ duration: 2.4, repeat: Infinity, repeatDelay: 1 }}
-        >
-          <Swords className="size-5 text-gold drop-shadow-sm" />
-        </motion.span>
+        <ClashingSwords reduce={!!reduce} />
         Multiplayer
         <span className="rounded-full bg-black/25 px-2.5 py-0.5 text-xs font-extrabold uppercase tracking-wider text-gold">
           Team Battle
