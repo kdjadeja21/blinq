@@ -1,6 +1,6 @@
 "use client";
 
-import { Check, Copy, RotateCcw, Star } from "lucide-react";
+import { ArrowRight, Check, Copy, House, LogIn, RotateCcw, Star } from "lucide-react";
 import { cn } from "cn";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -157,7 +157,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
               {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied!" : "Share result"}
             </Button>
             <Button variant="secondary" className="h-12 rounded-2xl text-base" onClick={onHome}>
-              Home
+              <House className="size-4" /> Home
             </Button>
           </>
         ) : leveledUp ? (
@@ -167,11 +167,19 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
                 <RotateCcw className="size-4" /> Replay level
               </Button>
               <Button variant="success" className="h-12 rounded-2xl text-base" onClick={onNextLevel}>
-                {nextLocked ? "Sign in to continue" : "Next level"}
+                {nextLocked ? (
+                  <>
+                    <LogIn className="size-4" /> Sign in to continue
+                  </>
+                ) : (
+                  <>
+                    Next level <ArrowRight className="size-4" />
+                  </>
+                )}
               </Button>
             </div>
             <Button variant="ghost" className="h-11 w-full" onClick={onHome}>
-              Home
+              <House className="size-4" /> Home
             </Button>
           </>
         ) : (
@@ -180,7 +188,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
               <RotateCcw className="size-4" /> Play again
             </Button>
             <Button variant="ghost" className="h-11 w-full" onClick={onHome}>
-              Home
+              <House className="size-4" /> Home
             </Button>
           </>
         )}
