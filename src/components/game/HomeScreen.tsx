@@ -53,7 +53,7 @@ const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
 const ACTION_TILE =
   "flex !h-auto min-h-14 w-full min-w-0 max-w-full shrink flex-row items-center justify-center overflow-hidden rounded-2xl px-2.5 py-2 text-sm font-extrabold leading-tight whitespace-normal shadow-lg ring-1 ring-black/10";
 
-const ACTION_BODY = "flex max-w-full min-w-0 flex-row items-center gap-2";
+const ACTION_BODY = "flex w-fit max-w-[calc(100%-0.25rem)] min-w-0 flex-row items-center gap-2";
 
 const ACTION_TEXT = "flex min-w-0 flex-col items-start justify-center gap-px text-left";
 
