@@ -51,33 +51,37 @@ function useResetCountdown(): string {
 const CLASH_TIMES = [0, 0.3, 0.4, 0.55, 1];
 
 const ACTION_TILE =
-  "min-h-16 w-full flex-col gap-1 rounded-3xl px-2 py-2.5 text-center text-base font-extrabold leading-tight whitespace-normal shadow-lg ring-1 ring-black/10";
+  "flex h-auto min-h-16 w-full min-w-0 max-w-full shrink flex-col items-center justify-center gap-0.5 overflow-hidden rounded-3xl px-2 py-2.5 text-center text-sm font-extrabold leading-snug whitespace-normal shadow-lg ring-1 ring-black/10";
 
-function ClashingSwords({ reduce }: { reduce: boolean }) {
+function ClashingSwords({ reduce, compact }: { reduce: boolean; compact?: boolean }) {
   const transition = { duration: 2.2, times: CLASH_TIMES, repeat: Infinity, repeatDelay: 0.8 };
+  const travel = compact ? 4 : 8;
+  const box = compact ? "size-6" : "size-7";
+  const blade = compact ? "size-4" : "size-6";
+  const spark = compact ? "size-2" : "size-3";
   return (
-    <span aria-hidden className="relative inline-flex size-7 items-center justify-center">
+    <span aria-hidden className={cn("relative inline-flex items-center justify-center overflow-hidden", box)}>
       <motion.span
         className="absolute inset-0 flex items-center justify-center"
-        initial={{ x: -8, rotate: -40 }}
-        animate={reduce ? undefined : { x: [-8, -8, 1, -1, -8], rotate: [-40, -40, 0, -6, -40] }}
+        initial={{ x: -travel, rotate: -40 }}
+        animate={reduce ? undefined : { x: [-travel, -travel, 0, -1, -travel], rotate: [-40, -40, 0, -6, -40] }}
         transition={transition}
       >
-        <Sword className="size-6 text-gold drop-shadow-sm" />
+        <Sword className={cn(blade, "text-gold drop-shadow-sm")} />
       </motion.span>
       <motion.span
         className="absolute inset-0 flex items-center justify-center"
-        initial={{ x: 8, rotate: 40 }}
-        animate={reduce ? undefined : { x: [8, 8, -1, 1, 8], rotate: [40, 40, 0, 6, 40] }}
+        initial={{ x: travel, rotate: 40 }}
+        animate={reduce ? undefined : { x: [travel, travel, 0, 1, travel], rotate: [40, 40, 0, 6, 40] }}
         transition={transition}
       >
-        <Sword className="size-6 -scale-x-100 text-white drop-shadow-sm" />
+        <Sword className={cn(blade, "-scale-x-100 text-white drop-shadow-sm")} />
       </motion.span>
       {reduce ? null : (
         <motion.span
-          className="absolute size-3 rounded-full bg-gold blur-[2px]"
+          className={cn("absolute rounded-full bg-gold blur-[1px]", spark)}
           initial={{ opacity: 0, scale: 0.4 }}
-          animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.8, 2.4, 0.4] }}
+          animate={{ opacity: [0, 0, 1, 0, 0], scale: [0.4, 0.4, 1.4, 1.8, 0.4] }}
           transition={transition}
         />
       )}
@@ -146,24 +150,23 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         >
           <Button
             variant="game"
-            className={cn(ACTION_TILE, "min-w-0")}
+            className={ACTION_TILE}
             onClick={() => {
               playCue("tap");
               if (locked) onSignIn();
               else onPlayLevel();
             }}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-primary-foreground/15 shadow-inner">
-              {locked ? <Lock className="size-4" aria-hidden /> : <Play className="size-5 fill-current" aria-hidden />}
+            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-primary-foreground/15 shadow-inner">
+              {locked ? <Lock className="size-4" aria-hidden /> : <Play className="size-4 fill-current" aria-hidden />}
             </span>
-            <span className="tracking-tight">{locked ? "Unlock" : "Play"}</span>
-            <span className="text-[0.6875rem] font-semibold tabular-nums text-primary-foreground/85">
-              Level {stats.level}
+            <span className="max-w-full truncate tracking-tight">{locked ? "Unlock" : "Play"}</span>
+            <span className="max-w-full text-[0.6875rem] font-semibold leading-tight tabular-nums text-primary-foreground/85">
+              <span className="block truncate">Level {stats.level}</span>
               {locked ? null : (
-                <>
-                  {" · "}
+                <span className="block truncate opacity-85">
                   {getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items
-                </>
+                </span>
               )}
             </span>
           </Button>
@@ -173,14 +176,14 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
             aria-label="Multiplayer team battle"
             className={buttonVariants({
               variant: "battle",
-              className: cn(ACTION_TILE, "min-w-0 gap-1.5"),
+              className: ACTION_TILE,
             })}
           >
-            <span className="flex size-9 shrink-0 items-center justify-center rounded-full bg-white/15 shadow-inner">
-              <ClashingSwords reduce={!!reduce} />
+            <span className="flex size-8 shrink-0 items-center justify-center overflow-hidden rounded-full bg-white/15 shadow-inner">
+              <ClashingSwords reduce={!!reduce} compact />
             </span>
-            <span className="tracking-tight">Multiplayer</span>
-            <span className="rounded-full bg-black/30 px-2 py-px text-[0.625rem] font-extrabold uppercase tracking-widest text-gold">
+            <span className="max-w-full truncate text-[0.8125rem] leading-none tracking-tight">Multiplayer</span>
+            <span className="max-w-full truncate rounded-full bg-black/30 px-1.5 py-px text-[0.5625rem] font-extrabold uppercase tracking-wide text-gold">
               Team battle
             </span>
           </Link>
