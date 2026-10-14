@@ -1,6 +1,6 @@
 "use client";
 
-import { Flame, GraduationCap, Play, Share2, Sword } from "lucide-react";
+import { Flame, GraduationCap, Lock, Play, Share2, Sword } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -8,12 +8,16 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareText } from "@/lib/progress";
+import { isGuestLocked } from "@/lib/solo/guest";
 import type { Stats } from "@/lib/storage";
+import { GuestHint } from "./SoloAuth";
 import { StatTile } from "./StatTile";
 
 interface HomeScreenProps {
   stats: Stats;
   today: string;
+  guest: boolean;
+  onSignIn: () => void;
   onPlayLevel: () => void;
   onPlayDaily: () => void;
   onTraining: () => void;
@@ -77,13 +81,14 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
   );
 }
 
-export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
+export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
   const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
   const countdown = useResetCountdown();
   const playedToday = stats.daily?.date === today ? stats.daily : null;
   const accuracy = stats.totalItems ? Math.round((stats.correctItems / stats.totalItems) * 100) : null;
   const streak = currentStreak(stats, today);
+  const locked = isGuestLocked(guest, stats.level);
 
   async function share() {
     if (!playedToday) return;
@@ -129,22 +134,34 @@ export function HomeScreen({ stats, today, onPlayLevel, onPlayDaily, onTraining 
         </p>
       </div>
 
-      <motion.div
-        animate={reduce ? undefined : { scale: [1, 1.03, 1] }}
-        transition={{ duration: 2, repeat: Infinity }}
-      >
-        <Button
-          variant="game"
-          className="h-16 w-full rounded-3xl text-xl"
-          onClick={() => {
-            playCue("tap");
-            onPlayLevel();
-          }}
+      <div className="flex flex-col gap-2">
+        <motion.div
+          animate={reduce || locked ? undefined : { scale: [1, 1.03, 1] }}
+          transition={{ duration: 2, repeat: Infinity }}
         >
-          <Play className="size-6 fill-current" /> Play level {stats.level}
-          <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
-        </Button>
-      </motion.div>
+          <Button
+            variant="game"
+            className="h-16 w-full rounded-3xl text-xl"
+            onClick={() => {
+              playCue("tap");
+              if (locked) onSignIn();
+              else onPlayLevel();
+            }}
+          >
+            {locked ? (
+              <>
+                <Lock className="size-5" /> Unlock level {stats.level}
+              </>
+            ) : (
+              <>
+                <Play className="size-6 fill-current" /> Play level {stats.level}
+                <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
+              </>
+            )}
+          </Button>
+        </motion.div>
+        {guest ? <GuestHint locked={locked} /> : null}
+      </div>
 
       <Link
         href="/multiplayer"

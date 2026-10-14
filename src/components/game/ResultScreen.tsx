@@ -10,6 +10,7 @@ import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { shareText } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
+import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
 import { Confetti } from "./Confetti";
 import { StatTile } from "./StatTile";
@@ -20,11 +21,12 @@ interface ResultScreenProps {
   stats: Stats;
   onRetry: () => void;
   onNextLevel: () => void;
+  guest: boolean;
   onHome: () => void;
   onStartPlaying: () => void;
 }
 
-export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onStartPlaying }: ResultScreenProps) {
+export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying }: ResultScreenProps) {
   const [copied, setCopied] = useState(false);
   const result = round.result;
   const won = result?.won ?? false;
@@ -40,6 +42,7 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
   const missed = result.total - result.correct;
   const trainingRetry = training && !result.perfect && round.attempt < 2;
   const leveledUp = round.mode === "level" && result.stars === 3;
+  const nextLocked = leveledUp && isGuestLocked(guest, round.level + 1);
 
   const isNewBest = !training && result.score > 0 && result.score >= stats.bestScore;
   const nextStarNeed = nextStarGap(result.correct, result.total);
@@ -128,7 +131,7 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
       )}
       {leveledUp && (
         <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          Level {round.level + 1} unlocked! ({getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1 }).itemCount} items)
+          {nextLocked ? `You cleared the guest levels! Sign in to play level ${round.level + 1}.` : <>Level {round.level + 1} unlocked! ({getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1 }).itemCount} items)</>}
         </p>
       )}
 
@@ -160,7 +163,7 @@ export function ResultScreen({ round, stats, onRetry, onNextLevel, onHome, onSta
         ) : (
           <>
             <Button variant="success" className="h-14 rounded-2xl text-lg" onClick={leveledUp ? onNextLevel : onRetry}>
-              {leveledUp ? "Next level" : (<><RotateCcw className="size-4" /> Play again</>)}
+              {leveledUp ? (nextLocked ? "Sign in to continue" : "Next level") : (<><RotateCcw className="size-4" /> Play again</>)}
             </Button>
             {leveledUp && (
               <Button variant="secondary" className="h-12 rounded-2xl text-base" onClick={onRetry}>
