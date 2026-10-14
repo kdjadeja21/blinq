@@ -162,15 +162,28 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
           </>
         ) : (
           <>
-            <Button variant="success" className="h-14 rounded-2xl text-lg" onClick={leveledUp ? onNextLevel : onRetry}>
-              {leveledUp ? (nextLocked ? "Sign in to continue" : "Next level") : (<><RotateCcw className="size-4" /> Play again</>)}
-            </Button>
-            {leveledUp && (
+            <div className="grid grid-cols-2 gap-2">
               <Button variant="secondary" className="h-12 rounded-2xl text-base" onClick={onRetry}>
-                Replay level
+                {leveledUp ? (
+                  <>
+                    <RotateCcw className="size-4" /> Replay level
+                  </>
+                ) : (
+                  <>
+                    <RotateCcw className="size-4" /> Play again
+                  </>
+                )}
               </Button>
-            )}
-            <Button variant="ghost" className="h-11" onClick={onHome}>
+              <Button
+                variant="success"
+                className="h-12 rounded-2xl text-base"
+                onClick={onNextLevel}
+                disabled={!leveledUp}
+              >
+                {nextLocked ? "Sign in" : "Next level"}
+              </Button>
+            </div>
+            <Button variant="ghost" className="h-11 w-full" onClick={onHome}>
               Home
             </Button>
           </>
