@@ -10,12 +10,14 @@ import { Confetti } from "@/components/game/Confetti";
 import { useCountUp } from "@/components/game/useCountUp";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
+import { isSquad } from "@/lib/multiplayer/config";
 import { starsFor } from "@/lib/scoring";
 import { teamThemeFor, type TeamTheme } from "@/lib/multiplayer/teamTheme";
 import type { DuelResultRow, DuelRow, PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 import { toItems } from "./DuelView";
 import { ErrorNote, useServerNow } from "./shared";
 import { useAction } from "./LobbyView";
+import { SquadFinalStandings, SquadLevelDetails } from "./SquadResults";
 import type { RoomState } from "./useRoom";
 
 export function NextControl({ state, label }: { state: RoomState; label: string }) {
@@ -253,6 +255,7 @@ export function LevelResultView({ state }: { state: RoomState }) {
           ))}
         </dl>
       </section>
+      {isSquad(room) && <SquadLevelDetails state={state} />}
       <NextControl state={state} label={last ? "See final result" : "Next level"} />
     </div>
   );
@@ -299,18 +302,22 @@ export function FinalView({ state }: { state: RoomState }) {
           </p>
         )}
       </section>
-      <ul className="flex flex-col gap-1 rounded-2xl border-2 bg-card p-2 text-left text-sm" aria-label="Player points">
-        {totals.map(({ player, points }) => (
-          <li key={player.id} className="flex items-center justify-between gap-2 px-2 py-1">
-            <span className="min-w-0 truncate font-semibold">
-              {player.name}
-              {player.id === me?.id ? " (you)" : ""}
-              <span className="ml-2 text-xs font-normal text-muted-foreground">{teamName(player.team_id)}</span>
-            </span>
-            <span className="font-bold tabular-nums">{points}</span>
-          </li>
-        ))}
-      </ul>
+      {room && isSquad(room) ? (
+        <SquadFinalStandings state={state} />
+      ) : (
+        <ul className="flex flex-col gap-1 rounded-2xl border-2 bg-card p-2 text-left text-sm" aria-label="Player points">
+          {totals.map(({ player, points }) => (
+            <li key={player.id} className="flex items-center justify-between gap-2 px-2 py-1">
+              <span className="min-w-0 truncate font-semibold">
+                {player.name}
+                {player.id === me?.id ? " (you)" : ""}
+                <span className="ml-2 text-xs font-normal text-muted-foreground">{teamName(player.team_id)}</span>
+              </span>
+              <span className="font-bold tabular-nums">{points}</span>
+            </li>
+          ))}
+        </ul>
+      )}
       <ErrorNote message={error} />
       {isAdmin && room ? (
         <Button variant="game" className="h-14 rounded-3xl text-lg" disabled={busy} onClick={() => run("play_again", { roomId: room.id })}>

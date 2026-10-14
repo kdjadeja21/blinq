@@ -3,16 +3,27 @@ import {
   GUESSES_PER_SECOND,
   GUESS_GRACE_MS,
   autoResultMs,
+  isSquad,
 } from "@/lib/multiplayer/config";
+import { allDuelsResolved, duelRefusesPicks, writesLiveProgress } from "@/lib/multiplayer/squad";
 import type { DuelProgressRow, DuelRow, RoomRow, SubmissionRow } from "@/lib/multiplayer/types";
 import { scoreRecall } from "@/lib/scoring";
 import { after } from "next/server";
 import { ApiError, db, isUniqueViolation, must } from "./db";
-import { countDuels, ensureLevel, resolveDuel, toPicks } from "./duels";
+import { countDuels, ensureLevel, refreshTeamScores, resolveDuel, toPicks } from "./duels";
 import { ensureAdminOnline } from "./lobby";
 import { tapTime } from "./taps";
 import { currentRound, endRoundRecall, ensureRound } from "./rounds";
-import { findDuel, findRoom, listPlayers, requireAdmin, requireMember, swapPhase, timedPhase } from "./queries";
+import {
+  findDuel,
+  findRoom,
+  listLevelDuels,
+  listPlayers,
+  requireAdmin,
+  requireMember,
+  swapPhase,
+  timedPhase,
+} from "./queries";
 
 const TIMED_PHASES = ["duel_intro", "memorize", "recall", "duel_result", "level_result"] as const;
 
@@ -57,8 +68,24 @@ async function moveOnFromResult(room: RoomRow): Promise<RoomRow | null> {
   });
 }
 
+/** Squad: resolves every duel still open, updates the team totals once, then shows the level result. */
+async function endSquadLevel(room: RoomRow): Promise<RoomRow | null> {
+  const duels = await listLevelDuels(room.id, room.level);
+  for (const duel of duels.filter((d) => !d.resolved)) await resolveDuel(room, duel, { refreshScores: false });
+  await refreshTeamScores(room.id, await listPlayers(room.id));
+  return swapPhase(room, { phase: "level_result", ...timedPhase(resultDuration(room, "level_result")) });
+}
+
+/** Squad: one duel finished. The level ends once all of its duels are resolved. */
+async function endSquadDuel(room: RoomRow, duel: DuelRow): Promise<void> {
+  await resolveDuel(room, duel, { refreshScores: false });
+  const duels = await listLevelDuels(room.id, room.level);
+  if (allDuelsResolved(duels, room.level)) await endSquadLevel(room);
+}
+
 async function endRecall(room: RoomRow): Promise<RoomRow | null> {
   if (room.mode === "individual") return endRoundRecall(room);
+  if (isSquad(room)) return endSquadLevel(room);
   await resolveDuel(room, await currentDuel(room));
   return swapPhase(room, { phase: "duel_result", ...timedPhase(resultDuration(room, "duel_result")) });
 }
@@ -131,9 +158,12 @@ async function loadRecall(userId: string, duelId: string) {
       .then(must),
   ]);
   if (player.id !== duel.player_a && player.id !== duel.player_b) throw new ApiError(403, "You are not in this duel.");
-  if (room.phase !== "recall" || room.level !== duel.level || room.duel_index !== duel.duel_index || !room.phase_started_at) {
+  const squad = isSquad(room);
+  if (room.phase !== "recall" || room.level !== duel.level || !room.phase_started_at) {
     throw new ApiError(409, "Recall is not open.");
   }
+  if (!squad && room.duel_index !== duel.duel_index) throw new ApiError(409, "Recall is not open.");
+  if (duelRefusesPicks(squad, duel)) throw new ApiError(409, "Your duel is over.");
   return { duel, room, player, mine: mine.filter((s) => s.player_id === player.id) };
 }
 
@@ -221,7 +251,7 @@ async function settle(
     );
   };
   if (selfDone) await write();
-  else after(write);
+  else if (writesLiveProgress(isSquad(room), selfDone)) after(write);
 
   let ended = score.complete;
   if (!ended && selfDone) {
@@ -238,7 +268,10 @@ async function settle(
     ]);
     ended = players.find((p) => p.id === opponentId)?.is_bot === true || isDone(duel, opponent ?? undefined);
   }
-  if (ended) await endRecall(room);
+  if (ended) {
+    if (isSquad(room)) await endSquadDuel(room, duel);
+    else await endRecall(room);
+  }
 
   return {
     complete: score.complete,

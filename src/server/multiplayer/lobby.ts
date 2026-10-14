@@ -18,7 +18,16 @@ import {
 import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
-import { ROOM_MODES, type Difficulty, type Pacing, type PlayerRow, type RoomMode, type RoomRow } from "@/lib/multiplayer/types";
+import { resolveTeamStyle } from "@/lib/multiplayer/teamStyle";
+import {
+  ROOM_MODES,
+  type Difficulty,
+  type Pacing,
+  type PlayerRow,
+  type RoomMode,
+  type RoomRow,
+  type TeamStyle,
+} from "@/lib/multiplayer/types";
 import { ApiError, db, isUniqueViolation, must } from "./db";
 import { ensureLevel } from "./duels";
 import { ensureRound } from "./rounds";
@@ -52,7 +61,21 @@ function validMode(raw: unknown): RoomMode {
   return found;
 }
 
-function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown; mode?: unknown }) {
+function validTeamStyle(raw: unknown, mode: RoomMode): TeamStyle {
+  const result = resolveTeamStyle(raw, mode);
+  if (!result.ok) throw new ApiError(400, result.error);
+  return result.style;
+}
+
+interface RoomSettingsInput {
+  maxLevels?: unknown;
+  difficulty?: unknown;
+  pacing?: unknown;
+  mode?: unknown;
+  teamStyle?: unknown;
+}
+
+function validSettings(input: RoomSettingsInput) {
   const levels = input.maxLevels === undefined ? DEFAULT_LEVELS : Number(input.maxLevels);
   if (!Number.isInteger(levels) || levels < 1 || levels > MAX_ROOM_LEVELS) {
     throw new ApiError(400, `Pick 1 to ${MAX_ROOM_LEVELS} levels.`);
@@ -63,13 +86,20 @@ function validSettings(input: { maxLevels?: unknown; difficulty?: unknown; pacin
   }
   const pacing = input.pacing ?? DEFAULT_PACING;
   if (pacing !== "manual" && pacing !== "auto") throw new ApiError(400, "Pick manual or auto.");
-  return { levels, difficulty: difficulty as Difficulty, pacing: pacing as Pacing, mode: validMode(input.mode) };
+  const mode = validMode(input.mode);
+  return {
+    levels,
+    difficulty: difficulty as Difficulty,
+    pacing: pacing as Pacing,
+    mode,
+    teamStyle: validTeamStyle(input.teamStyle, mode),
+  };
 }
 
 export async function createRoom(
   userId: string,
   rawName: unknown,
-  rawSettings: { maxLevels?: unknown; difficulty?: unknown; pacing?: unknown; mode?: unknown } = {},
+  rawSettings: RoomSettingsInput = {},
 ) {
   const name = validName(rawName);
   const settings = validSettings(rawSettings);
@@ -91,6 +121,7 @@ export async function createRoom(
         difficulty: settings.difficulty,
         pacing: settings.pacing,
         mode: settings.mode,
+        team_style: settings.teamStyle,
         expires_at: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
       })
       .select()
@@ -245,6 +276,7 @@ export async function startGame(userId: string, roomId: string) {
 
 export interface SettingsInput {
   mode?: unknown;
+  teamStyle?: unknown;
   maxLevels?: unknown;
   difficulty?: unknown;
   pacing?: unknown;
@@ -264,6 +296,16 @@ export async function updateSettings(userId: string, roomId: string, input: Sett
         throw new ApiError(409, `${mode} rooms hold at most ${maxPlayersFor(mode)} players.`);
       }
       patch.mode = mode;
+    }
+  }
+  const nextMode = patch.mode ?? room.mode;
+  if (input.teamStyle !== undefined || (patch.mode && patch.mode !== room.mode)) {
+    const style = validTeamStyle(input.teamStyle ?? (patch.mode ? undefined : room.team_style), nextMode);
+    if (style !== room.team_style) {
+      if (room.phase !== "lobby") {
+        throw new ApiError(409, "The team style is locked once teams are made or the game starts.");
+      }
+      patch.team_style = style;
     }
   }
   if (input.maxLevels !== undefined || input.difficulty !== undefined) {

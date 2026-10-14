@@ -33,6 +33,12 @@ export async function findDuel(roomId: string, level: number, duelIndex: number)
   );
 }
 
+export async function listLevelDuels(roomId: string, level: number): Promise<DuelRow[]> {
+  return must(
+    await db().from("duels").select("*").eq("room_id", roomId).eq("level", level).order("duel_index").returns<DuelRow[]>(),
+  );
+}
+
 export async function memberOf(roomId: string, userId: string): Promise<PlayerRow | null> {
   return must(
     await db().from("players").select("*").eq("room_id", roomId).eq("user_id", userId).maybeSingle<PlayerRow>(),

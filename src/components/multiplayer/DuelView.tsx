@@ -11,6 +11,8 @@ import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
 import { Button } from "@/components/ui/button";
+import { isSquad } from "@/lib/multiplayer/config";
+import { duelProgress } from "@/lib/multiplayer/squad";
 import { comboMultiplier } from "@/lib/scoring";
 import type { DuelRow, PlayerRow } from "@/lib/multiplayer/types";
 import type { RoomState } from "./useRoom";
@@ -109,16 +111,24 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
   const remaining = Math.max(0, startedAt + score.deadlineMs - current);
   const seconds = Math.ceil(remaining / 1000);
   const timeUp = remaining === 0;
-  useTickCue(seconds, !picks.stopped && !timeUp);
+  const squad = state.room ? isSquad(state.room) : false;
+  const duelOver = squad && duel.resolved;
+  useTickCue(seconds, !picks.stopped && !timeUp && !duelOver);
 
-  const waiting = picks.stopped || timeUp;
-  const status = picks.out
-    ? "Out of mistakes. Waiting for your opponent."
-    : picks.complete || picks.finished
-      ? "Done. Waiting for your opponent."
-      : timeUp
-        ? "Time is up."
-        : null;
+  const waiting = picks.stopped || timeUp || duelOver;
+  const squadWait = duelProgress(state.duels, duel.level);
+  const waitText = squad
+    ? `Your duel is done. Waiting for the other duels (${squadWait.done} of ${squadWait.total} finished).`
+    : null;
+  const status = duelOver
+    ? waitText
+    : picks.out
+      ? (waitText ?? "Out of mistakes. Waiting for your opponent.")
+      : picks.complete || picks.finished
+        ? (waitText ?? "Done. Waiting for your opponent.")
+        : timeUp
+          ? "Time is up."
+          : null;
 
   return (
     <div className="flex flex-col gap-3">
@@ -173,7 +183,7 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
           I&apos;m done
         </Button>
       </div>
-      <DuelProgress state={state} duel={duel} elapsedMs={current - startedAt} />
+      {!squad && <DuelProgress state={state} duel={duel} elapsedMs={current - startedAt} />}
     </div>
   );
 }

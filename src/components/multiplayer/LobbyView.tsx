@@ -12,7 +12,7 @@ import {
   roomInviteShareText,
   roomInviteShareTitle,
 } from "@/lib/multiplayer/share";
-import { MIN_HUMANS, maxPlayersFor } from "@/lib/multiplayer/config";
+import { MIN_HUMANS, TEAM_STYLES_INFO, isSquad, maxPlayersFor } from "@/lib/multiplayer/config";
 import type { RoomState } from "./useRoom";
 import { ErrorNote, PlayerChip, Spinner } from "./shared";
 import { GameStartOverlay } from "./GameStartOverlay";
@@ -125,6 +125,14 @@ export function LobbyView({ state }: { state: RoomState }) {
     <div className="flex flex-1 flex-col gap-3">
       {isAdmin ? <ShareCard code={room.code} hostName={me?.name ?? ""} /> : <CodeCard code={room.code} />}
       {starting && <GameStartOverlay />}
+      {!individual && (
+        <section className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-label="Team style">
+          <p className="w-fit rounded-full bg-primary/15 px-3 py-0.5 text-xs font-bold uppercase tracking-wide">
+            Team · {TEAM_STYLES_INFO[room.team_style].label}
+          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{TEAM_STYLES_INFO[room.team_style].description}</p>
+        </section>
+      )}
       <section className="rounded-3xl border-2 bg-card p-3 shadow-lg" aria-labelledby="players-title">
         <h2 id="players-title" className="text-base font-bold">
           Players{" "}
@@ -264,9 +272,6 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
               {Icon && <Icon className="size-5" aria-hidden />}
               {team.name}
             </h2>
-            {mine && (
-              <p className="mb-2 text-center text-xs font-extrabold uppercase tracking-wider">Your team</p>
-            )}
             <ul className="flex flex-col items-center gap-2">
               {players
                 .filter((p) => p.team_id === team.id)
@@ -280,6 +285,9 @@ export function TeamsReadyView({ state }: { state: RoomState }) {
           );
         })}
       </div>
+      {isSquad(room) && (
+        <p className="text-center text-sm text-muted-foreground">Squad: every duel of a level starts at the same time.</p>
+      )}
       {isAdmin ? (
         <div className="mt-auto flex flex-col gap-2">
           <ErrorNote message={error} />

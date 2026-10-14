@@ -1,4 +1,4 @@
-import type { Difficulty, Pacing, RoomMode } from "./types";
+import type { Difficulty, Pacing, RoomMode, RoomRow, TeamStyle } from "./types";
 
 /** Realtime Postgres Changes fans every row change out to every subscriber, so rooms stay small. */
 export const MAX_PLAYERS_BY_MODE: Record<RoomMode, number> = { team: 12, individual: 21 };
@@ -7,6 +7,13 @@ export const DEFAULT_MODE: RoomMode = "individual";
 
 export function maxPlayersFor(mode: RoomMode): number {
   return MAX_PLAYERS_BY_MODE[mode];
+}
+export const DEFAULT_TEAM_STYLE: TeamStyle = "squad";
+export const SQUAD_ENABLED = true;
+
+/** True for Squad rooms: team mode with every duel of a level played at the same time. */
+export function isSquad(room: Pick<RoomRow, "mode" | "team_style">): boolean {
+  return room.mode === "team" && room.team_style === "squad";
 }
 export const MIN_HUMANS = 2;
 export const MAX_ROOM_LEVELS = 10;
@@ -49,4 +56,9 @@ export function autoResultMs(phase: "duel_result" | "level_result"): number {
 export const MODES: Record<RoomMode, { label: string; description: string }> = {
   team: { label: "Team", description: "Two teams, one-on-one duels." },
   individual: { label: "Individual", description: "Everyone plays at once. Top of the leaderboard wins." },
+};
+
+export const TEAM_STYLES_INFO: Record<TeamStyle, { label: string; description: string }> = {
+  squad: { label: "Squad", description: "Everyone plays every level at the same time. Your team's combined score wins." },
+  duel: { label: "Duel", description: "Players face off one-on-one, one duel at a time. Winning duels wins the level." },
 };

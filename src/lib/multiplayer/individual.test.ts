@@ -3,7 +3,7 @@ import { describe, it } from "node:test";
 import { AVATARS } from "./avatars";
 import { MAX_PLAYERS_BY_MODE, maxPlayersFor } from "./config";
 import { layoutFor } from "./layout";
-import { cumulativeStandings, levelStandings, type BoardPlayer, type RoundScore } from "./leaderboard";
+import { cumulativeStandings, duelScores, levelStandings, type BoardPlayer, type RoundScore } from "./leaderboard";
 
 const KEYS = Array.from({ length: 12 }, (_, i) => `item-${i}`);
 
@@ -100,5 +100,35 @@ describe("cumulativeStandings", () => {
   it("counts an unfinished level as the maximum time, never as a head start", () => {
     const rows = cumulativeStandings(players, [score("a", 1, 100, 2, null), score("b", 1, 100, 2, 4000)], 1);
     assert.equal(rows[0].playerId, "b");
+  });
+});
+
+describe("duelScores", () => {
+  it("maps duel results to per-level scores and feeds the standings", () => {
+    const duels = [
+      { id: "d1", level: 1 },
+      { id: "d2", level: 1 },
+      { id: "d3", level: 2 },
+    ];
+    const result = (duel_id: string, player_id: string, points: number, correct_count: number) => ({
+      duel_id,
+      player_id,
+      points,
+      correct_count,
+      finished_ms: 1000,
+    });
+    const scores = duelScores(duels, [
+      result("d1", "a", 100, 5),
+      result("d1", "bot", 80, 4),
+      result("d2", "b", 60, 3),
+      result("d3", "a", 10, 1),
+      result("d3", "b", 90, 5),
+      result("missing", "a", 999, 9),
+    ]);
+    assert.equal(scores.length, 5);
+    const board = [{ id: "a", name: "A" }, { id: "b", name: "B" }, { id: "bot", name: "Botty" }];
+    const overall = cumulativeStandings(board, scores, 2);
+    assert.deepEqual(overall.map((r) => [r.name, r.points, r.rank]), [["B", 150, 1], ["A", 110, 2], ["Botty", 80, 3]]);
+    assert.equal(overall.find((r) => r.name === "B")?.delta, 2);
   });
 });

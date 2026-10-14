@@ -5,7 +5,8 @@ import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "cn";
 import { useEffect, useMemo, useState } from "react";
 import type { Standing } from "@/lib/multiplayer/leaderboard";
-import type { PlayerRow } from "@/lib/multiplayer/types";
+import { teamThemeFor } from "@/lib/multiplayer/teamTheme";
+import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 import { Avatar } from "./shared";
 
 const MEDAL_TONES = ["text-gold", "text-slate-300", "text-amber-600"] as const;
@@ -54,10 +55,12 @@ interface LeaderboardProps {
   showLevelGain: boolean;
   /** Shows rank-change arrows. When set, rows start in last level's order and slide into place. */
   showChanges: boolean;
+  /** Squad: marks each row with its team. Color is always paired with the icon and the team name. */
+  teams?: TeamRow[];
 }
 
 /** Rows start in the previous order and slide into the new one, so rank changes are visible. */
-export function Leaderboard({ rows, players, meId, showLevelGain, showChanges }: LeaderboardProps) {
+export function Leaderboard({ rows, players, meId, showLevelGain, showChanges, teams }: LeaderboardProps) {
   const reduce = useReducedMotion();
   const [settled, setSettled] = useState(Boolean(reduce) || !showChanges);
   useEffect(() => {
@@ -84,6 +87,9 @@ export function Leaderboard({ rows, players, meId, showLevelGain, showChanges }:
         {shown.map((row) => {
           const player = players.find((p) => p.id === row.playerId);
           const isMe = row.playerId === meId;
+          const theme = teams ? teamThemeFor(player?.team_id, teams) : null;
+          const TeamIcon = theme?.icon;
+          const teamName = teams?.find((t) => t.id === player?.team_id)?.name;
           return (
             <motion.li
               key={row.playerId}
@@ -97,6 +103,12 @@ export function Leaderboard({ rows, players, meId, showLevelGain, showChanges }:
                 {row.name}
                 {isMe && <span className="ml-1 text-xs font-normal text-muted-foreground">(you)</span>}
               </span>
+              {TeamIcon && (
+                <span className={cn("flex items-center gap-1 text-xs font-semibold", theme?.text)}>
+                  <TeamIcon className="size-4" aria-hidden />
+                  <span className="sr-only">{teamName}</span>
+                </span>
+              )}
               {showLevelGain && <span className="text-xs font-semibold tabular-nums text-success">+{row.levelPoints}</span>}
               <span className="w-12 text-right text-lg font-extrabold tabular-nums">{row.points}</span>
               {showChanges && <RankChange delta={settled ? row.delta : null} />}

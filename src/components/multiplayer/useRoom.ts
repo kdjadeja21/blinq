@@ -1,7 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { HEARTBEAT_MS } from "@/lib/multiplayer/config";
+import { HEARTBEAT_MS, isSquad } from "@/lib/multiplayer/config";
+import { myDuel } from "@/lib/multiplayer/squad";
 import { callMp } from "@/lib/multiplayer/api";
 import type {
   DuelProgressRow,
@@ -93,6 +94,7 @@ export function useRoom(code: string): RoomState {
   const [userId, setUserId] = useState<string | null>(null);
   const offsetRef = useRef(0);
   const roomIdRef = useRef<string | null>(null);
+  const userIdRef = useRef<string | null>(null);
   const memorizedRef = useRef<{ stageId: string; keys: string[] } | null>(null);
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
@@ -118,7 +120,10 @@ export function useRoom(code: string): RoomState {
     ]);
     const duelList = duels?.data ?? [];
     const roundList = rounds?.data ?? [];
-    const currentDuel = duelList.find((d) => d.level === room.level && d.duel_index === room.duel_index);
+    const myPlayerId = (players.data ?? []).find((p) => p.user_id === userIdRef.current)?.id;
+    const currentDuel = isSquad(room)
+      ? myDuel(duelList, room.level, myPlayerId)
+      : duelList.find((d) => d.level === room.level && d.duel_index === room.duel_index);
     const currentRound = roundList.find((r) => r.level === room.level);
     const stageId = currentRound?.id ?? currentDuel?.id;
     const itemsTable = individual ? "round_items" : "duel_items";
@@ -169,6 +174,7 @@ export function useRoom(code: string): RoomState {
         await ensureSession();
         const { data: auth } = await supabase().auth.getUser();
         if (cancelled) return;
+        userIdRef.current = auth.user?.id ?? null;
         setUserId(auth.user?.id ?? null);
         const t0 = Date.now();
         const clock = await callMp<{ serverNow: number }>("time");
@@ -239,10 +245,11 @@ export function useRoom(code: string): RoomState {
       : null;
   const isAdmin = Boolean(room && userId && room.admin_user_id === userId);
 
-  const duel = useMemo(
-    () => (room ? (data.duels.find((d) => d.level === room.level && d.duel_index === room.duel_index) ?? null) : null),
-    [data.duels, room],
-  );
+  const duel = useMemo(() => {
+    if (!room) return null;
+    if (isSquad(room)) return myDuel(data.duels, room.level, myPlayerId) ?? null;
+    return data.duels.find((d) => d.level === room.level && d.duel_index === room.duel_index) ?? null;
+  }, [data.duels, room, myPlayerId]);
 
   const round = useMemo(
     () => (room ? (data.rounds.find((r) => r.level === room.level) ?? null) : null),
