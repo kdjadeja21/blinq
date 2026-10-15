@@ -18,10 +18,23 @@ function isPlainLeftClick(event: MouseEvent<HTMLAnchorElement>): boolean {
 }
 
 /** Tabs plus the panel they control; the pill moves on tap and the panel dims until the new scope arrives. */
-export function LeaderboardTabs({ scope, children }: { scope: LeaderboardScope; children: ReactNode }) {
+interface LeaderboardTabsProps {
+  scope: LeaderboardScope;
+  /** Extra query params kept when switching tabs (the dev mock params). */
+  keepParams?: Record<string, string>;
+  children: ReactNode;
+}
+
+export function LeaderboardTabs({ scope, keepParams, children }: LeaderboardTabsProps) {
   const router = useRouter();
   const [isPending, startTransition] = useTransition();
   const [optimisticScope, setOptimisticScope] = useOptimistic(scope);
+
+  function hrefFor(value: LeaderboardScope): string {
+    const next = new URLSearchParams(keepParams);
+    next.set("scope", value);
+    return `/leaderboard?${next.toString()}`;
+  }
 
   function select(event: MouseEvent<HTMLAnchorElement>, value: LeaderboardScope) {
     if (!isPlainLeftClick(event)) return;
@@ -29,7 +42,7 @@ export function LeaderboardTabs({ scope, children }: { scope: LeaderboardScope; 
     if (value === optimisticScope) return;
     startTransition(() => {
       setOptimisticScope(value);
-      router.replace(`/leaderboard?scope=${value}`);
+      router.replace(hrefFor(value));
     });
   }
 
@@ -42,7 +55,7 @@ export function LeaderboardTabs({ scope, children }: { scope: LeaderboardScope; 
           className="grid-cols-3 rounded-2xl border-2 bg-card"
           renderOption={({ option, selected, className, children: label }) => (
             <Link
-              href={`/leaderboard?scope=${option.value}`}
+              href={hrefFor(option.value)}
               replace
               onClick={(event) => select(event, option.value)}
               aria-current={selected ? "page" : undefined}
