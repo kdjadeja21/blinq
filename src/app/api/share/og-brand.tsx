@@ -13,6 +13,7 @@ export const OG_COLORS = {
   card: "#ffffff",
   ink: "#2a1a63",
   muted: "#7a6bb0",
+  mutedStrong: "#54448f",
   success: "#2ecb70",
   miss: "#e4defa",
   gold: "#ffc531",
@@ -95,18 +96,20 @@ const SWORD_PATHS = [
   "M9.5 17.5 20.414 6.586A2 2 0 0021 5.172V3h-2.172a2 2 0 00-1.414.586L6.5 14.5",
 ];
 
+const SWORD_SIZE = 120;
+
 function Sword({ color, mirrored }: { color: string; mirrored?: boolean }) {
   return (
     <svg
-      width="110"
-      height="110"
+      width={SWORD_SIZE}
+      height={SWORD_SIZE}
       viewBox="0 0 24 24"
       fill="none"
       stroke={color}
-      strokeWidth="2"
+      strokeWidth="1.8"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ marginLeft: mirrored ? -44 : 0 }}
+      style={{ position: "absolute", top: 0, left: 0 }}
     >
       <g transform={mirrored ? "translate(24 0) scale(-1 1)" : undefined}>
         {SWORD_PATHS.map((d) => (
@@ -119,7 +122,14 @@ function Sword({ color, mirrored }: { color: string; mirrored?: boolean }) {
 
 export function OgSwords() {
   return (
-    <div style={{ display: "flex", alignItems: "center" }}>
+    <div
+      style={{
+        display: "flex",
+        position: "relative",
+        width: SWORD_SIZE,
+        height: SWORD_SIZE,
+      }}
+    >
       <Sword color={OG_COLORS.gold} />
       <Sword color={OG_COLORS.brandFrom} mirrored />
     </div>
