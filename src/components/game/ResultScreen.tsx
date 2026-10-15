@@ -66,20 +66,11 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
   async function share() {
     if (!stats.daily) return;
-    const query = sharePath(stats.daily);
-    const url = `${window.location.origin}/share/daily?${query}`;
+    const url = `${window.location.origin}/share/daily?${sharePath(stats.daily)}`;
     const message = `${shareText(stats.daily)}\n${url}`;
     try {
-      let files: File[] = [];
-      try {
-        const res = await fetch(`/api/share/daily?${query}`);
-        if (res.ok) files = [new File([await res.blob()], "blinq-daily.png", { type: "image/png" })];
-      } catch {
-        // fall back to text and link only
-      }
       if (navigator.share) {
-        if (files.length > 0 && navigator.canShare?.({ files })) await navigator.share({ files, text: message });
-        else await navigator.share({ text: message });
+        await navigator.share({ text: message });
       } else {
         await navigator.clipboard.writeText(message);
       }
