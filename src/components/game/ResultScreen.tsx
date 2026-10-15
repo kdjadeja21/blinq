@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
-import { sharePath, shareText } from "@/lib/progress";
+import { shareMessage } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
@@ -66,8 +66,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
   async function share() {
     if (!stats.daily) return;
-    const url = `${window.location.origin}/share/daily?${sharePath(stats.daily)}`;
-    const message = `${shareText(stats.daily)}\n${url}`;
+    const message = shareMessage(stats.daily, window.location.origin);
     try {
       if (navigator.share) {
         await navigator.share({ text: message });

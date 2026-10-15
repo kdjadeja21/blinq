@@ -101,6 +101,10 @@ export function sharePath(daily: NonNullable<Stats["daily"]>): string {
   return params.toString();
 }
 
+export function shareMessage(daily: NonNullable<Stats["daily"]>, origin: string): string {
+  return `${shareText(daily)}\n${origin}/share/daily?${sharePath(daily)}`;
+}
+
 /**
  * Combines two cumulative stats snapshots of the same player (guest device and account).
  * Counters are cumulative, so taking the max keeps the merge idempotent: syncing twice never double counts.

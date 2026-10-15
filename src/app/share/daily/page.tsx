@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
+import { SharedDailyCard } from "@/components/share/SharedDailyCard";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDailyDate } from "@/lib/progress";
 import { parseSharedDaily } from "@/lib/share-params";
@@ -50,14 +51,15 @@ export default async function SharedDailyPage({ searchParams }: { searchParams: 
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      {/* eslint-disable-next-line @next/next/no-img-element -- dynamic generated PNG, nothing to optimize */}
-      <img
-        src={`/api/share/daily?${imageQuery(params)}`}
-        alt={`Remembered ${daily.correct} of ${daily.total} on ${when}`}
-        width={1200}
-        height={630}
-        className="w-full rounded-3xl shadow-lg"
-      />
+      <div className="flex items-center gap-3">
+        <span className="text-5xl" aria-hidden>
+          🧠
+        </span>
+        <p className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent">
+          Blinq
+        </p>
+      </div>
+      <SharedDailyCard when={when} correct={daily.correct} total={daily.total} stars={daily.stars} grid={daily.grid} />
       <h1 className="text-2xl font-bold">Can you beat it?</h1>
       <Link href="/" className={cn(buttonVariants({ variant: "game" }), "h-14 rounded-2xl px-8 text-lg")}>
         Play today&apos;s challenge
