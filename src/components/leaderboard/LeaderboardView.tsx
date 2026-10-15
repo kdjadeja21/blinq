@@ -21,7 +21,7 @@ function emptyText(scope: LeaderboardScope): string {
   }
 }
 
-export function LeaderboardShell({ scope, keepParams, children }: { scope: LeaderboardScope; keepParams?: Record<string, string>; children: ReactNode }) {
+export function LeaderboardShell({ scope, children }: { scope: LeaderboardScope; children: ReactNode }) {
   return (
     <main className="mx-auto flex w-full max-w-md flex-1 flex-col gap-4 p-4">
       <Link href="/" className="flex w-fit items-center gap-1 text-sm text-muted-foreground hover:text-foreground">
@@ -31,7 +31,7 @@ export function LeaderboardShell({ scope, keepParams, children }: { scope: Leade
         <Trophy className="mx-auto size-10 text-gold" aria-hidden />
         <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Leaderboard</h1>
       </div>
-      <LeaderboardTabs scope={scope} keepParams={keepParams}>{children}</LeaderboardTabs>
+      <LeaderboardTabs scope={scope}>{children}</LeaderboardTabs>
     </main>
   );
 }

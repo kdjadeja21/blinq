@@ -4,15 +4,11 @@ import { Suspense } from "react";
 import { LeaderboardSkeleton } from "@/components/leaderboard/LeaderboardSkeleton";
 import { LeaderboardContent, LeaderboardShell } from "@/components/leaderboard/LeaderboardView";
 import { parseScope, type LeaderboardScope } from "@/lib/solo/leaderboard";
-import { mockLeaderboard, mockParams, parseMock, type MockOptions } from "@/lib/solo/leaderboardMock";
 import { getLeaderboard, type LeaderboardData } from "@/server/solo/leaderboard";
 
 export const metadata: Metadata = { title: "Leaderboard - Blinq" };
 
-async function LeaderboardSection({ scope, mock }: { scope: LeaderboardScope; mock: MockOptions | null }) {
-  if (mock) {
-    return <LeaderboardContent scope={scope} data={mockLeaderboard(mock, new Date().toISOString().slice(0, 10))} signedIn />;
-  }
+async function LeaderboardSection({ scope }: { scope: LeaderboardScope }) {
   const { userId } = await auth();
   let data: LeaderboardData | null = null;
   try {
@@ -24,14 +20,11 @@ async function LeaderboardSection({ scope, mock }: { scope: LeaderboardScope; mo
 }
 
 export default async function LeaderboardPage({ searchParams }: PageProps<"/leaderboard">) {
-  const params = await searchParams;
-  const scope = parseScope(params.scope);
-  const mock = process.env.NODE_ENV === "production" ? null : parseMock(params);
-  const keepParams = mock ? mockParams(mock) : undefined;
+  const scope = parseScope((await searchParams).scope);
   return (
-    <LeaderboardShell scope={scope} keepParams={keepParams}>
+    <LeaderboardShell scope={scope}>
       <Suspense key={scope} fallback={<LeaderboardSkeleton />}>
-        <LeaderboardSection scope={scope} mock={mock} />
+        <LeaderboardSection scope={scope} />
       </Suspense>
     </LeaderboardShell>
   );
