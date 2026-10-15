@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { SoundToggle } from "@/components/game/SoundToggle";
+import { YouBadge } from "@/components/game/YouBadge";
 import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
 import { DuelView } from "./DuelView";
 import { IndividualFinalView, RoundResultView } from "./IndividualResults";
@@ -29,7 +30,7 @@ function MatchupBanner({ state }: { state: RoomState }) {
   const a = players.find((p) => p.id === duel.player_a);
   const b = players.find((p) => p.id === duel.player_b);
   const teamName = (teamId: string | null | undefined) => teams.find((t) => t.id === teamId)?.name;
-  const tag = (id: string) => (id === me?.id ? " (you)" : "");
+  const tag = (id: string) => (id === me?.id ? <YouBadge variant="onColor" className="ml-1.5" /> : null);
   const themeA = teamThemeFor(a?.team_id, teams);
   const themeB = teamThemeFor(b?.team_id, teams);
   const IconA = themeA?.icon;

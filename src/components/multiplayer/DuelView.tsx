@@ -7,6 +7,7 @@ import { Board } from "@/components/game/Board";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
 import { Lives } from "@/components/game/Lives";
 import { TimerRing } from "@/components/game/TimerRing";
+import { YouBadge } from "@/components/game/YouBadge";
 import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
@@ -32,7 +33,10 @@ function ProgressBar({ player, count, total, mine, theme }: { player: PlayerRow 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-sm font-semibold">
-        <span>{player?.name ?? "?"}{mine ? " (you)" : ""}</span>
+        <span className="flex items-center gap-2">
+          {player?.name ?? "?"}
+          {mine && <YouBadge />}
+        </span>
         <span className="tabular-nums">
           {count} of {total}
         </span>

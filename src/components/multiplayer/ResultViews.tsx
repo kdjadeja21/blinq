@@ -8,6 +8,7 @@ import Link from "next/link";
 import { Board } from "@/components/game/Board";
 import { Confetti } from "@/components/game/Confetti";
 import { useCountUp } from "@/components/game/useCountUp";
+import { YouBadge, youRowClass } from "@/components/game/YouBadge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { isSquad } from "@/lib/multiplayer/config";
@@ -104,9 +105,9 @@ export function DuelResultView({ state }: { state: RoomState }) {
         <dl className="mt-3 grid grid-cols-2 gap-2">
           {rows.map(({ player, result }) => (
             <div key={player?.id} className={cn("rounded-2xl border-2 p-3", teamThemeFor(player?.team_id, teams)?.border ?? "border-transparent", teamThemeFor(player?.team_id, teams)?.soft ?? "bg-muted")}>
-              <dt className="text-sm font-semibold">
+              <dt className="flex items-center gap-2 text-sm font-semibold">
                 {player?.name}
-                {player?.id === me?.id ? " (you)" : ""}
+                {player?.id === me?.id && <YouBadge />}
               </dt>
               <dd className="text-xs text-muted-foreground">{teamName(player?.team_id) ?? "No team"}</dd>
               <dd className="text-2xl font-extrabold tabular-nums">+{result?.points ?? 0}</dd>
@@ -178,7 +179,7 @@ function TeamScoreCard({
       <dt className="flex items-center gap-1.5 text-sm font-semibold">
         {Icon && <Icon className={cn("size-4", theme?.text)} aria-hidden />}
         {name}
-        {isMine && <span className="rounded-full bg-primary/20 px-2 py-0.5 text-xs font-bold">You</span>}
+        {isMine && <YouBadge />}
       </dt>
       <dd className="text-4xl font-extrabold tabular-nums">{shown}</dd>
       <dd className="mt-1 h-2 w-full overflow-hidden rounded-full bg-background/60" aria-hidden>
@@ -307,11 +308,11 @@ export function FinalView({ state }: { state: RoomState }) {
       ) : (
         <ul className="flex flex-col gap-1 rounded-2xl border-2 bg-card p-2 text-left text-sm" aria-label="Player points">
           {totals.map(({ player, points }) => (
-            <li key={player.id} className="flex items-center justify-between gap-2 px-2 py-1">
-              <span className="min-w-0 truncate font-semibold">
-                {player.name}
-                {player.id === me?.id ? " (you)" : ""}
-                <span className="ml-2 text-xs font-normal text-muted-foreground">{teamName(player.team_id)}</span>
+            <li key={player.id} className={cn("flex items-center justify-between gap-2 rounded-xl px-2 py-1.5", youRowClass(player.id === me?.id))}>
+              <span className="flex min-w-0 items-center gap-2 font-semibold">
+                <span className="truncate">{player.name}</span>
+                {player.id === me?.id && <YouBadge />}
+                <span className="text-xs font-normal text-muted-foreground">{teamName(player.team_id)}</span>
               </span>
               <span className="font-bold tabular-nums">{points}</span>
             </li>

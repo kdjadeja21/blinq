@@ -136,6 +136,8 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 | `TimerRing` | Circular countdown, pulses at 5s or less | `seconds`, `progress`, `label`, `hidden` |
 | `StatTile` | Label and value tile, used inside a `<dl>` | `label`, `value` |
 | `Confetti` | Win celebration | `count` |
+| `YouBadge` | Pill with a user icon marking the viewer's own entry. Pops in with the "Pop in" spring and respects reduced motion. Use `variant="onColor"` on team gradients | `variant`, `className` |
+| `youRowClass` | Own-row treatment (`bg-primary/15 ring-2 ring-primary` plus a soft primary shadow) shared by every list with a viewer row | `isMe` |
 | `ThemeToggle`, `SoundToggle` | Persistent preferences | none |
 | `useCountUp` | Animated number hook | `target`, `durationMs` |
 
