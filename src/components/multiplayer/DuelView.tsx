@@ -97,7 +97,7 @@ export function Popups({ kind, points, penaltyMs, id }: { kind: "good" | "bad"; 
         kind === "good" ? "top-1/2 text-success" : "top-1/3 text-destructive",
       )}
     >
-      {kind === "good" ? `+${points}` : `-${penaltyMs / 1000}s`}
+      {kind === "good" ? `+${points}` : penaltyMs > 0 ? `-${penaltyMs / 1000}s` : "Miss"}
     </motion.div>
   );
 }

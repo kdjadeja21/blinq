@@ -45,7 +45,7 @@ export const PROFILES: Record<Difficulty, DifficultyProfile> = {
     choiceRatio: 2,
     lookalike: { start: 0.25, perLevel: 0.025, max: 0.5 },
     lives: 4,
-    wrongPenaltyMs: 2_000,
+    wrongPenaltyMs: 0,
     bot: { ratio: { start: 0.55, perLevel: 0.015, max: 0.75 }, ratioSpread: 0.1, minFinish: 0.7, maxFinish: 0.95 },
   },
   medium: {
@@ -55,7 +55,7 @@ export const PROFILES: Record<Difficulty, DifficultyProfile> = {
     choiceRatio: 2,
     lookalike: { start: 0.5, perLevel: 0.03, max: 0.8 },
     lives: 3,
-    wrongPenaltyMs: 3_000,
+    wrongPenaltyMs: 0,
     bot: { ratio: { start: 0.7, perLevel: 0.015, max: 0.8 }, ratioSpread: 0.1, minFinish: 0.6, maxFinish: 0.9 },
   },
   hard: {
@@ -75,6 +75,10 @@ export const SOLO_DIFFICULTY: Difficulty = "medium";
 
 /** The daily challenge is this level of the solo curve, the same for everyone. */
 export const DAILY_LEVEL = 3;
+
+/** Solo levels from this one on cost time for a wrong pick. */
+export const SOLO_PENALTY_FROM_LEVEL = 11;
+export const SOLO_WRONG_PENALTY_MS = 3_000;
 
 export const COMBO_WINDOW_MS = 3_000;
 export const HIDE_MS = 700;
@@ -104,7 +108,7 @@ export const MODIFIER_LABELS: Record<Modifier, string> = {
 };
 
 export const TRAINING_PRESET = {
-  itemIds: ["apple", "banana", "coffee"],
+  itemCount: 3,
   memorizeMs: 15_000,
   recallMs: 20_000,
 };

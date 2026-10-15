@@ -154,7 +154,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
               transition={{ duration: 0.9 }}
               className="pointer-events-none absolute left-1/2 top-1/3 -translate-x-1/2 text-3xl font-extrabold text-destructive drop-shadow-lg"
             >
-              -{round.spec.rules.wrongPenaltyMs / 1000}s
+              {round.spec.rules.wrongPenaltyMs > 0 ? `-${round.spec.rules.wrongPenaltyMs / 1000}s` : "Miss"}
             </motion.div>
           )}
         </AnimatePresence>
