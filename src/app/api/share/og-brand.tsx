@@ -106,11 +106,13 @@ function Sword({ color, mirrored }: { color: string; mirrored?: boolean }) {
       strokeWidth="2"
       strokeLinecap="round"
       strokeLinejoin="round"
-      style={{ transform: mirrored ? "scaleX(-1)" : undefined, marginLeft: mirrored ? -44 : 0 }}
+      style={{ marginLeft: mirrored ? -44 : 0 }}
     >
-      {SWORD_PATHS.map((d) => (
-        <path key={d} d={d} />
-      ))}
+      <g transform={mirrored ? "translate(24 0) scale(-1 1)" : undefined}>
+        {SWORD_PATHS.map((d) => (
+          <path key={d} d={d} />
+        ))}
+      </g>
     </svg>
   );
 }
