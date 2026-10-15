@@ -1,33 +1,34 @@
+"use client";
+
 import { cn } from "cn";
 import Link from "next/link";
+import { SlidingOptions } from "@/components/ui/sliding-options";
 import type { LeaderboardScope } from "@/lib/solo/leaderboard";
 
-const TABS: { scope: LeaderboardScope; label: string }[] = [
-  { scope: "daily", label: "Daily" },
-  { scope: "weekly", label: "Weekly" },
-  { scope: "all", label: "All time" },
+const TABS: { value: LeaderboardScope; label: string }[] = [
+  { value: "daily", label: "Daily" },
+  { value: "weekly", label: "Weekly" },
+  { value: "all", label: "All time" },
 ];
 
 export function LeaderboardTabs({ scope }: { scope: LeaderboardScope }) {
   return (
-    <nav aria-label="Leaderboard period" className="grid grid-cols-3 gap-1 rounded-2xl border-2 bg-card p-1">
-      {TABS.map((tab) => {
-        const active = tab.scope === scope;
-        return (
+    <nav aria-label="Leaderboard period">
+      <SlidingOptions
+        value={scope}
+        options={TABS}
+        className="grid-cols-3 border-2 bg-card"
+        renderOption={({ option, selected, className, children }) => (
           <Link
-            key={tab.scope}
-            href={`/leaderboard?scope=${tab.scope}`}
+            href={`/leaderboard?scope=${option.value}`}
             replace
-            aria-current={active ? "page" : undefined}
-            className={cn(
-              "rounded-xl px-3 py-2 text-center text-sm font-bold transition-colors",
-              active ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:bg-muted hover:text-foreground",
-            )}
+            aria-current={selected ? "page" : undefined}
+            className={cn(className, !selected && "hover:bg-muted")}
           >
-            {tab.label}
+            {children}
           </Link>
-        );
-      })}
+        )}
+      />
     </nav>
   );
 }

@@ -144,7 +144,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 - **Streak pill:** `flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold` with a flame icon.
 - **Reward badge:** `rounded-full bg-gold px-3 py-1 text-sm font-bold text-black`.
 - **Section card:** see Spacing, shape and elevation. Label it with `aria-labelledby`.
-- **Segmented control:** `Segmented` in `src/components/multiplayer/shared.tsx`. The selected pill slides between options over `--duration-base` with `--ease-out-soft`. Reduced motion skips the slide.
+- **Segmented control:** `SlidingOptions` in `src/components/ui/sliding-options.tsx`. The selected pill slides between options over `--duration-base` with `--ease-out-soft`. Reduced motion skips the slide. `Segmented` and the leaderboard period tabs both use it.
 
 ## Adding to the system
 

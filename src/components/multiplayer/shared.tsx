@@ -1,8 +1,8 @@
 "use client";
 
 import { cn } from "cn";
-import { LayoutGroup, motion, useReducedMotion } from "framer-motion";
-import { useEffect, useId, useState } from "react";
+import { useEffect, useState } from "react";
+import { SlidingOptions } from "@/components/ui/sliding-options";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
@@ -35,45 +35,19 @@ interface SegmentedProps<T extends string> {
   disabled?: boolean;
 }
 
-const SLIDE = { type: "tween", duration: 0.3, ease: [0.22, 1, 0.36, 1] } as const;
-
 export function Segmented<T extends string>({ label, value, options, onChange, disabled }: SegmentedProps<T>) {
-  const reduce = useReducedMotion();
-  const thumbId = useId();
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
       <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
-      <LayoutGroup id={thumbId}>
-        <div className="relative grid auto-cols-fr grid-flow-col gap-1 rounded-2xl bg-muted p-1">
-          {options.map((option) => {
-            const selected = value === option.value;
-            return (
-              <button
-                key={option.value}
-                type="button"
-                aria-pressed={selected}
-                onClick={() => onChange(option.value)}
-                className={cn(
-                  "relative min-h-11 rounded-xl px-3 text-center text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
-                  selected ? "text-transparent" : "text-muted-foreground hover:text-foreground",
-                )}
-              >
-                {selected ? (
-                  <motion.span
-                    layoutId={thumbId}
-                    aria-hidden
-                    className="absolute inset-0 z-0 flex items-center justify-center rounded-xl bg-primary text-primary-foreground shadow"
-                    transition={reduce ? { duration: 0 } : SLIDE}
-                  >
-                    {option.label}
-                  </motion.span>
-                ) : null}
-                <span className="relative z-10">{option.label}</span>
-              </button>
-            );
-          })}
-        </div>
-      </LayoutGroup>
+      <SlidingOptions
+        value={value}
+        options={options}
+        renderOption={({ option, selected, className, children }) => (
+          <button type="button" aria-pressed={selected} onClick={() => onChange(option.value)} className={className}>
+            {children}
+          </button>
+        )}
+      />
     </fieldset>
   );
 }
