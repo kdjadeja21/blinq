@@ -2,7 +2,6 @@
 
 import { cn } from "cn";
 import { useEffect, useState } from "react";
-import { YouBadge } from "@/components/game/YouBadge";
 import { SlidingOptions } from "@/components/ui/sliding-options";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
@@ -121,7 +120,6 @@ export function PlayerChip({ player, online, you }: { player: PlayerRow; online?
         />
       </span>
       {player.name}
-      {you && <YouBadge />}
     </span>
   );
 }

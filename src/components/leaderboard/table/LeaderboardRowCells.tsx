@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { YouBadge, youRowClass } from "@/components/game/YouBadge";
+import { youRowClass } from "@/components/game/YouBadge";
 import { RankBadge } from "./RankBadge";
 import type { LeaderboardEntry } from "./types";
 
@@ -12,10 +12,7 @@ export function LeaderboardRowCells({ entry }: { entry: LeaderboardEntry }) {
     <>
       <RankBadge rank={entry.rank} />
       {entry.avatar}
-      <span className="flex min-w-0 flex-1 items-center gap-2 font-semibold">
-        <span className="truncate">{entry.name}</span>
-        {entry.isMe && <YouBadge />}
-      </span>
+      <span className="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
       {entry.accessory}
       <span className="w-12 text-right text-lg font-extrabold tabular-nums">{entry.points}</span>
       {entry.trailing}

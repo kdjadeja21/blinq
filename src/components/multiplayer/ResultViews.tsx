@@ -311,7 +311,6 @@ export function FinalView({ state }: { state: RoomState }) {
             <li key={player.id} className={cn("flex items-center justify-between gap-2 rounded-xl px-2 py-1.5", youRowClass(player.id === me?.id))}>
               <span className="flex min-w-0 items-center gap-2 font-semibold">
                 <span className="truncate">{player.name}</span>
-                {player.id === me?.id && <YouBadge />}
                 <span className="text-xs font-normal text-muted-foreground">{teamName(player.team_id)}</span>
               </span>
               <span className="font-bold tabular-nums">{points}</span>
