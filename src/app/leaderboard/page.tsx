@@ -6,7 +6,7 @@ import { LeaderboardContent, LeaderboardShell } from "@/components/leaderboard/L
 import { parseScope, type LeaderboardScope } from "@/lib/solo/leaderboard";
 import { getLeaderboard, type LeaderboardData } from "@/server/solo/leaderboard";
 
-export const metadata: Metadata = { title: "Daily leaderboard - Blinq" };
+export const metadata: Metadata = { title: "Leaderboard - Blinq" };
 
 async function LeaderboardSection({ scope }: { scope: LeaderboardScope }) {
   const { userId } = await auth();

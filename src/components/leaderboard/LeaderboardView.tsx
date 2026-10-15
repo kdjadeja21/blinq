@@ -29,7 +29,7 @@ export function LeaderboardShell({ scope, children }: { scope: LeaderboardScope;
       </Link>
       <div className="text-center">
         <Trophy className="mx-auto size-10 text-gold" aria-hidden />
-        <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Daily leaderboard</h1>
+        <h1 className="mt-1 text-3xl font-extrabold tracking-tight">Leaderboard</h1>
       </div>
       <LeaderboardTabs scope={scope}>{children}</LeaderboardTabs>
     </main>
