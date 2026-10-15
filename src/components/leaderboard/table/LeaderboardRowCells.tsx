@@ -1,9 +1,10 @@
 import { cn } from "cn";
+import { youRowClass } from "@/components/game/ownRow";
 import { RankBadge } from "./RankBadge";
 import type { LeaderboardEntry } from "./types";
 
 export function rowClassName(isMe: boolean): string {
-  return cn("flex items-center gap-2 rounded-xl px-2 py-2", isMe ? "bg-primary/15 ring-2 ring-primary" : "bg-muted/50");
+  return cn("flex items-center gap-2 rounded-xl px-2 py-2", youRowClass(isMe));
 }
 
 export function LeaderboardRowCells({ entry }: { entry: LeaderboardEntry }) {

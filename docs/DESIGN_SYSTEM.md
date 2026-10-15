@@ -136,6 +136,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 | `TimerRing` | Circular countdown, pulses at 5s or less | `seconds`, `progress`, `label`, `hidden` |
 | `StatTile` | Label and value tile, used inside a `<dl>` | `label`, `value` |
 | `Confetti` | Win celebration | `count` |
+| `youRowClass` | Returns the class string for a list row: own-row highlight when `isMe`, otherwise the neutral `bg-muted/50`. See the Own-entry highlight pattern | `isMe` |
 | `ThemeToggle`, `SoundToggle` | Persistent preferences | none |
 | `useCountUp` | Animated number hook | `target`, `durationMs` |
 
@@ -144,6 +145,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 - **Streak pill:** `flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold` with a flame icon.
 - **Reward badge:** `rounded-full bg-gold px-3 py-1 text-sm font-bold text-black`.
 - **Section card:** see Spacing, shape and elevation. Label it with `aria-labelledby`.
+- **Own-entry highlight:** the viewer's row or chip is marked by its style alone. Never add "you" text or a "You" badge. Use `youRowClass(isMe)` for rows (`bg-primary/15 ring-2 ring-primary shadow-md shadow-primary/20`, from `src/components/game/ownRow.ts`). Pill-shaped chips such as `PlayerChip` use `border-primary bg-primary/10 shadow-md shadow-primary/20`. Used by both leaderboards (including the pinned copy of the viewer's row), lobby chips, squad duel rows and the final points list.
 - **Segmented control:** `SlidingOptions` in `src/components/ui/sliding-options.tsx`, used by `Segmented` and `LeaderboardTabs`. Use it for any new tab or option group. The selected pill slides between options over `--duration-base` with `--ease-out-soft`. Reduced motion skips the slide.
 
 ## Adding to the system

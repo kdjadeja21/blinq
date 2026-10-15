@@ -108,7 +108,7 @@ export function Avatar({ player, className }: { player: PlayerRow | undefined; c
 
 export function PlayerChip({ player, online, you }: { player: PlayerRow; online?: boolean; you?: boolean }) {
   return (
-    <span className="inline-flex items-center gap-2 rounded-full border-2 bg-card px-3 py-1.5 text-sm font-semibold">
+    <span className={cn("inline-flex items-center gap-2 rounded-full border-2 px-3 py-1.5 text-sm font-semibold", you ? "border-primary bg-primary/10 shadow-md shadow-primary/20" : "bg-card")}>
       <span className="relative">
         <Avatar player={player} className="size-7 text-base" />
         <span
@@ -120,7 +120,6 @@ export function PlayerChip({ player, online, you }: { player: PlayerRow; online?
         />
       </span>
       {player.name}
-      {you && <span className="text-xs text-muted-foreground">(you)</span>}
     </span>
   );
 }

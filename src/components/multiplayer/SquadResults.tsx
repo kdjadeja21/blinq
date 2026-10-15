@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { useMemo, useState } from "react";
+import { youRowClass } from "@/components/game/ownRow";
 import { cumulativeStandings, duelScores, levelStandings } from "@/lib/multiplayer/leaderboard";
 import { Leaderboard, Podium } from "./Leaderboard";
 import { Segmented } from "./shared";
@@ -37,14 +38,11 @@ function DuelList({ state }: { state: RoomState }) {
         return (
           <li
             key={duel.id}
-            className={cn("flex items-center justify-between gap-2 rounded-xl px-3 py-2", mine ? "bg-primary/15 ring-2 ring-primary" : "bg-muted/50")}
+            className={cn("flex items-center justify-between gap-2 rounded-xl px-3 py-2", youRowClass(mine))}
           >
             {[duel.player_a, duel.player_b].map((id, i) => (
               <span key={id} className={cn("flex min-w-0 flex-1 items-center gap-1", i === 1 && "flex-row-reverse text-right")}>
-                <span className={cn("truncate", duel.winner_id === id ? "font-extrabold" : "font-medium")}>
-                  {nameOf(id)}
-                  {id === me?.id ? " (you)" : ""}
-                </span>
+                <span className={cn("truncate", duel.winner_id === id ? "font-extrabold" : "font-medium")}>{nameOf(id)}</span>
                 {duel.winner_id === id && <span aria-label="Duel winner">🏆</span>}
                 <span className="font-bold tabular-nums">{pointsOf(duel.id, id)}</span>
               </span>

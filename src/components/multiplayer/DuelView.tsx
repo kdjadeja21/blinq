@@ -32,7 +32,7 @@ function ProgressBar({ player, count, total, mine, theme }: { player: PlayerRow 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-sm font-semibold">
-        <span>{player?.name ?? "?"}{mine ? " (you)" : ""}</span>
+        <span>{player?.name ?? "?"}</span>
         <span className="tabular-nums">
           {count} of {total}
         </span>
@@ -310,7 +310,6 @@ export function DuelView({ state }: { state: RoomState }) {
         teamB={teamName(b?.team_id)}
         themeA={teamThemeFor(a?.team_id, state.teams)}
         themeB={teamThemeFor(b?.team_id, state.teams)}
-        meId={me?.id}
         seconds={seconds}
       />
     );
