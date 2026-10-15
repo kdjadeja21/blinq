@@ -38,7 +38,7 @@ export function SlidingOptions<T extends string>({ value, options, className, re
                 option,
                 selected,
                 className: cn(
-                  "relative min-h-11 rounded-xl px-3 text-center text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
+                  "relative flex min-h-11 items-center justify-center rounded-xl px-3 text-center text-sm font-semibold outline-none focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
                   selected ? "text-transparent" : "text-muted-foreground hover:text-foreground",
                 ),
                 children: (
