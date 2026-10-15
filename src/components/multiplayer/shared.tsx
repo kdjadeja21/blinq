@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { useEffect, useState } from "react";
+import { SlidingOptions } from "@/components/ui/sliding-options";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
@@ -35,36 +36,18 @@ interface SegmentedProps<T extends string> {
 }
 
 export function Segmented<T extends string>({ label, value, options, onChange, disabled }: SegmentedProps<T>) {
-  const selectedIndex = Math.max(0, options.findIndex((option) => option.value === value));
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
       <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
-      <div className="relative grid auto-cols-fr grid-flow-col gap-1 rounded-2xl bg-muted p-1">
-        {options.length > 0 ? (
-          <span
-            aria-hidden
-            className="pointer-events-none absolute top-1 bottom-1 left-1 rounded-xl bg-primary shadow transition-transform duration-base ease-out-soft motion-reduce:transition-none"
-            style={{
-              width: `calc((100% - 0.5rem - ${(options.length - 1) * 0.25}rem) / ${options.length})`,
-              transform: `translateX(calc(${selectedIndex} * (100% + 0.25rem)))`,
-            }}
-          />
-        ) : null}
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "relative min-h-11 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
-              value === option.value ? "text-primary-foreground" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
+      <SlidingOptions
+        value={value}
+        options={options}
+        renderOption={({ option, selected, className, children }) => (
+          <button type="button" aria-pressed={selected} onClick={() => onChange(option.value)} className={className}>
+            {children}
           </button>
-        ))}
-      </div>
+        )}
+      />
     </fieldset>
   );
 }
