@@ -13,6 +13,8 @@ const STAR_POINTS = "50,5 63,36 97,38 71,59 80,92 50,73 20,92 29,59 3,38 37,36";
 
 // ImageResponse cannot render oklch tokens, so the palette is the sRGB equivalent of the theme.
 const COLORS = {
+  brandFrom: "#6e28d9",
+  brandTo: "#d946ef",
   bgFrom: "#5b2bd6",
   bgTo: "#c13fd8",
   card: "#ffffff",
@@ -68,7 +70,18 @@ export function GET(request: NextRequest) {
                 />
                 <path d="M16 9.2v14.2" stroke="#6E28D9" strokeWidth="1.15" strokeLinecap="round" />
               </svg>
-              <div style={{ display: "flex", fontSize: 64, fontWeight: 800, color: COLORS.bgFrom }}>Blinq</div>
+              <div
+                style={{
+                  display: "flex",
+                  fontSize: 64,
+                  fontWeight: 800,
+                  color: "transparent",
+                  backgroundImage: `linear-gradient(90deg, ${COLORS.brandFrom}, ${COLORS.brandTo})`,
+                  backgroundClip: "text",
+                }}
+              >
+                Blinq
+              </div>
             </div>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.muted }}>
               {`Daily Challenge · ${label}`}
