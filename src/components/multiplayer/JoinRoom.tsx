@@ -5,7 +5,7 @@ import { motion, useReducedMotion } from "framer-motion";
 import { ArrowLeft, Dices, LogIn } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
-import { useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
@@ -22,6 +22,12 @@ function randomName(): string {
 function CodeBoxes({ value, onChange, autoFocus }: { value: string; onChange: (value: string) => void; autoFocus?: boolean }) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [focused, setFocused] = useState(false);
+
+  useEffect(() => {
+    if (!autoFocus) return;
+    inputRef.current?.focus();
+  }, [autoFocus]);
+
   return (
     <div className="relative" onClick={() => inputRef.current?.focus()}>
       <div className="grid grid-cols-6 gap-2" aria-hidden>
