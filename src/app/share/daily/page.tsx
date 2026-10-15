@@ -1,4 +1,3 @@
-import { Star } from "lucide-react";
 import type { Metadata } from "next";
 import { headers } from "next/headers";
 import Link from "next/link";
@@ -49,45 +48,24 @@ export default async function SharedDailyPage({ searchParams }: { searchParams: 
   const daily = toDaily(params);
   const when = daily.date ? formatDailyDate(daily.date) : "today";
 
-  const cells = daily.grid.length > 0 ? daily.grid : Array.from({ length: daily.total }, (_, i) => i < daily.correct);
-
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
-      <section
-        aria-label={`Remembered ${daily.correct} of ${daily.total} on ${when}`}
-        className="w-full rounded-[2rem] bg-gradient-to-br from-primary to-fuchsia-500 p-3 shadow-lg"
-      >
-        <div className="flex flex-col items-center gap-4 rounded-3xl bg-card p-6">
-          <div className="flex items-center gap-2">
-            <span className="text-4xl motion-safe:animate-bounce" aria-hidden>
-              🧠
-            </span>
-            <p className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-4xl font-extrabold tracking-tight text-transparent">
-              Blinq
-            </p>
-          </div>
-          <p className="text-sm font-semibold text-muted-foreground">Daily Challenge · {when}</p>
-          <div className="flex gap-1" role="img" aria-label={`${daily.stars} of 3 stars`}>
-            {[0, 1, 2].map((i) => (
-              <Star
-                key={i}
-                className={cn("size-10", i < daily.stars ? "fill-gold text-gold" : "text-muted-foreground/40")}
-              />
-            ))}
-          </div>
-          <p className="flex items-baseline gap-2">
-            <span className="text-6xl font-extrabold">
-              {daily.correct}/{daily.total}
-            </span>
-            <span className="font-semibold">remembered</span>
-          </p>
-          <div className="grid grid-cols-4 gap-2" aria-hidden>
-            {cells.map((hit, i) => (
-              <span key={i} className={cn("size-10 rounded-xl", hit ? "bg-success" : "bg-muted")} />
-            ))}
-          </div>
-        </div>
-      </section>
+      <div className="flex items-center gap-3">
+        <span className="text-5xl motion-safe:animate-bounce" aria-hidden>
+          🧠
+        </span>
+        <p className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent">
+          Blinq
+        </p>
+      </div>
+      {/* eslint-disable-next-line @next/next/no-img-element -- dynamic generated PNG, nothing to optimize */}
+      <img
+        src={`/api/share/daily?${imageQuery(params)}`}
+        alt={`Remembered ${daily.correct} of ${daily.total} on ${when}`}
+        width={1200}
+        height={630}
+        className="w-full rounded-3xl shadow-lg"
+      />
       <h1 className="text-2xl font-bold">Can you beat it?</h1>
       <Link href="/" className={cn(buttonVariants({ variant: "game" }), "h-14 rounded-2xl px-8 text-lg")}>
         Play today&apos;s challenge
