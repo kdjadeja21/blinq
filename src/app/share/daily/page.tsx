@@ -50,6 +50,14 @@ export default async function SharedDailyPage({ searchParams }: { searchParams: 
 
   return (
     <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+      <div className="flex items-center gap-3">
+        <span className="text-5xl motion-safe:animate-bounce" aria-hidden>
+          🧠
+        </span>
+        <p className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-5xl font-extrabold tracking-tight text-transparent">
+          Blinq
+        </p>
+      </div>
       {/* eslint-disable-next-line @next/next/no-img-element -- dynamic generated PNG, nothing to optimize */}
       <img
         src={`/api/share/daily?${imageQuery(params)}`}
