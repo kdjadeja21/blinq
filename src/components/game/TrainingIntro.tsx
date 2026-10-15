@@ -8,7 +8,7 @@ import { INTRO_STEPS } from "@/lib/game";
 const CARDS = [
   { emoji: "👀", title: "Memorize the table", body: "A few items appear for a short time. Look closely." },
   { emoji: "👆", title: "Tap what you saw", body: "The items vanish and get mixed with lookalikes. Tap only the ones that were on the table." },
-  { emoji: "⏱️", title: "Mind the clock", body: "In real rounds a wrong tap costs 3 seconds and you get 3 mistakes. Here in training, it's free." },
+  { emoji: "⏱️", title: "Mind the clock", body: "In real rounds you get 3 mistakes, and from level 11 a wrong tap also costs 3 seconds. Here in training, it's free." },
 ];
 
 interface TrainingIntroProps {

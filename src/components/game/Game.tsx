@@ -82,7 +82,7 @@ export function Game() {
       return;
     }
     const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
-    const seed = mode === "training" ? "blinq:training" : mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
+    const seed = mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
     const { items, choices } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
     keyRef.current += 1;
     dispatch({ type: "start", mode, spec, items, choices, level, now: t, key: keyRef.current });
@@ -96,7 +96,7 @@ export function Game() {
   const retry = useCallback(() => {
     keyRef.current += 1;
     const now = Date.now();
-    if (round?.mode === "level") {
+    if (round?.mode === "level" || round?.mode === "training") {
       dispatch({ type: "retry", now, key: keyRef.current, ...generateRound(round.spec) });
       return;
     }

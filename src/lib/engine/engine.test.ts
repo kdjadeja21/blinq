@@ -28,7 +28,7 @@ describe("getRoundSpec", () => {
     assert.equal(spec.itemCount, 6);
     assert.equal(spec.memorizeMs, 16_000);
     assert.equal(spec.recallMs, 17_000);
-    assert.deepEqual(spec.rules, { lives: 3, wrongPenaltyMs: 3_000, comboWindowMs: 3_000 });
+    assert.deepEqual(spec.rules, { lives: 3, wrongPenaltyMs: 0, comboWindowMs: 3_000 });
   });
 
   for (const difficulty of DIFFICULTY_LEVELS) {
@@ -82,11 +82,24 @@ describe("getRoundSpec", () => {
 
   it("uses the training preset", () => {
     const spec = getRoundSpec({ mode: "training", difficulty: "hard", level: 7 });
-    assert.equal(spec.itemCount, TRAINING_PRESET.itemIds.length);
+    assert.equal(spec.itemCount, TRAINING_PRESET.itemCount);
     assert.equal(spec.memorizeMs, TRAINING_PRESET.memorizeMs);
     const { items, choices } = generateRound(spec, mulberry32(1));
-    assert.deepEqual(items.map((i) => i.id), TRAINING_PRESET.itemIds);
+    assert.equal(items.length, TRAINING_PRESET.itemCount);
     assert.equal(choices.length, spec.choiceCount);
+    const targetSets = new Set(SEEDS.map((seed) => generateRound(spec, mulberry32(seed)).items.map((i) => i.id).sort().join()));
+    assert.ok(targetSets.size > 1, "training targets vary");
+  });
+
+  it("charges a wrong-pick time penalty on hard only, and in solo only from level 11", () => {
+    const solo = (level: number) => getRoundSpec({ mode: "level", difficulty: "medium", level }).rules.wrongPenaltyMs;
+    assert.equal(solo(10), 0);
+    assert.equal(solo(11), 3_000);
+    assert.equal(getRoundSpec({ mode: "daily", difficulty: "medium", level: 1 }).rules.wrongPenaltyMs, 0);
+    assert.equal(getRoundSpec({ mode: "training", difficulty: "medium", level: 1 }).rules.wrongPenaltyMs, 0);
+    assert.equal(duel("easy", 20).rules.wrongPenaltyMs, 0);
+    assert.equal(duel("medium", 20).rules.wrongPenaltyMs, 0);
+    assert.equal(duel("hard", 1).rules.wrongPenaltyMs, 4_000);
   });
 });
 

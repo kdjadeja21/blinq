@@ -1,6 +1,5 @@
 import { ITEMS, ITEMS_BY_ID, LOOKALIKES, type Item } from "@/lib/items";
 import { shuffle } from "@/lib/rng";
-import { TRAINING_PRESET } from "./profiles";
 import type { RoundSpec } from "./types";
 
 export interface GeneratedRound {
@@ -28,10 +27,6 @@ function themePool(spec: RoundSpec, random: () => number): Item[] {
 }
 
 function pickTargets(spec: RoundSpec, random: () => number): { items: Item[]; pool: Item[] } {
-  if (spec.mode === "training") {
-    const items = TRAINING_PRESET.itemIds.flatMap((id) => ITEMS_BY_ID.get(id) ?? []);
-    return { items, pool: [] };
-  }
   if (spec.modifiers.includes("themed")) {
     const pool = themePool(spec, random);
     return { items: shuffle(pool, random).slice(0, spec.itemCount), pool };
