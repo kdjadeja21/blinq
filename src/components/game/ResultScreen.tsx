@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, Copy, House, LogIn, RotateCcw, Star, Trophy } from "lucide-react";
+import { ArrowRight, Check, House, LogIn, RotateCcw, Share2, Star, Trophy } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
 import { motion } from "framer-motion";
@@ -9,7 +9,7 @@ import { Button, buttonVariants } from "@/components/ui/button";
 import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
-import { shareText } from "@/lib/progress";
+import { sharePath, shareText } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
@@ -67,9 +67,22 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
   async function share() {
     if (!stats.daily) return;
     const text = shareText(stats.daily);
+    const query = sharePath(stats.daily);
+    const url = `${window.location.origin}/share/daily?${query}`;
     try {
-      if (navigator.share) await navigator.share({ text });
-      else await navigator.clipboard.writeText(text);
+      let files: File[] = [];
+      try {
+        const res = await fetch(`/api/share/daily?${query}`);
+        if (res.ok) files = [new File([await res.blob()], "blinq-daily.png", { type: "image/png" })];
+      } catch {
+        // fall back to text and link only
+      }
+      if (navigator.share) {
+        if (files.length > 0 && navigator.canShare?.({ files })) await navigator.share({ files, text: `${text}\n${url}` });
+        else await navigator.share({ text, url });
+      } else {
+        await navigator.clipboard.writeText(`${text}\n${url}`);
+      }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
     } catch {
@@ -155,7 +168,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
         ) : round.mode === "daily" ? (
           <>
             <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={share}>
-              {copied ? <Check className="size-4" /> : <Copy className="size-4" />} {copied ? "Copied!" : "Share result"}
+              {copied ? <Check className="size-4" /> : <Share2 className="size-4" />} {copied ? "Copied!" : "Share result"}
             </Button>
             <Link href="/leaderboard" className={cn(buttonVariants({ variant: "secondary" }), "h-12 rounded-2xl text-base")}>
               <Trophy className="size-4" /> Leaderboard

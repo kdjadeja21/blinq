@@ -57,12 +57,48 @@ export function currentStreak(stats: Stats, today: string): number {
     : 0;
 }
 
+const SHARE_DATE_RE = /^(\d{4})-(\d{2})-(\d{2})$/;
+
+export function formatDailyDate(iso: string, now: Date = new Date()): string {
+  const m = SHARE_DATE_RE.exec(iso);
+  if (!m) return iso;
+  const date = new Date(Date.UTC(Number(m[1]), Number(m[2]) - 1, Number(m[3])));
+  if (Number.isNaN(date.getTime())) return iso;
+  const sameYear = date.getUTCFullYear() === now.getUTCFullYear();
+  return date.toLocaleDateString("en-US", {
+    weekday: "short",
+    month: "short",
+    day: "numeric",
+    ...(sameYear ? {} : { year: "numeric" }),
+    timeZone: "UTC",
+  });
+}
+
 export function shareText(daily: NonNullable<Stats["daily"]>): string {
   const cells = daily.itemIds.map((id) => (daily.recalledIds.includes(id) ? "🟩" : "⬜"));
   const rows: string[] = [];
   for (let i = 0; i < cells.length; i += 4) rows.push(cells.slice(i, i + 4).join(""));
   const stars = "⭐".repeat(daily.stars) || "·";
-  return [`Blinq ${daily.date} ${stars}`, `${daily.correct}/${daily.total} remembered`, ...rows].join("\n");
+  return [
+    `🧠 Blinq Daily · ${formatDailyDate(daily.date)} ${stars}`,
+    `I remembered ${daily.correct}/${daily.total} items`,
+    "",
+    ...rows,
+    "",
+    "Think you can beat me? Play here 👇",
+  ].join("\n");
+}
+
+export function sharePath(daily: NonNullable<Stats["daily"]>): string {
+  const grid = daily.itemIds.map((id) => (daily.recalledIds.includes(id) ? "1" : "0")).join("");
+  const params = new URLSearchParams({
+    d: daily.date,
+    c: String(daily.correct),
+    t: String(daily.total),
+    s: String(daily.stars),
+    g: grid,
+  });
+  return params.toString();
 }
 
 /**
