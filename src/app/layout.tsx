@@ -11,7 +11,22 @@ const fredoka = Fredoka({
 
 export const metadata: Metadata = {
   title: "Blinq — memory game",
-  description: "Memorize the table. Recall it against the clock. Come back tomorrow for a new one.",
+  description: "Memory workout, with fun",
+  metadataBase: new URL("https://blinqplay.vercel.app"),
+  openGraph: {
+    title: "Blinq — memory game",
+    description: "Memory workout, with fun",
+    url: "/",
+    siteName: "Blinq",
+    type: "website",
+    images: [{ url: "/og.png", width: 1200, height: 630, alt: "Blinq — Memory workout, with fun" }],
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "Blinq — memory game",
+    description: "Memory workout, with fun",
+    images: ["/og.png"],
+  },
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {

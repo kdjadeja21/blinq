@@ -131,7 +131,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
           Blinq
         </h1>
         <p className="mx-auto mt-2 max-w-xs text-muted-foreground">
-          Memorize the table. Recall it against the clock. Come back tomorrow for a new one.
+          Memory workout, with fun
         </p>
       </div>
 
