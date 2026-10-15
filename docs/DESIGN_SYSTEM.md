@@ -136,8 +136,8 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 | `TimerRing` | Circular countdown, pulses at 5s or less | `seconds`, `progress`, `label`, `hidden` |
 | `StatTile` | Label and value tile, used inside a `<dl>` | `label`, `value` |
 | `Confetti` | Win celebration | `count` |
-| `YouBadge` | Pill with a user icon marking the viewer's own name where there is no highlighted row or chip to carry it (matchup banner, duel progress, duel result tile). Pops in with the "Pop in" spring and respects reduced motion. Use `variant="onColor"` on team gradients | `variant`, `className` |
-| `youRowClass` | Own-row treatment, used alone (no badge) in lists such as the leaderboards (`bg-primary/15 ring-2 ring-primary` plus a soft primary shadow) shared by every list with a viewer row | `isMe` |
+| `YouBadge` | Pill with a user icon and "YOU" label. Only for the viewer's own name where no highlighted row or chip carries the meaning (matchup banner, duel progress, duel result tile). Springs in with the "Pop in" preset, skipped under reduced motion. `variant="onColor"` for team gradients | `variant`, `className` |
+| `youRowClass` | Returns the class string for a list row: own-row highlight when `isMe`, otherwise the neutral `bg-muted/50`. See the Own-entry highlight pattern | `isMe` |
 | `ThemeToggle`, `SoundToggle` | Persistent preferences | none |
 | `useCountUp` | Animated number hook | `target`, `durationMs` |
 
@@ -146,6 +146,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 - **Streak pill:** `flex items-center gap-1 rounded-full bg-flame/20 px-3 py-1 text-sm font-bold` with a flame icon.
 - **Reward badge:** `rounded-full bg-gold px-3 py-1 text-sm font-bold text-black`.
 - **Section card:** see Spacing, shape and elevation. Label it with `aria-labelledby`.
+- **Own-entry highlight:** the viewer's row in a list is marked by the row style alone, with no "you" text or badge. Use `youRowClass(isMe)` for rows (`bg-primary/15 ring-2 ring-primary shadow-md shadow-primary/20`). Pill-shaped chips such as `PlayerChip` use `border-primary bg-primary/10 shadow-md shadow-primary/20`. Used by both leaderboards (including the pinned copy of the viewer's row), squad duel rows and the final points list. Where there is no row to highlight, use `YouBadge` instead, so colour is never the only signal.
 - **Segmented control:** `SlidingOptions` in `src/components/ui/sliding-options.tsx`, used by `Segmented` and `LeaderboardTabs`. Use it for any new tab or option group. The selected pill slides between options over `--duration-base` with `--ease-out-soft`. Reduced motion skips the slide.
 
 ## Adding to the system
