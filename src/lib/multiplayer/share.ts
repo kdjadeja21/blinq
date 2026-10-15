@@ -21,3 +21,12 @@ Think you've got a sharp memory? Join the team battle room before we start.
 
 Room code: ${code}`;
 }
+
+export function roomInviteMetaTitle(hostName: string): string {
+  const host = hostName.trim() || "Your friend";
+  return `${host} invited you to a Blinq room`;
+}
+
+export function roomInviteMetaDescription(code: string): string {
+  return `Room code ${code}. Think you've got a sharp memory? Tap to join the battle before it starts.`;
+}

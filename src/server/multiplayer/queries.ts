@@ -21,6 +21,18 @@ export async function findOpenRoomByCode(raw: string): Promise<RoomRow | null> {
   return room;
 }
 
+export async function findHostName(room: RoomRow): Promise<string> {
+  const host = must(
+    await db()
+      .from("players")
+      .select("name")
+      .eq("room_id", room.id)
+      .eq("user_id", room.admin_user_id)
+      .maybeSingle<Pick<PlayerRow, "name">>(),
+  );
+  return host?.name ?? "";
+}
+
 export async function listPlayers(roomId: string): Promise<PlayerRow[]> {
   return must(
     await db().from("players").select("*").eq("room_id", roomId).order("joined_at").returns<PlayerRow[]>(),
