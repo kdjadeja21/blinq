@@ -19,49 +19,102 @@ function randomName(): string {
   return `${pick(ADJECTIVES)}${pick(ANIMALS)}`.slice(0, NAME_MAX);
 }
 
+function cleanCode(raw: string): string {
+  return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH);
+}
+
 function CodeBoxes({ value, onChange, autoFocus }: { value: string; onChange: (value: string) => void; autoFocus?: boolean }) {
-  const inputRef = useRef<HTMLInputElement>(null);
-  const [focused, setFocused] = useState(false);
+  const groupRef = useRef<HTMLDivElement>(null);
+  const [startIndex] = useState(() => (value.length === 0 ? 0 : Math.min(value.length, ROOM_CODE_LENGTH - 1)));
+
+  function boxAt(index: number): HTMLInputElement | null {
+    const boxes = groupRef.current?.querySelectorAll("input");
+    const box = boxes?.[Math.max(0, Math.min(index, ROOM_CODE_LENGTH - 1))];
+    return box instanceof HTMLInputElement ? box : null;
+  }
+
+  function focusAt(index: number) {
+    const input = boxAt(index);
+    input?.focus();
+    input?.select();
+  }
 
   useEffect(() => {
     if (!autoFocus) return;
-    inputRef.current?.focus();
-  }, [autoFocus]);
+    const input = boxAt(startIndex);
+    input?.focus();
+    input?.select();
+  }, [autoFocus, startIndex]);
+
+  function writeAt(index: number, raw: string) {
+    const cleaned = cleanCode(raw);
+    if (!cleaned) {
+      onChange(value.slice(0, index) + value.slice(index + 1));
+      return;
+    }
+    const chars = value.split("");
+    for (let offset = 0; offset < cleaned.length && index + offset < ROOM_CODE_LENGTH; offset++) {
+      chars[index + offset] = cleaned[offset] ?? "";
+    }
+    onChange(cleanCode(chars.join("")));
+    focusAt(Math.min(index + cleaned.length, ROOM_CODE_LENGTH - 1));
+  }
 
   return (
-    <div className="relative" onClick={() => inputRef.current?.focus()}>
-      <div className="grid grid-cols-6 gap-2" aria-hidden>
-        {Array.from({ length: ROOM_CODE_LENGTH }, (_, i) => {
-          const active = focused && i === Math.min(value.length, ROOM_CODE_LENGTH - 1);
-          return (
-            <div
-              key={i}
+    <div ref={groupRef} className="grid grid-cols-6 gap-2" role="group" aria-label="Room code">
+      {Array.from({ length: ROOM_CODE_LENGTH }, (_, index) => {
+        const char = value[index] ?? "";
+        return (
+          <div key={index} className="relative">
+            <input
+              value={char}
+              onChange={(event) => writeAt(index, event.target.value)}
+              onPaste={(event) => {
+                event.preventDefault();
+                writeAt(index, event.clipboardData.getData("text"));
+              }}
+              onFocus={(event) => event.currentTarget.select()}
+              onKeyDown={(event) => {
+                if (event.key === "Backspace") {
+                  event.preventDefault();
+                  if (char) onChange(value.slice(0, index) + value.slice(index + 1));
+                  else if (index > 0) {
+                    onChange(value.slice(0, index - 1) + value.slice(index));
+                    focusAt(index - 1);
+                  }
+                  return;
+                }
+                if (event.key === "ArrowLeft" && index > 0) {
+                  event.preventDefault();
+                  focusAt(index - 1);
+                } else if (event.key === "ArrowRight" && index < ROOM_CODE_LENGTH - 1) {
+                  event.preventDefault();
+                  focusAt(index + 1);
+                }
+              }}
+              maxLength={ROOM_CODE_LENGTH}
+              autoCapitalize="characters"
+              autoComplete="off"
+              autoCorrect="off"
+              spellCheck={false}
+              autoFocus={autoFocus && index === startIndex}
+              aria-label={`Room code character ${index + 1} of ${ROOM_CODE_LENGTH}`}
               className={cn(
-                "flex h-16 items-center justify-center rounded-2xl border-2 bg-background/60 font-mono text-3xl font-extrabold transition-all",
-                value[i] && "border-primary bg-primary/15",
-                active && "scale-105 border-gold ring-4 ring-gold/30",
+                "peer h-16 w-full rounded-2xl border-2 bg-background/60 text-center font-mono text-3xl font-extrabold outline-none transition-all focus:scale-105 focus:border-gold focus:ring-4 focus:ring-gold/30",
+                char && "border-primary bg-primary/15",
               )}
-            >
-              {value[i] ?? (active ? <span className="h-7 w-0.5 animate-pulse bg-gold" /> : "")}
-            </div>
-          );
-        })}
-      </div>
-      <input
-        ref={inputRef}
-        value={value}
-        onChange={(e) => onChange(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH))}
-        onFocus={() => setFocused(true)}
-        onBlur={() => setFocused(false)}
-        maxLength={ROOM_CODE_LENGTH}
-        autoCapitalize="characters"
-        autoComplete="off"
-        autoCorrect="off"
-        spellCheck={false}
-        autoFocus={autoFocus}
-        aria-label="Room code"
-        className="absolute inset-0 size-full cursor-text opacity-0"
-      />
+            />
+            {char ? null : (
+              <span
+                aria-hidden
+                className="pointer-events-none absolute inset-0 hidden items-center justify-center peer-focus:flex motion-reduce:peer-focus:hidden"
+              >
+                <span className="h-7 w-0.5 animate-pulse bg-gold motion-reduce:animate-none" />
+              </span>
+            )}
+          </div>
+        );
+      })}
     </div>
   );
 }
@@ -120,7 +173,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
         <div className="flex flex-col gap-2">
           <span className="text-sm font-semibold">Room code</span>
           {editingCode ? (
-            <CodeBoxes value={code} onChange={setCode} autoFocus={!invited} />
+            <CodeBoxes value={code} onChange={setCode} autoFocus />
           ) : (
             <div className="flex items-center justify-between gap-3 rounded-2xl border-2 border-primary/50 bg-primary/10 px-4 py-3">
               <span className="font-mono text-3xl font-extrabold tracking-[0.25em]">{code}</span>
@@ -143,7 +196,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
             onChange={setName}
             maxLength={NAME_MAX}
             autoComplete="nickname"
-            autoFocus={invited}
+            autoFocus={invited && !editingCode}
             required
           />
           <Button type="button" variant="ghost" className="h-11 w-fit rounded-xl px-3" onClick={() => setName(randomName())}>
