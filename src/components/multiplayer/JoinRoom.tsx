@@ -60,13 +60,13 @@ function CodeBoxes({ value, onChange, autoFocus }: { value: string; onChange: (v
   );
 }
 
-export function JoinRoom({ initialCode = "" }: { initialCode?: string }) {
+export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?: string; defaultName?: string }) {
   const router = useRouter();
   const reduce = useReducedMotion();
   const invited = initialCode.length === ROOM_CODE_LENGTH;
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [editingCode, setEditingCode] = useState(!invited);
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
