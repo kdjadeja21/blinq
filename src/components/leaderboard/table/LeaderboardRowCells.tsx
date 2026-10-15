@@ -11,10 +11,7 @@ export function LeaderboardRowCells({ entry }: { entry: LeaderboardEntry }) {
     <>
       <RankBadge rank={entry.rank} />
       {entry.avatar}
-      <span className="min-w-0 flex-1 truncate font-semibold">
-        {entry.name}
-        {entry.isMe ? <span className="ml-1 text-xs font-normal text-muted-foreground">(you)</span> : null}
-      </span>
+      <span className="min-w-0 flex-1 truncate font-semibold">{entry.name}</span>
       {entry.accessory}
       <span className="w-12 text-right text-lg font-extrabold tabular-nums">{entry.points}</span>
       {entry.trailing}
