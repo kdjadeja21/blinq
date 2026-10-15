@@ -2,6 +2,7 @@
 
 import { cn } from "cn";
 import { useEffect, useState } from "react";
+import { SlidingOptions } from "@/components/ui/sliding-options";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
 
@@ -38,22 +39,15 @@ export function Segmented<T extends string>({ label, value, options, onChange, d
   return (
     <fieldset className="flex flex-col gap-1.5" disabled={disabled}>
       <legend className="mb-1.5 text-sm font-semibold">{label}</legend>
-      <div className="grid auto-cols-fr grid-flow-col gap-1 rounded-2xl bg-muted p-1">
-        {options.map((option) => (
-          <button
-            key={option.value}
-            type="button"
-            aria-pressed={value === option.value}
-            onClick={() => onChange(option.value)}
-            className={cn(
-              "min-h-11 rounded-xl px-3 text-sm font-semibold outline-none transition-colors focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
-              value === option.value ? "bg-primary text-primary-foreground shadow" : "text-muted-foreground hover:text-foreground",
-            )}
-          >
-            {option.label}
+      <SlidingOptions
+        value={value}
+        options={options}
+        renderOption={({ option, selected, className, children }) => (
+          <button type="button" aria-pressed={selected} onClick={() => onChange(option.value)} className={className}>
+            {children}
           </button>
-        ))}
-      </div>
+        )}
+      />
     </fieldset>
   );
 }

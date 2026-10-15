@@ -1,3 +1,4 @@
+import { normalizeCode } from "@/lib/multiplayer/names";
 import type { DuelRow, PlayerRow, RoomRow, TeamRow } from "@/lib/multiplayer/types";
 import { ApiError, db, must } from "./db";
 
@@ -9,6 +10,15 @@ export async function findRoom(roomId: string): Promise<RoomRow> {
 
 export async function findRoomByCode(code: string): Promise<RoomRow | null> {
   return must(await db().from("rooms").select("*").eq("code", code).maybeSingle<RoomRow>());
+}
+
+/** An open room for a join link, or null when the code is missing, malformed, or expired. */
+export async function findOpenRoomByCode(raw: string): Promise<RoomRow | null> {
+  const code = normalizeCode(raw);
+  if (!code) return null;
+  const room = await findRoomByCode(code);
+  if (!room || Date.parse(room.expires_at) < Date.now()) return null;
+  return room;
 }
 
 export async function listPlayers(roomId: string): Promise<PlayerRow[]> {

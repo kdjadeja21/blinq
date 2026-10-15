@@ -40,9 +40,9 @@ const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "auto", label: "Auto" },
 ];
 
-export function CreateRoom() {
+export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
   const router = useRouter();
-  const [name, setName] = useState("");
+  const [name, setName] = useState(defaultName);
   const [levels, setLevels] = useState(DEFAULT_LEVELS);
   const [difficulty, setDifficulty] = useState<Difficulty>(DEFAULT_DIFFICULTY);
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
