@@ -1,20 +1,7 @@
-import { Medal } from "lucide-react";
-import { cn } from "cn";
-import { RankChange } from "@/components/multiplayer/Leaderboard";
+import { LeaderboardTable } from "@/components/leaderboard/table/LeaderboardTable";
+import { RankChange } from "@/components/leaderboard/table/RankChange";
+import type { LeaderboardEntry } from "@/components/leaderboard/table/types";
 import type { PublicRow } from "@/server/solo/leaderboard";
-
-const MEDAL_TONES = ["text-gold", "text-slate-300", "text-amber-600"] as const;
-
-function RankBadge({ rank }: { rank: number }) {
-  if (rank <= 3) {
-    return (
-      <span className="flex w-7 justify-center" role="img" aria-label={`Rank ${rank}`}>
-        <Medal className={cn("size-6", MEDAL_TONES[rank - 1])} aria-hidden />
-      </span>
-    );
-  }
-  return <span className="w-7 text-center text-sm font-bold tabular-nums text-muted-foreground">{rank}</span>;
-}
 
 function PlayerAvatar({ row }: { row: PublicRow }) {
   if (row.avatarUrl) {
@@ -28,34 +15,21 @@ function PlayerAvatar({ row }: { row: PublicRow }) {
   );
 }
 
-function Row({ row }: { row: PublicRow }) {
-  return (
-    <li className={cn("flex items-center gap-2 rounded-xl px-2 py-2", row.isMe ? "bg-primary/15 ring-2 ring-primary" : "bg-muted/50")}>
-      <RankBadge rank={row.rank} />
-      <PlayerAvatar row={row} />
-      <span className="min-w-0 flex-1 truncate font-semibold">
-        {row.name}
-        {row.isMe ? <span className="ml-1 text-xs font-normal text-muted-foreground">(you)</span> : null}
-      </span>
-      <span className="w-14 text-right text-lg font-extrabold tabular-nums">{row.points}</span>
-      <RankChange delta={row.delta} />
-    </li>
-  );
+function toEntry(row: PublicRow, id: string, gapBefore: boolean): LeaderboardEntry {
+  return {
+    id,
+    rank: row.rank,
+    name: row.name,
+    points: row.points,
+    isMe: row.isMe,
+    avatar: <PlayerAvatar row={row} />,
+    trailing: <RankChange delta={row.delta} />,
+    gapBefore,
+  };
 }
 
 export function LeaderboardList({ rows, me }: { rows: PublicRow[]; me: PublicRow | null }) {
-  return (
-    <div className="flex flex-col gap-2">
-      <ol className="flex flex-col gap-1.5 rounded-2xl border-2 bg-card p-2 text-left" aria-label="Leaderboard">
-        {rows.map((row, index) => (
-          <Row key={index} row={row} />
-        ))}
-      </ol>
-      {me ? (
-        <ol className="rounded-2xl border-2 border-dashed bg-card p-2 text-left" aria-label="Your position">
-          <Row row={me} />
-        </ol>
-      ) : null}
-    </div>
-  );
+  const entries = rows.map((row, index) => toEntry(row, String(index), false));
+  if (me) entries.push(toEntry(me, "me", true));
+  return <LeaderboardTable entries={entries} ariaLabel="Leaderboard" className="max-h-[min(60dvh,32rem)]" />;
 }
