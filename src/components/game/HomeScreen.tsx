@@ -133,12 +133,6 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         <p className="mx-auto mt-2 max-w-xs text-muted-foreground">
           Memorize the table. Recall it against the clock. Come back tomorrow for a new one.
         </p>
-        <p
-          className="mx-auto mt-4 max-w-sm rounded-full border-2 border-gold/40 bg-gold/15 px-4 py-2 text-sm font-bold text-foreground"
-          role="status"
-        >
-          Welcome, Daksh and Vansh! 👋
-        </p>
       </div>
 
       <div className="flex flex-col gap-2">
