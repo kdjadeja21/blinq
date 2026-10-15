@@ -7,7 +7,7 @@ import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
-import { currentStreak, shareText } from "@/lib/progress";
+import { currentStreak, shareMessage } from "@/lib/progress";
 import { isGuestLocked } from "@/lib/solo/guest";
 import type { Stats } from "@/lib/storage";
 import { GuestHint } from "./SoloAuth";
@@ -93,7 +93,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
 
   async function share() {
     if (!playedToday) return;
-    const text = shareText(playedToday);
+    const text = shareMessage(playedToday, window.location.origin);
     try {
       if (navigator.share) await navigator.share({ text });
       else await navigator.clipboard.writeText(text);
