@@ -1,3 +1,5 @@
+import { readFile } from "node:fs/promises";
+import { join } from "node:path";
 import { ImageResponse } from "next/og";
 import type { NextRequest } from "next/server";
 import { formatDailyDate } from "@/lib/progress";
@@ -26,7 +28,9 @@ const COLORS = {
   goldOff: "#ddd5f5",
 };
 
-export function GET(request: NextRequest) {
+const fredoka = readFile(join(process.cwd(), "src/app/api/share/daily/Fredoka-Bold.ttf"));
+
+export async function GET(request: NextRequest) {
   const { searchParams } = request.nextUrl;
   const daily = parseSharedDaily((key) => searchParams.get(key));
   const label = daily.date ? formatDailyDate(daily.date) : "Daily Challenge";
@@ -77,7 +81,9 @@ export function GET(request: NextRequest) {
                   fontWeight: 800,
                   color: "transparent",
                   backgroundImage: `linear-gradient(90deg, ${COLORS.brandFrom}, ${COLORS.brandTo})`,
-                  backgroundClip: "text",
+                  backgroundSize: "170% 100%",
+                backgroundPosition: "center",
+                backgroundClip: "text",
                 }}
               >
                 Blinq
@@ -131,6 +137,7 @@ export function GET(request: NextRequest) {
     {
       width: WIDTH,
       height: HEIGHT,
+      fonts: [{ name: "Fredoka", data: await fredoka, weight: 700, style: "normal" }],
       headers: { "Cache-Control": "public, max-age=31536000, immutable" },
     },
   );

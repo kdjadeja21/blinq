@@ -28,7 +28,7 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
         <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
           <p className="flex items-center gap-3 text-3xl font-extrabold tracking-tight sm:text-5xl">
             <Image src="/icon.svg" alt="" width={56} height={56} priority className="size-10 rounded-xl shadow-md sm:size-14" />
-            <span className="bg-gradient-to-r from-primary to-fuchsia-500 bg-clip-text text-transparent">Blinq</span>
+            <span className="bg-gradient-to-r from-primary to-fuchsia-500 bg-[length:170%_100%] bg-center bg-clip-text text-transparent">Blinq</span>
           </p>
           <p className="text-xs font-semibold text-[#7a6bb0] sm:text-base">Daily Challenge · {when}</p>
           <div className="flex gap-1" role="img" aria-label={`${stars} of 3 stars`}>
