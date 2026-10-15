@@ -66,9 +66,9 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
   async function share() {
     if (!stats.daily) return;
-    const text = shareText(stats.daily);
     const query = sharePath(stats.daily);
     const url = `${window.location.origin}/share/daily?${query}`;
+    const message = `${shareText(stats.daily)}\n${url}`;
     try {
       let files: File[] = [];
       try {
@@ -78,10 +78,10 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
         // fall back to text and link only
       }
       if (navigator.share) {
-        if (files.length > 0 && navigator.canShare?.({ files })) await navigator.share({ files, text: `${text}\n${url}` });
-        else await navigator.share({ text, url });
+        if (files.length > 0 && navigator.canShare?.({ files })) await navigator.share({ files, text: message });
+        else await navigator.share({ text: message });
       } else {
-        await navigator.clipboard.writeText(`${text}\n${url}`);
+        await navigator.clipboard.writeText(message);
       }
       setCopied(true);
       setTimeout(() => setCopied(false), 2000);
