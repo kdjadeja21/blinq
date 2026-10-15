@@ -21,31 +21,41 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
   return (
     <section
       aria-label={`Remembered ${correct} of ${total} on ${when}`}
-      className="w-full rounded-[2rem] bg-gradient-to-br from-primary to-fuchsia-500 p-3 shadow-lg"
+      className="w-full rounded-[2rem] bg-gradient-to-br from-[#5b2bd6] to-[#c13fd8] p-3 shadow-lg"
     >
-      <div className="flex items-center justify-between gap-4 rounded-3xl bg-card p-6 text-left">
-        <div className="flex flex-col gap-3">
-          <p className="text-sm font-semibold text-muted-foreground">Daily Challenge · {when}</p>
+      <div className="flex items-center justify-between gap-4 rounded-3xl bg-white p-5 text-left text-[#2a1a63] sm:p-8">
+        <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
+          <p className="flex items-center gap-2 text-2xl font-extrabold text-[#5b2bd6] sm:text-4xl">
+            <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-[#6E28D9] text-base sm:size-10 sm:text-xl">
+              🧠
+            </span>
+            Blinq
+          </p>
+          <p className="text-xs font-semibold text-[#7a6bb0] sm:text-base">Daily Challenge · {when}</p>
           <div className="flex gap-1" role="img" aria-label={`${stars} of 3 stars`}>
             {[0, 1, 2].map((i) => (
               <Star
                 key={i}
-                className={cn("size-8", i < stars ? "fill-gold text-gold" : "text-muted-foreground/40")}
+                className={cn(
+                  "size-6 sm:size-8",
+                  i < stars ? "fill-[#ffc531] text-[#ffc531]" : "fill-[#ddd5f5] text-[#ddd5f5]",
+                )}
               />
             ))}
           </div>
-          <p className="flex items-baseline gap-2">
-            <span className="text-5xl font-extrabold">
+          <p className="flex flex-wrap items-baseline gap-x-2">
+            <span className="text-4xl font-extrabold sm:text-6xl">
               {correct}/{total}
             </span>
-            <span className="text-sm font-semibold">remembered</span>
+            <span className="text-xs font-bold sm:text-lg">remembered</span>
           </p>
+          <p className="text-xs font-bold text-[#5b2bd6] sm:text-base">Can you beat me?</p>
         </div>
-        <div className="grid grid-cols-4 gap-2" aria-hidden>
+        <div className="grid w-[38%] max-w-44 shrink-0 grid-cols-4 gap-1.5 sm:gap-2.5" aria-hidden>
           {cells.map((hit, i) => (
             <motion.span
               key={i}
-              className={cn("size-9 rounded-xl sm:size-10", hit ? "bg-success" : "bg-muted")}
+              className={cn("aspect-square w-full rounded-md sm:rounded-xl", hit ? "bg-[#2ecb70]" : "bg-[#e4defa]")}
               initial={reduce ? false : { scale: 0, rotate: -20, opacity: 0 }}
               animate={{ scale: 1, rotate: 0, opacity: 1 }}
               transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.15 + i * TILE_STAGGER }}

@@ -59,7 +59,17 @@ export function GET(request: NextRequest) {
           }}
         >
           <div style={{ display: "flex", flexDirection: "column", gap: 20 }}>
-            <div style={{ display: "flex", fontSize: 64, fontWeight: 800, color: COLORS.bgFrom }}>Blinq</div>
+            <div style={{ display: "flex", alignItems: "center", gap: 18 }}>
+              <svg width="72" height="72" viewBox="0 0 32 32">
+                <rect width="32" height="32" rx="8" fill="#6E28D9" />
+                <path
+                  fill="#fff"
+                  d="M16 7.2c-1.2 0-2.2.5-2.9 1.3A4.1 4.1 0 0 0 9.4 7a4.3 4.3 0 0 0-4.2 5.1 3.7 3.7 0 0 0 .2 6.2A4 4 0 0 0 9 22.6V24a1.2 1.2 0 0 0 1.2 1.2h4.2V7.2H16zM16 7.2c1.2 0 2.2.5 2.9 1.3A4.1 4.1 0 0 1 22.6 7a4.3 4.3 0 0 1 4.2 5.1 3.7 3.7 0 0 1-.2 6.2A4 4 0 0 1 23 22.6V24a1.2 1.2 0 0 1-1.2 1.2H16V7.2z"
+                />
+                <path d="M16 9.2v14.2" stroke="#6E28D9" strokeWidth="1.15" strokeLinecap="round" />
+              </svg>
+              <div style={{ display: "flex", fontSize: 64, fontWeight: 800, color: COLORS.bgFrom }}>Blinq</div>
+            </div>
             <div style={{ display: "flex", fontSize: 34, fontWeight: 700, color: COLORS.muted }}>
               {`Daily Challenge · ${label}`}
             </div>
