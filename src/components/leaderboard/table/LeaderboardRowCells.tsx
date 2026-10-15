@@ -1,5 +1,5 @@
 import { cn } from "cn";
-import { youRowClass } from "@/components/game/YouBadge";
+import { youRowClass } from "@/components/game/ownRow";
 import { RankBadge } from "./RankBadge";
 import type { LeaderboardEntry } from "./types";
 

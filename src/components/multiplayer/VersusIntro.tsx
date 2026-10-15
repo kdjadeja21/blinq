@@ -19,10 +19,9 @@ interface FighterProps {
   team: string | undefined;
   theme: TeamTheme | null;
   from: "left" | "right";
-  you: boolean;
 }
 
-function Fighter({ player, team, theme, from, you }: FighterProps) {
+function Fighter({ player, team, theme, from }: FighterProps) {
   const reduce = useReducedMotion();
   const left = from === "left";
   const Icon = theme?.icon;
@@ -57,9 +56,6 @@ function Fighter({ player, team, theme, from, you }: FighterProps) {
         <p className="flex items-center gap-2 text-sm font-semibold opacity-85" style={{ justifyContent: left ? "flex-start" : "flex-end" }}>
           {Icon && <Icon className="size-4" aria-hidden />}
           {team}
-          {you && (
-            <span className={cn("rounded-full px-2 py-0.5 text-xs font-extrabold", theme || left ? "bg-white/25" : "bg-black/20")}>YOU</span>
-          )}
         </p>
       </div>
     </motion.div>
@@ -73,7 +69,6 @@ export function VersusIntro({
   teamB,
   themeA,
   themeB,
-  meId,
   seconds,
 }: {
   a: PlayerRow | undefined;
@@ -82,7 +77,6 @@ export function VersusIntro({
   teamB: string | undefined;
   themeA: TeamTheme | null;
   themeB: TeamTheme | null;
-  meId: string | undefined;
   seconds: number;
 }) {
   const reduce = useReducedMotion();
@@ -117,7 +111,7 @@ export function VersusIntro({
         />
       </div>
 
-      <Fighter player={a} team={teamA} theme={themeA} from="left" you={a?.id === meId} />
+      <Fighter player={a} team={teamA} theme={themeA} from="left" />
 
       <div className="relative z-20 -my-3 flex h-28 w-full items-center justify-center">
         {!reduce && (
@@ -164,7 +158,7 @@ export function VersusIntro({
         </motion.div>
       </div>
 
-      <Fighter player={b} team={teamB} theme={themeB} from="right" you={b?.id === meId} />
+      <Fighter player={b} team={teamB} theme={themeB} from="right" />
 
       <motion.div
         initial={reduce ? false : { opacity: 0, y: 12 }}

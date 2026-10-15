@@ -7,7 +7,6 @@ import { Board } from "@/components/game/Board";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
 import { Lives } from "@/components/game/Lives";
 import { TimerRing } from "@/components/game/TimerRing";
-import { YouBadge } from "@/components/game/YouBadge";
 import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
@@ -33,10 +32,7 @@ function ProgressBar({ player, count, total, mine, theme }: { player: PlayerRow 
   return (
     <div className="flex flex-col gap-1">
       <div className="flex justify-between text-sm font-semibold">
-        <span className="flex items-center gap-2">
-          {player?.name ?? "?"}
-          {mine && <YouBadge />}
-        </span>
+        <span>{player?.name ?? "?"}</span>
         <span className="tabular-nums">
           {count} of {total}
         </span>
@@ -314,7 +310,6 @@ export function DuelView({ state }: { state: RoomState }) {
         teamB={teamName(b?.team_id)}
         themeA={teamThemeFor(a?.team_id, state.teams)}
         themeB={teamThemeFor(b?.team_id, state.teams)}
-        meId={me?.id}
         seconds={seconds}
       />
     );

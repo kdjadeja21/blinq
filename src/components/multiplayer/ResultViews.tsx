@@ -8,7 +8,7 @@ import Link from "next/link";
 import { Board } from "@/components/game/Board";
 import { Confetti } from "@/components/game/Confetti";
 import { useCountUp } from "@/components/game/useCountUp";
-import { YouBadge, youRowClass } from "@/components/game/YouBadge";
+import { youRowClass } from "@/components/game/ownRow";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { isSquad } from "@/lib/multiplayer/config";
@@ -105,10 +105,7 @@ export function DuelResultView({ state }: { state: RoomState }) {
         <dl className="mt-3 grid grid-cols-2 gap-2">
           {rows.map(({ player, result }) => (
             <div key={player?.id} className={cn("rounded-2xl border-2 p-3", teamThemeFor(player?.team_id, teams)?.border ?? "border-transparent", teamThemeFor(player?.team_id, teams)?.soft ?? "bg-muted")}>
-              <dt className="flex items-center gap-2 text-sm font-semibold">
-                {player?.name}
-                {player?.id === me?.id && <YouBadge />}
-              </dt>
+              <dt className="text-sm font-semibold">{player?.name}</dt>
               <dd className="text-xs text-muted-foreground">{teamName(player?.team_id) ?? "No team"}</dd>
               <dd className="text-2xl font-extrabold tabular-nums">+{result?.points ?? 0}</dd>
               <dd>
@@ -145,7 +142,6 @@ function TeamScoreCard({
   points,
   share,
   isWinner,
-  isMine,
   index,
   theme,
 }: {
@@ -153,7 +149,6 @@ function TeamScoreCard({
   points: number;
   share: number;
   isWinner: boolean;
-  isMine: boolean;
   index: number;
   theme: TeamTheme | null;
 }) {
@@ -179,7 +174,6 @@ function TeamScoreCard({
       <dt className="flex items-center gap-1.5 text-sm font-semibold">
         {Icon && <Icon className={cn("size-4", theme?.text)} aria-hidden />}
         {name}
-        {isMine && <YouBadge />}
       </dt>
       <dd className="text-4xl font-extrabold tabular-nums">{shown}</dd>
       <dd className="mt-1 h-2 w-full overflow-hidden rounded-full bg-background/60" aria-hidden>
@@ -249,7 +243,6 @@ export function LevelResultView({ state }: { state: RoomState }) {
               points={points}
               share={sum > 0 ? Math.round((points / sum) * 100) : 0}
               isWinner={!tie && team.id === first.team.id}
-              isMine={team.id === myTeamId}
               index={i}
               theme={teamThemeFor(team.id, teams)}
             />

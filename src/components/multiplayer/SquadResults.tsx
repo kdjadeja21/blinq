@@ -2,7 +2,7 @@
 
 import { cn } from "cn";
 import { useMemo, useState } from "react";
-import { youRowClass } from "@/components/game/YouBadge";
+import { youRowClass } from "@/components/game/ownRow";
 import { cumulativeStandings, duelScores, levelStandings } from "@/lib/multiplayer/leaderboard";
 import { Leaderboard, Podium } from "./Leaderboard";
 import { Segmented } from "./shared";

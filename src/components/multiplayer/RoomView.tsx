@@ -7,7 +7,6 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { SoundToggle } from "@/components/game/SoundToggle";
-import { YouBadge } from "@/components/game/YouBadge";
 import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
 import { DuelView } from "./DuelView";
 import { IndividualFinalView, RoundResultView } from "./IndividualResults";
@@ -25,12 +24,11 @@ import { teamThemeFor } from "@/lib/multiplayer/teamTheme";
 const DUEL_PHASES: RoomPhase[] = ["duel_intro", "memorize", "recall", "duel_result"];
 
 function MatchupBanner({ state }: { state: RoomState }) {
-  const { duel, players, teams, me } = state;
+  const { duel, players, teams } = state;
   if (!duel) return null;
   const a = players.find((p) => p.id === duel.player_a);
   const b = players.find((p) => p.id === duel.player_b);
   const teamName = (teamId: string | null | undefined) => teams.find((t) => t.id === teamId)?.name;
-  const tag = (id: string) => (id === me?.id ? <YouBadge variant="onColor" className="ml-1.5" /> : null);
   const themeA = teamThemeFor(a?.team_id, teams);
   const themeB = teamThemeFor(b?.team_id, teams);
   const IconA = themeA?.icon;
@@ -41,7 +39,7 @@ function MatchupBanner({ state }: { state: RoomState }) {
       className="flex items-center justify-between gap-2 overflow-hidden rounded-3xl border-2 bg-card p-1 shadow-lg"
     >
       <div className={cn("min-w-0 flex-1 rounded-l-3xl rounded-r-lg px-2 py-2 text-center", themeA?.gradient ?? "bg-primary text-primary-foreground")}>
-        <p className="truncate text-base font-extrabold">{a?.name}{tag(duel.player_a)}</p>
+        <p className="truncate text-base font-extrabold">{a?.name}</p>
         <p className="flex items-center justify-center gap-1 text-xs opacity-90">
           {IconA && <IconA className="size-3" aria-hidden />}
           {teamName(a?.team_id)}
@@ -51,7 +49,7 @@ function MatchupBanner({ state }: { state: RoomState }) {
         X
       </span>
       <div className={cn("min-w-0 flex-1 rounded-l-lg rounded-r-3xl px-2 py-2 text-center", themeB?.gradientReverse ?? "bg-fuchsia-500 text-white")}>
-        <p className="truncate text-base font-extrabold">{b?.name}{tag(duel.player_b)}</p>
+        <p className="truncate text-base font-extrabold">{b?.name}</p>
         <p className="flex items-center justify-center gap-1 text-xs opacity-90">
           {IconB && <IconB className="size-3" aria-hidden />}
           {teamName(b?.team_id)}
@@ -95,7 +93,7 @@ function MyTeamPill({ state }: { state: RoomState }) {
   const Icon = theme.icon;
   return (
     <span className={cn("flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-bold shadow-sm", theme.pill)}>
-      <Icon className="size-3" aria-hidden /> You: {team.name}
+      <Icon className="size-3" aria-hidden /> {team.name}
     </span>
   );
 }
