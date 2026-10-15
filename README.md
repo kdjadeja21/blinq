@@ -22,6 +22,7 @@ This project uses [`next/font`](https://nextjs.org/docs/app/building-your-applic
 
 ## Contributing
 
+- Developer commands (npm, Supabase, tests): [docs/DEV_COMMANDS.md](docs/DEV_COMMANDS.md)
 - Branching, commits and releases: [docs/BRANCHING.md](docs/BRANCHING.md)
 - Visual language, tokens and components: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
 - Difficulty engine (items, timers, rules per level): [docs/GAME_ENGINE.md](docs/GAME_ENGINE.md)
