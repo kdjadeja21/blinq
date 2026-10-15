@@ -87,3 +87,39 @@ export function OgLockup() {
     </div>
   );
 }
+
+const SWORD_PATHS = [
+  "m11 19-6-6",
+  "m5 21-2-2",
+  "m8 16-4 4",
+  "M9.5 17.5 20.414 6.586A2 2 0 0021 5.172V3h-2.172a2 2 0 00-1.414.586L6.5 14.5",
+];
+
+function Sword({ color, mirrored }: { color: string; mirrored?: boolean }) {
+  return (
+    <svg
+      width="110"
+      height="110"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke={color}
+      strokeWidth="2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      style={{ transform: mirrored ? "scaleX(-1)" : undefined, marginLeft: mirrored ? -44 : 0 }}
+    >
+      {SWORD_PATHS.map((d) => (
+        <path key={d} d={d} />
+      ))}
+    </svg>
+  );
+}
+
+export function OgSwords() {
+  return (
+    <div style={{ display: "flex", alignItems: "center" }}>
+      <Sword color={OG_COLORS.gold} />
+      <Sword color={OG_COLORS.brandFrom} mirrored />
+    </div>
+  );
+}

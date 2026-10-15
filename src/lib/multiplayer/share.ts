@@ -24,7 +24,7 @@ Room code: ${code}`;
 
 export function roomInviteMetaTitle(hostName: string): string {
   const host = hostName.trim() || "Your friend";
-  return `${host} invited you to a Blinq room`;
+  return `${host} challenged you to a multiplayer memory battle`;
 }
 
 export function roomInviteMetaDescription(code: string): string {
