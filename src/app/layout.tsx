@@ -10,7 +10,6 @@ const fredoka = Fredoka({
 });
 
 export const metadata: Metadata = {
-  metadataBase: process.env.NEXT_PUBLIC_APP_URL ? new URL(process.env.NEXT_PUBLIC_APP_URL) : undefined,
   title: "Blinq — memory game",
   description: "Memorize the table. Recall it against the clock. Come back tomorrow for a new one.",
 };

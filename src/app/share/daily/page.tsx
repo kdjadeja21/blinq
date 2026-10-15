@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import { headers } from "next/headers";
 import Link from "next/link";
 import { buttonVariants } from "@/components/ui/button";
 import { formatDailyDate } from "@/lib/progress";
@@ -31,7 +32,9 @@ export async function generateMetadata({ searchParams }: { searchParams: Promise
   const when = daily.date ? formatDailyDate(daily.date) : "today";
   const title = `I remembered ${daily.correct}/${daily.total} on Blinq's daily challenge`;
   const description = `Daily Challenge · ${when}. Think you can beat me? Play Blinq.`;
-  const image = `/api/share/daily?${imageQuery(params)}`;
+  const host = (await headers()).get("host");
+  const proto = host?.startsWith("localhost") ? "http" : "https";
+  const image = `${host ? `${proto}://${host}` : ""}/api/share/daily?${imageQuery(params)}`;
   return {
     title,
     description,
