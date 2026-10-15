@@ -1,6 +1,7 @@
 "use client";
 
 import { Star } from "lucide-react";
+import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
 import { cn } from "@/lib/utils";
 
@@ -25,10 +26,8 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
     >
       <div className="flex items-center justify-between gap-4 rounded-3xl bg-white p-5 text-left text-[#2a1a63] sm:p-8">
         <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
-          <p className="flex items-center gap-2 text-2xl font-extrabold text-[#5b2bd6] sm:text-4xl">
-            <span aria-hidden className="grid size-8 place-items-center rounded-lg bg-[#6E28D9] text-base sm:size-10 sm:text-xl">
-              🧠
-            </span>
+          <p className="flex items-center gap-3 text-3xl font-extrabold tracking-tight text-[#5b2bd6] sm:text-5xl">
+            <Image src="/icon.svg" alt="" width={56} height={56} priority className="size-10 rounded-xl shadow-md sm:size-14" />
             Blinq
           </p>
           <p className="text-xs font-semibold text-[#7a6bb0] sm:text-base">Daily Challenge · {when}</p>
