@@ -59,10 +59,10 @@ For each difficulty, `profiles.ts` defines:
 - **Memorize / recall time:** `base + perItem x items`, capped at `maxMs`, then multiplied by `decay^(level - 1)` and never going below `floor`. Once the item count stops growing, the game keeps getting harder by giving less time.
 - **Choices:** `items x choiceRatio`.
 - **Lookalike share:** a ramp. Higher means more decoys that look like the real items.
-- **Lives and wrong-pick penalty.**
+- **Lives and wrong-pick penalty.** Only hard duels cost time for a wrong pick (`wrongPenaltyMs`). Solo costs `SOLO_WRONG_PENALTY_MS` from `SOLO_PENALTY_FROM_LEVEL` (level 11). Easy, medium, daily and training never do.
 - **Bot skill:** a recall-share ramp, its spread, and the finish window as a share of recall time.
 
-Global settings in the same file: `SOLO_DIFFICULTY`, `DAILY_LEVEL`, `COMBO_WINDOW_MS`, `HIDE_MS`, `TIER_SIZE`, the modifier schedule and `TRAINING_PRESET`.
+Global settings in the same file: `SOLO_DIFFICULTY`, `DAILY_LEVEL`, `COMBO_WINDOW_MS`, `HIDE_MS`, `TIER_SIZE`, the modifier schedule and `TRAINING_PRESET` (item count and timers; training items are random each round).
 
 ### Twists (modifiers)
 

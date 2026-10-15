@@ -7,16 +7,18 @@ import {
   MODIFIER_RULES,
   PROFILES,
   SOLO_DIFFICULTY,
+  SOLO_PENALTY_FROM_LEVEL,
+  SOLO_WRONG_PENALTY_MS,
   TIER_SIZE,
   TRAINING_PRESET,
   type DifficultyProfile,
   type PhaseTiming,
   type Ramp,
 } from "./profiles";
-import type { Modifier, RoundInput, RoundRules, RoundSpec } from "./types";
+import type { Modifier, RoundInput, RoundMode, RoundRules, RoundSpec } from "./types";
 
 /** Bump when the curve changes in a way stored rounds should be told apart by. */
-export const ENGINE_VERSION = 1;
+export const ENGINE_VERSION = 2;
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;
@@ -57,8 +59,24 @@ export function modifiersFor(level: number): Modifier[] {
   });
 }
 
-function rulesOf(profile: DifficultyProfile): RoundRules {
-  return { lives: profile.lives, wrongPenaltyMs: profile.wrongPenaltyMs, comboWindowMs: COMBO_WINDOW_MS };
+function wrongPenaltyFor(profile: DifficultyProfile, mode: RoundMode, level: number): number {
+  switch (mode) {
+    case "level":
+      return level >= SOLO_PENALTY_FROM_LEVEL ? SOLO_WRONG_PENALTY_MS : 0;
+    case "duel":
+      return profile.wrongPenaltyMs;
+    case "daily":
+    case "training":
+      return 0;
+    default: {
+      const unreachable: never = mode;
+      return unreachable;
+    }
+  }
+}
+
+function rulesOf(profile: DifficultyProfile, mode: RoundMode, level: number): RoundRules {
+  return { lives: profile.lives, wrongPenaltyMs: wrongPenaltyFor(profile, mode, level), comboWindowMs: COMBO_WINDOW_MS };
 }
 
 function botOf(profile: DifficultyProfile, level: number): RoundSpec["bot"] {
@@ -73,7 +91,7 @@ function botOf(profile: DifficultyProfile, level: number): RoundSpec["bot"] {
 
 function trainingSpec(): RoundSpec {
   const profile = PROFILES[SOLO_DIFFICULTY];
-  const itemCount = TRAINING_PRESET.itemIds.length;
+  const itemCount = TRAINING_PRESET.itemCount;
   return {
     engineVersion: ENGINE_VERSION,
     mode: "training",
@@ -87,7 +105,7 @@ function trainingSpec(): RoundSpec {
     recallMs: TRAINING_PRESET.recallMs,
     lookalikeRatio: 1,
     modifiers: [],
-    rules: rulesOf(profile),
+    rules: rulesOf(profile, "training", 1),
     bot: botOf(profile, 1),
   };
 }
@@ -122,7 +140,7 @@ export function getRoundSpec(input: RoundInput): RoundSpec {
     recallMs: phaseMs(profile.recall, itemCount, level, MIN_RECALL_MS, MIN_RECALL_PER_ITEM_MS),
     lookalikeRatio: clamp(rampAt(profile.lookalike, level), 0, 1),
     modifiers,
-    rules: rulesOf(profile),
+    rules: rulesOf(profile, input.mode, level),
     bot: botOf(profile, level),
   };
 }
