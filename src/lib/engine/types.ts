@@ -44,6 +44,8 @@ export interface RoundSpec {
   choiceCount: number;
   memorizeMs: number;
   hideMs: number;
+  /** distraction task between hide and recall, 0 when the round has none */
+  distractMs: number;
   recallMs: number;
   /** share of decoys that are lookalikes of the targets (0..1) */
   lookalikeRatio: number;

@@ -12,6 +12,7 @@ function pickMood(round: Round | null, now: number): Mood {
   switch (round.phase) {
     case "memorize":
     case "hide":
+    case "distract":
       return "focus";
     case "recall":
       return round.combo >= 3 || round.phaseEndsAt - now <= RUSH_MS ? "rush" : "drive";

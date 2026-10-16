@@ -13,6 +13,7 @@ import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
 import { ChangeBoard } from "./ChangeBoard";
+import { DistractionTask } from "./DistractionTask";
 import { OrderShowcase, OrderSlots } from "./OrderBoard";
 import { PlaceTray, PositionBoard } from "./PositionBoard";
 import { Lives } from "./Lives";
@@ -41,7 +42,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const training = round.mode === "training";
 
   const phase = round.phase;
-  const totalMs = phase === "memorize" ? round.spec.memorizeMs : round.spec.recallMs;
+  const totalMs =
+    phase === "memorize" ? round.spec.memorizeMs : phase === "distract" ? round.spec.distractMs : round.spec.recallMs;
   const remainingMs = Math.min(totalMs, Math.max(0, round.phaseEndsAt - now));
   const seconds = formatSeconds(remainingMs);
   const progress = phase === "hide" ? 0 : Math.min(1, remainingMs / totalMs);
@@ -102,6 +104,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             : "Memorize the table"
       : phase === "hide"
         ? "Get ready..."
+        : phase === "distract"
+          ? "Tap the glowing dot!"
         : layout
           ? "Put each item back in its spot"
           : ordered
@@ -161,7 +165,9 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       {tip && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{tip}</p>}
 
       <div className="relative">
-        {table ? (
+        {phase === "distract" ? (
+          <DistractionTask />
+        ) : table ? (
           <ChangeBoard
             table={table}
             mode={phase === "memorize" ? "memorize" : phase === "hide" ? "hide" : "recall"}
@@ -277,8 +283,12 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
-          {phase === "memorize"
-            ? ordered
+          {phase === "distract"
+            ? "Keep tapping. Recall starts in a moment."
+            : phase === "memorize"
+            ? round.spec.roundType === "delayed"
+              ? `Remember all ${total} items. A short distraction comes before recall.`
+              : ordered
               ? `Remember all ${total} items and the order they come in.`
               : table
                 ? `Remember all ${table.before.length} items. ${total === 1 ? "One" : total} will change.`

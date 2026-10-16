@@ -53,7 +53,7 @@ export function Game() {
 
   useGameMusic(round, now);
 
-  const timed = round?.phase === "memorize" || round?.phase === "hide" || round?.phase === "recall";
+  const timed = round?.phase === "memorize" || round?.phase === "hide" || round?.phase === "distract" || round?.phase === "recall";
   const phaseEndsAt = round?.phaseEndsAt ?? 0;
 
   useEffect(() => {

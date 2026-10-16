@@ -6,7 +6,7 @@ import { isCorrectPlacement, itemAt, placementKey, type Layout } from "./rounds/
 import { WIN_RATIO, nextCombo, pointsForCombo, starsFor } from "./scoring";
 
 export type Mode = "training" | "level" | "daily";
-export type Phase = "intro" | "memorize" | "hide" | "recall" | "result";
+export type Phase = "intro" | "memorize" | "hide" | "distract" | "recall" | "result";
 
 export const INTRO_STEPS = 3;
 
@@ -156,7 +156,10 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       if (round.phase === "memorize") {
         return { ...round, phase: "hide", phaseEndsAt: round.phaseEndsAt + round.spec.hideMs };
       }
-      if (round.phase === "hide") {
+      if (round.phase === "hide" && round.spec.distractMs > 0) {
+        return { ...round, phase: "distract", phaseEndsAt: round.phaseEndsAt + round.spec.distractMs };
+      }
+      if (round.phase === "hide" || round.phase === "distract") {
         const recallEndsAt = action.now + round.spec.recallMs;
         return { ...round, phase: "recall", phaseEndsAt: recallEndsAt, recallEndsAt };
       }

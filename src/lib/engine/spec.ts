@@ -1,4 +1,5 @@
 import { ITEMS } from "@/lib/items";
+import { distractMsFor } from "@/lib/rounds/delayed";
 import { CHANGE_HIDE_MS } from "@/lib/rounds/change";
 import { getLevelConfig, type RoundType } from "@/lib/levelConfig";
 import {
@@ -23,7 +24,7 @@ import type { Difficulty, Modifier, RoundInput, RoundMode, RoundRules, RoundSpec
 export const ENGINE_VERSION = 3;
 
 /** Round types the game can play so far. Others fall back to item recall. */
-const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order", "change"];
+const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order", "change", "delayed"];
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;
@@ -109,6 +110,7 @@ function trainingSpec(): RoundSpec {
     choiceCount: itemCount * 2,
     memorizeMs: TRAINING_PRESET.memorizeMs,
     hideMs: HIDE_MS,
+    distractMs: 0,
     recallMs: TRAINING_PRESET.recallMs,
     lookalikeRatio: 1,
     modifiers: [],
@@ -137,6 +139,7 @@ function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: numbe
     choiceCount: config.gridTiles,
     memorizeMs: config.showTimeMs,
     hideMs: roundType === "change" ? CHANGE_HIDE_MS : HIDE_MS,
+    distractMs: roundType === "delayed" ? distractMsFor(config.level) : 0,
     recallMs: config.recallTimeMs,
     lookalikeRatio: config.lookAlikeShare,
     modifiers: [],
@@ -171,6 +174,7 @@ export function getRoundSpec(input: RoundInput): RoundSpec {
     choiceCount,
     memorizeMs: phaseMs(profile.memorize, itemCount, level, MIN_MEMORIZE_MS, MIN_MEMORIZE_PER_ITEM_MS, flash),
     hideMs: HIDE_MS,
+    distractMs: 0,
     recallMs: phaseMs(profile.recall, itemCount, level, MIN_RECALL_MS, MIN_RECALL_PER_ITEM_MS),
     lookalikeRatio: clamp(rampAt(profile.lookalike, level), 0, 1),
     modifiers,
