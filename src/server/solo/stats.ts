@@ -75,7 +75,7 @@ async function loadStats(userId: string): Promise<Stats> {
   return fromRow(data as StatsRow | null);
 }
 
-async function ensureProfile(userId: string): Promise<void> {
+export async function ensureProfile(userId: string): Promise<void> {
   const user = await currentUser();
   const name = [user?.firstName, user?.lastName].filter(Boolean).join(" ") || user?.username || null;
   // birth_year is player-provided, so it is deliberately left out of this upsert.

@@ -76,6 +76,13 @@ export function recordCheck(checks: MemoryCheck[], date: string, accuracy: numbe
   return [...checks, { date, accuracy: Math.round(accuracy) }].slice(-MAX_CHECKS);
 }
 
+/** Union of two check lists by date (the first entry for a date wins), oldest first. */
+export function mergeChecks(a: MemoryCheck[], b: MemoryCheck[]): MemoryCheck[] {
+  const byDate = new Map<string, MemoryCheck>();
+  for (const check of [...a, ...b]) if (!byDate.has(check.date)) byDate.set(check.date, check);
+  return [...byDate.values()].sort((x, y) => x.date.localeCompare(y.date)).slice(-MAX_CHECKS);
+}
+
 /** The first check is the day-1 baseline; after that a re-test is due every 14 days. */
 export function checkDue(checks: MemoryCheck[], today: string): boolean {
   if (checks.length === 0) return true;

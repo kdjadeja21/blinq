@@ -1,5 +1,6 @@
 import { auth } from "@clerk/nextjs/server";
 import { ApiError } from "@/server/multiplayer/db";
+import { syncChecks } from "@/server/solo/checks";
 import { recordRound, sync } from "@/server/solo/stats";
 
 async function readBody(request: Request): Promise<Record<string, unknown>> {
@@ -22,6 +23,8 @@ export async function POST(request: Request, ctx: RouteContext<"/api/solo/[actio
         return Response.json(await sync(userId, body));
       case "record_round":
         return Response.json(await recordRound(userId, body));
+      case "sync_checks":
+        return Response.json({ checks: await syncChecks(userId, body) });
       default:
         throw new ApiError(404, "Unknown action.");
     }

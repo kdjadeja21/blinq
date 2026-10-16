@@ -1,3 +1,4 @@
+import type { MemoryCheck } from "@/lib/skillProgress";
 import type { RoundSummary } from "@/lib/progress";
 import type { Stats } from "@/lib/stats";
 
@@ -24,4 +25,15 @@ export function recordSoloRound(round: RoundSummary): Promise<Stats> {
     recalledIds: round.recalled.map((r) => r.id),
     itemIds: round.items.map((i) => i.id),
   });
+}
+
+export async function syncMemoryChecks(checks: MemoryCheck[]): Promise<MemoryCheck[]> {
+  const response = await fetch("/api/solo/sync_checks", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ checks }),
+  });
+  const data = (await response.json().catch(() => ({}))) as { checks?: MemoryCheck[]; error?: string };
+  if (!response.ok || !data.checks) throw new Error(data.error ?? "Could not save your memory test.");
+  return data.checks;
 }

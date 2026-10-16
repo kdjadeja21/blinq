@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 import { getCheckSpec, getRoundSpec } from "./engine";
-import { checkChange, checkDue, recordCheck, recordSkill, skillTrend, skillTrends, type SkillLog } from "./skillProgress";
+import { checkChange, checkDue, mergeChecks, recordCheck, recordSkill, skillTrend, skillTrends, type SkillLog } from "./skillProgress";
 import { addProfile, DEFAULT_PROFILES, parseProfiles, scopedKey, selectProfile } from "./profile";
 import { getLevelConfig, KIDS_FIRST_BLOCK_ITEM_CAP, KIDS_ITEM_CAP } from "./levelConfig";
 
@@ -61,4 +61,18 @@ test("specs: kids rounds are flagged and capped, the check is fixed", () => {
   const check = getCheckSpec();
   assert.equal(check.itemCount, 6);
   assert.equal(check.mode, "training");
+});
+
+test("mergeChecks unions by date, keeps the first entry for a date and sorts oldest first", () => {
+  const merged = mergeChecks(
+    [{ date: "2026-10-16", accuracy: 60 }],
+    [
+      { date: "2026-10-02", accuracy: 40 },
+      { date: "2026-10-16", accuracy: 90 },
+    ],
+  );
+  assert.deepEqual(merged, [
+    { date: "2026-10-02", accuracy: 40 },
+    { date: "2026-10-16", accuracy: 60 },
+  ]);
 });

@@ -7,7 +7,7 @@ import { SOLO_DIFFICULTY, generateRound, getCheckSpec, getComboStageSpecs, getRo
 import { roundReducer, type Mode, type Stage } from "@/lib/game";
 import { getLevelConfig, updateAdaptive } from "@/lib/levelConfig";
 import { hasSeenIntro, loadLevelProgress, markIntroSeen, recordLevelResult, saveLevelProgress, useLevelProgress } from "@/lib/levelProgress";
-import { activeProfile, loadProfiles, useProfiles } from "@/lib/profile";
+import { DEFAULT_PROFILE_ID, activeProfile, loadProfiles, useProfiles } from "@/lib/profile";
 import { MEMORY_CHECK_ENABLED, SKILL_TYPES, checkChange, checkDue, recordCheck, recordSkill, skillTrends } from "@/lib/skillProgress";
 import { applyRoundResult } from "@/lib/progress";
 import { hash, mulberry32, utcDateKey } from "@/lib/rng";
@@ -23,6 +23,7 @@ import { ThemeToggle } from "./ThemeToggle";
 import { TrainingIntro } from "./TrainingIntro";
 import { TrainingPrompt } from "./TrainingPrompt";
 import { useGameMusic } from "./useGameMusic";
+import { useMemoryCheckSync } from "./useMemoryCheckSync";
 import { useSoloSync } from "./useSoloSync";
 
 const TRAINING_PROMPT_DELAY_MS = 2000;
@@ -67,8 +68,10 @@ export function Game() {
   const [checking, setChecking] = useState(false);
   const profiles = useProfiles();
   const levelProgress = useLevelProgress();
-  const { guest, recordRound } = useSoloSync();
+  const { guest, signedIn, recordRound } = useSoloSync();
   const memoryCheckOn = MEMORY_CHECK_ENABLED && !guest;
+  const onAccountProfile = !profiles || activeProfile(profiles).id === DEFAULT_PROFILE_ID;
+  useMemoryCheckSync(memoryCheckOn && signedIn && onAccountProfile, levelProgress ? levelProgress.checks.length : null);
   const { openSignIn } = useClerk();
 
   useGameMusic(round, now);
