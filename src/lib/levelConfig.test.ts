@@ -29,12 +29,19 @@ describe("getLevelConfig", () => {
     assert.ok(c.strategyTip);
   });
 
-  it("level 10 is the item boss, a combo capped at 14 items", () => {
+  it("the item block adds one item per level up to 13 at the boss", () => {
+    assert.deepEqual(
+      Array.from({ length: 10 }, (_, i) => getLevelConfig(i + 1).items),
+      [4, 5, 6, 7, 8, 9, 10, 11, 12, 13],
+    );
+  });
+
+  it("level 10 is the item boss, a combo", () => {
     const c = getLevelConfig(10);
     assert.equal(c.block, 0);
     assert.equal(c.roundType, "combo");
-    assert.equal(c.items, 14);
-    assert.equal(c.gridTiles, 24);
+    assert.equal(c.items, 13);
+    assert.equal(c.gridTiles, 23);
     assert.equal(c.isBoss, true);
     assert.equal(c.isIntro, false);
   });

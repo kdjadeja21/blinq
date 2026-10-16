@@ -49,6 +49,8 @@ export const BLOCK_SIZE = 10;
 export const GRID_CAP = 24;
 export const MIN_ITEMS = 3;
 export const ITEMS_PER_LEVEL = 2;
+/** The item block ramps gently so beginners reach the cap near level 10. */
+export const FIRST_BLOCK_ITEMS_PER_LEVEL = 1;
 export const ITEMS_PER_ADAPTIVE_STEP = 2;
 export const MIN_DISTRACTORS = 6;
 export const MAX_DISTRACTORS = 10;
@@ -77,22 +79,25 @@ export const SKIP_AHEAD_PERFECT_RUN = 3;
 interface BlockDef {
   type: RoundType;
   startItems: number;
+  /** items added per level inside the block */
+  perLevel: number;
   itemCap: number;
   tip: string;
 }
 
 /** One skill per block. Past the last entry the game loops through "combo". */
 const BLOCKS: readonly BlockDef[] = [
-  { type: "item", startItems: 4, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
-  { type: "position", startItems: 4, itemCap: 12, tip: "Picture the table as a room and place each item in a spot." },
-  { type: "order", startItems: 4, itemCap: 12, tip: "Link items into a silly story, in order." },
-  { type: "change", startItems: 5, itemCap: 14, tip: "Scan in zones, left to right, so nothing escapes you." },
-  { type: "delayed", startItems: 4, itemCap: 12, tip: "Repeat a vivid mental image to keep it alive during the pause." },
+  { type: "item", startItems: 4, perLevel: FIRST_BLOCK_ITEMS_PER_LEVEL, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
+  { type: "position", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Picture the table as a room and place each item in a spot." },
+  { type: "order", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Link items into a silly story, in order." },
+  { type: "change", startItems: 5, perLevel: ITEMS_PER_LEVEL, itemCap: 14, tip: "Scan in zones, left to right, so nothing escapes you." },
+  { type: "delayed", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Repeat a vivid mental image to keep it alive during the pause." },
 ];
 
 const COMBO_BLOCK: BlockDef = {
   type: "combo",
   startItems: 4,
+  perLevel: ITEMS_PER_LEVEL,
   itemCap: 12,
   tip: "Mix everything you learned: group, place and link.",
 };
@@ -137,7 +142,7 @@ export function getLevelConfig(
   const offset = clamp(Math.round(adaptiveOffset), -ADAPTIVE_MAX_OFFSET, ADAPTIVE_MAX_OFFSET);
 
   const rawItems =
-    block.startItems + ITEMS_PER_LEVEL * pos + preset.itemDelta + offset * ITEMS_PER_ADAPTIVE_STEP;
+    block.startItems + block.perLevel * pos + preset.itemDelta + offset * ITEMS_PER_ADAPTIVE_STEP;
   const items = clamp(rawItems, MIN_ITEMS, block.itemCap);
 
   const distractors = clamp(items, MIN_DISTRACTORS, MAX_DISTRACTORS);
