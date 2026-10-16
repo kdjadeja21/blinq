@@ -75,15 +75,10 @@ export function formatDailyDate(iso: string, now: Date = new Date()): string {
 }
 
 export function shareText(daily: NonNullable<Stats["daily"]>): string {
-  const cells = daily.itemIds.map((id) => (daily.recalledIds.includes(id) ? "🟩" : "⬜"));
-  const rows: string[] = [];
-  for (let i = 0; i < cells.length; i += 4) rows.push(cells.slice(i, i + 4).join(""));
   const stars = "⭐".repeat(daily.stars) || "·";
   return [
     `🧠 Blinq Daily · ${formatDailyDate(daily.date)} ${stars}`,
     `I remembered ${daily.correct}/${daily.total} items`,
-    "",
-    ...rows,
     "",
     "Think you can beat me? Play here 👇",
   ].join("\n");
