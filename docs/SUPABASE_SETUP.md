@@ -221,6 +221,7 @@ Single-player progress is saved for signed-in players. Multiplayer stays anonymo
 
 - Identity is Clerk (Google One Tap plus a sign-in button). Supabase is storage only.
 - Apply `supabase/migrations/20261014000000_solo_accounts.sql`. It creates `solo_profiles`, `solo_stats` and `solo_rounds`, keyed by the Clerk user id. RLS is on with no policies: only `/api/solo/[action]` (service role, after `auth()`) touches them.
+- Apply `supabase/migrations/20261016020000_solo_memory_checks.sql`. It adds `solo_memory_checks` (one row per player per day) so the 1-minute memory test and its retests follow the account. Same access rule: only `/api/solo/sync_checks` touches it.
 - Env vars: `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` and `CLERK_SECRET_KEY` (server only). `npx -y clerk@latest init` writes temporary accountless dev keys to `.env.local`.
 - Before enabling Google for real users, claim the app with `npx -y clerk@latest auth login`, turn on the Google social connection (Dashboard, or `clerk config pull` / `config patch --dry-run`), then `npx -y clerk@latest deploy` for production. Production needs your own Google OAuth client.
 - Google does not return age or birthday. The `solo_profiles.birth_year` column is reserved for an optional player-provided value.

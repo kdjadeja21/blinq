@@ -1,3 +1,5 @@
+import type { RoundType } from "@/lib/levelConfig";
+
 export const DIFFICULTY_LEVELS = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTY_LEVELS)[number];
 
@@ -10,6 +12,10 @@ export interface RoundInput {
   mode: RoundMode;
   difficulty: Difficulty;
   level: number;
+  /** solo levels only: adaptive difficulty step, -2..+2 */
+  adaptiveOffset?: number;
+  /** solo levels only: kids profile (easier skills first, smaller grids) */
+  kids?: boolean;
 }
 
 /** The rules a player is judged by during recall. */
@@ -34,10 +40,18 @@ export interface RoundSpec {
   difficulty: Difficulty;
   level: number;
   tier: number;
+  /** skill the round trains; only item recall is playable so far */
+  roundType: RoundType;
+  /** 0-based level block */
+  block: number;
+  /** built for a kids profile */
+  kids: boolean;
   itemCount: number;
   choiceCount: number;
   memorizeMs: number;
   hideMs: number;
+  /** distraction task between hide and recall, 0 when the round has none */
+  distractMs: number;
   recallMs: number;
   /** share of decoys that are lookalikes of the targets (0..1) */
   lookalikeRatio: number;

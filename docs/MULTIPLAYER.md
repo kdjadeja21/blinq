@@ -52,6 +52,16 @@ The creator picks a **mode** when creating the room: **Team** (above) or **Indiv
 - **Tables:** `rounds`, `round_items`, `round_choices`, `round_submissions` (no client access), `round_done`, `round_results`. Same RLS timing rules as the duel tables. Room phases are reused: `duel_intro` is the round intro and `level_result` is the leaderboard; `teams_ready` and `duel_result` are not used.
 - **Actions:** `submit_guess` and `finish_early` take `roundId` instead of `duelId`. `create_room` and `update_settings` accept `mode`. `create_teams` is rejected in individual rooms and `start_game` runs straight from the lobby.
 
+## Round types (individual rooms)
+
+The creator (or the admin in the lobby) picks a **round type**: Items (default), Change, Delayed or Mixed. Mixed rotates items, change and delayed by level, so everyone plays the same type at the same level. Team rooms always play items. Adaptive difficulty is never used in rooms, and items, timers and rules still come from the room's difficulty curve (`getRoomRoundSpec`).
+
+- **Storage:** `rooms.round_type` holds the setting. Each round's type and timing (`roundType`, `hideMs`, `distractMs`) live in `rounds.rules`, so older rounds are item rounds. The table is built from the room seed.
+- **Change:** `round_items` holds the table before the change and `round_choices` the table after it (`-` marks an empty spot), so the client can draw both views. The changed spots are in `round_puzzles`, which no client can read. Choices are hidden until recall for change rounds (`can_read_round_choices`). Players tap the original of a spot that changed.
+- **Delayed:** the memorize phase ends with a tapping task (`distractMs`), then recall.
+- **One scoring path:** `judgePick` (`src/lib/multiplayer/roundTypes.ts`) decides valid and correct for every type, and `scoreRecall` scores them all.
+- **Not in rooms yet:** position and order rounds (single player only). The server does not accept them as a room setting.
+
 ## Rules
 
 - **Teams:** two, as even as possible. Pairings are reshuffled every level and avoid earlier pairings while fresh ones exist (n players per team gives n fresh levels, then repeats are allowed). The bot rotates like any player.

@@ -23,11 +23,13 @@ function lookalikeShare(spec: RoundSpec, seed: number): number {
 }
 
 describe("getRoundSpec", () => {
-  it("keeps today's medium level 1 timings", () => {
+  it("builds solo levels from the level config", () => {
     const spec = getRoundSpec({ mode: "level", difficulty: "medium", level: 1 });
-    assert.equal(spec.itemCount, 6);
-    assert.equal(spec.memorizeMs, 16_000);
-    assert.equal(spec.recallMs, 17_000);
+    assert.equal(spec.itemCount, 4);
+    assert.equal(spec.choiceCount, 10);
+    assert.equal(spec.memorizeMs, 8_000);
+    assert.equal(spec.recallMs, 7_600);
+    assert.equal(spec.roundType, "item");
     assert.deepEqual(spec.rules, { lives: 3, wrongPenaltyMs: 0, comboWindowMs: 3_000 });
   });
 
@@ -72,6 +74,48 @@ describe("getRoundSpec", () => {
     assert.deepEqual(duel("medium", 15).modifiers, ["themed", "flash"]);
     assert.deepEqual(duel("medium", 20).modifiers, ["flash"]);
     assert.ok(duel("medium", 20).memorizeMs < duel("medium", 19).memorizeMs);
+  });
+
+  it("solo levels ramp items, keep the grid within 24 and play item or position recall", () => {
+    let prev = 0;
+    for (let level = 1; level <= 30; level++) {
+      const spec = getRoundSpec({ mode: "level", difficulty: "medium", level });
+      assert.ok(spec.choiceCount <= 24);
+      assert.ok(["item", "position", "order", "change"].includes(spec.roundType));
+      if (level <= 10) {
+        assert.equal(spec.roundType, "item");
+        assert.ok(spec.itemCount >= prev);
+        prev = spec.itemCount;
+      }
+    }
+    assert.equal(getRoundSpec({ mode: "level", difficulty: "medium", level: 11 }).roundType, "position");
+  });
+
+  it("builds position layouts with one distinct slot per item", () => {
+    for (const level of [11, 12, 15, 19]) {
+      const spec = getRoundSpec({ mode: "level", difficulty: "medium", level });
+      for (const seed of SEEDS) {
+        const { items, choices, layout } = generateRound(spec, mulberry32(seed));
+        assert.ok(layout);
+        assert.equal(items.length, spec.itemCount);
+        assert.equal(choices.length, items.length);
+        assert.equal(layout.slotCount, spec.choiceCount);
+        const slots = items.map((i) => layout.slots[i.id]);
+        assert.equal(new Set(slots).size, items.length);
+        assert.ok(slots.every((s) => s >= 0 && s < layout.slotCount));
+      }
+    }
+  });
+
+  it("fills decoys from the targets' categories before other items", () => {
+    const spec = getRoundSpec({ mode: "level", difficulty: "medium", level: 1 });
+    for (const seed of SEEDS) {
+      const { items, choices } = generateRound({ ...spec, lookalikeRatio: 0 }, mulberry32(seed));
+      const categories = new Set(items.map((i) => i.category));
+      const targets = new Set(items.map((i) => i.id));
+      const decoys = choices.filter((c) => !targets.has(c.id));
+      assert.ok(decoys.filter((d) => categories.has(d.category)).length >= Math.min(decoys.length, 4));
+    }
   });
 
   it("gives every player the same daily round", () => {

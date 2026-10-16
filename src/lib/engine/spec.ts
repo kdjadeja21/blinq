@@ -1,4 +1,7 @@
 import { ITEMS } from "@/lib/items";
+import { distractMsFor } from "@/lib/rounds/delayed";
+import { CHANGE_HIDE_MS } from "@/lib/rounds/change";
+import { getComboStageTypes, getLevelConfig, getStageTiming, gridTilesFor, type RoundType } from "@/lib/levelConfig";
 import {
   COMBO_WINDOW_MS,
   DAILY_LEVEL,
@@ -15,16 +18,22 @@ import {
   type PhaseTiming,
   type Ramp,
 } from "./profiles";
-import type { Modifier, RoundInput, RoundMode, RoundRules, RoundSpec } from "./types";
+import type { Difficulty, Modifier, RoundInput, RoundMode, RoundRules, RoundSpec } from "./types";
 
 /** Bump when the curve changes in a way stored rounds should be told apart by. */
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
+
+/** Round types the game can play so far. Others fall back to item recall. */
+const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order", "change", "delayed"];
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;
 export const MIN_DECOYS = 4;
 export const MAX_ITEMS = Math.min(ITEMS.length - MIN_DECOYS, MAX_CHOICES - MIN_DECOYS);
 
+const MIN_STAGE_ITEMS = 3;
+const TRAINING_CHANGE_ITEMS = 4;
+const TRAINING_DISTRACT_MS = 4_000;
 const MIN_MEMORIZE_MS = 4_000;
 const MIN_RECALL_MS = 6_000;
 const MIN_MEMORIZE_PER_ITEM_MS = 700;
@@ -89,19 +98,25 @@ function botOf(profile: DifficultyProfile, level: number): RoundSpec["bot"] {
   };
 }
 
-function trainingSpec(): RoundSpec {
+/** A short, free practice round for a skill. Item recall is the original tutorial round. */
+export function getTrainingSpec(roundType: RoundType = "item"): RoundSpec {
   const profile = PROFILES[SOLO_DIFFICULTY];
-  const itemCount = TRAINING_PRESET.itemCount;
+  const type = PLAYABLE_ROUND_TYPES.includes(roundType) ? roundType : "item";
+  const itemCount = type === "change" ? TRAINING_CHANGE_ITEMS : TRAINING_PRESET.itemCount;
   return {
     engineVersion: ENGINE_VERSION,
     mode: "training",
     difficulty: SOLO_DIFFICULTY,
     level: 1,
     tier: 1,
+    roundType: type,
+    block: 0,
+    kids: false,
     itemCount,
     choiceCount: itemCount * 2,
     memorizeMs: TRAINING_PRESET.memorizeMs,
-    hideMs: HIDE_MS,
+    hideMs: type === "change" ? CHANGE_HIDE_MS : HIDE_MS,
+    distractMs: type === "delayed" ? TRAINING_DISTRACT_MS : 0,
     recallMs: TRAINING_PRESET.recallMs,
     lookalikeRatio: 1,
     modifiers: [],
@@ -111,15 +126,106 @@ function trainingSpec(): RoundSpec {
 }
 
 /**
+ * A multiplayer round: the room's duel curve (items, timers, rules) played as another round type.
+ * Adaptive difficulty is never used here, so every player gets the same round.
+ */
+export function getRoomRoundSpec(difficulty: Difficulty, level: number, roundType: "item" | "change" | "delayed"): RoundSpec {
+  const base = getRoundSpec({ mode: "duel", difficulty, level });
+  if (roundType === "item") return base;
+  if (roundType === "change") return { ...base, roundType, hideMs: CHANGE_HIDE_MS };
+  const distractMs = distractMsFor(base.level);
+  return { ...base, roundType, distractMs, memorizeMs: base.memorizeMs + distractMs };
+}
+
+const CHECK_ITEMS = 6;
+const CHECK_MEMORIZE_MS = 12_000;
+const CHECK_RECALL_MS = 25_000;
+
+/** The memory check: the same fixed item round every time, so results compare across weeks. */
+export function getCheckSpec(): RoundSpec {
+  return {
+    ...getTrainingSpec("item"),
+    itemCount: CHECK_ITEMS,
+    choiceCount: CHECK_ITEMS * 2,
+    memorizeMs: CHECK_MEMORIZE_MS,
+    recallMs: CHECK_RECALL_MS,
+  };
+}
+
+/**
  * The single source of truth for a round: how many items, how long each phase lasts,
  * how tricky the decoys are, and the rules. Pure and deterministic.
  */
-export function getRoundSpec(input: RoundInput): RoundSpec {
-  if (input.mode === "training") return trainingSpec();
+function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: number, adaptiveOffset: number, kids: boolean): RoundSpec {
+  const config = getLevelConfig(level, difficulty, adaptiveOffset, kids);
+  const roundType = PLAYABLE_ROUND_TYPES.includes(config.roundType) ? config.roundType : "item";
+  return specFor(mode, difficulty, config.level, roundType, config.items, kids, {
+    choiceCount: config.gridTiles,
+    memorizeMs: config.showTimeMs,
+    recallMs: config.recallTimeMs,
+  });
+}
 
-  const daily = input.mode === "daily";
-  const difficulty = daily ? SOLO_DIFFICULTY : input.difficulty;
-  const level = daily ? DAILY_LEVEL : normalizeLevel(input.level);
+function specFor(
+  mode: "level" | "daily",
+  difficulty: Difficulty,
+  level: number,
+  roundType: RoundType,
+  items: number,
+  kids: boolean,
+  sized: { choiceCount: number; memorizeMs: number; recallMs: number },
+): RoundSpec {
+  const config = getLevelConfig(level, difficulty, 0, kids);
+  const profile = PROFILES[difficulty];
+  return {
+    engineVersion: ENGINE_VERSION,
+    mode,
+    difficulty,
+    level: config.level,
+    tier: config.block + 1,
+    roundType,
+    block: config.block,
+    kids,
+    itemCount: items,
+    choiceCount: sized.choiceCount,
+    memorizeMs: sized.memorizeMs,
+    hideMs: roundType === "change" ? CHANGE_HIDE_MS : HIDE_MS,
+    distractMs: roundType === "delayed" ? distractMsFor(config.level) : 0,
+    recallMs: sized.recallMs,
+    lookalikeRatio: config.lookAlikeShare,
+    modifiers: [],
+    rules: rulesOf(profile, mode, config.level),
+    bot: botOf(profile, config.level),
+  };
+}
+
+/** The two stages of a boss level: item recall, then the block's skill. Each takes about half the items. */
+export function getComboStageSpecs(difficulty: Difficulty, level: number, kids = false): RoundSpec[] {
+  const config = getLevelConfig(level, difficulty, 0, kids);
+  const first = Math.max(MIN_STAGE_ITEMS, Math.ceil(config.items / 2));
+  const counts = [first, Math.max(MIN_STAGE_ITEMS, config.items - first)];
+  return getComboStageTypes(config.level, kids).map((type, index) => {
+    const items = counts[index];
+    const roundType = PLAYABLE_ROUND_TYPES.includes(type) ? type : "item";
+    return specFor("level", difficulty, config.level, roundType, items, kids, {
+      choiceCount: gridTilesFor(items),
+      ...stageTimes(config.level, difficulty, items),
+    });
+  });
+}
+
+function stageTimes(level: number, difficulty: Difficulty, items: number) {
+  const { showTimeMs, recallTimeMs } = getStageTiming(level, difficulty, items);
+  return { memorizeMs: showTimeMs, recallMs: recallTimeMs };
+}
+
+export function getRoundSpec(input: RoundInput): RoundSpec {
+  if (input.mode === "training") return getTrainingSpec();
+  if (input.mode === "level") return levelSpec("level", input.difficulty, normalizeLevel(input.level), input.adaptiveOffset ?? 0, input.kids ?? false);
+  if (input.mode === "daily") return levelSpec("daily", SOLO_DIFFICULTY, DAILY_LEVEL, 0, false);
+
+  const difficulty = input.difficulty;
+  const level = normalizeLevel(input.level);
   const profile = PROFILES[difficulty];
   const modifiers = modifiersFor(level);
 
@@ -133,10 +239,14 @@ export function getRoundSpec(input: RoundInput): RoundSpec {
     difficulty,
     level,
     tier: tierOf(level),
+    roundType: "item",
+    block: 0,
+    kids: false,
     itemCount,
     choiceCount,
     memorizeMs: phaseMs(profile.memorize, itemCount, level, MIN_MEMORIZE_MS, MIN_MEMORIZE_PER_ITEM_MS, flash),
     hideMs: HIDE_MS,
+    distractMs: 0,
     recallMs: phaseMs(profile.recall, itemCount, level, MIN_RECALL_MS, MIN_RECALL_PER_ITEM_MS),
     lookalikeRatio: clamp(rampAt(profile.lookalike, level), 0, 1),
     modifiers,

@@ -1,5 +1,7 @@
 # Difficulty engine
 
+> **Solo levels and the daily challenge** now take their numbers from `getLevelConfig` in [`src/lib/levelConfig.ts`](../src/lib/levelConfig.ts) (10-level skill blocks, one source for items, grid size, timers and lookalike share). `getRoundSpec` wraps that config into a `RoundSpec`. Duels and training still use the curves in `profiles.ts` until the multiplayer phase. Only item recall is playable so far; other round types fall back to it.
+
 One pure module decides how every round plays: how many items are shown, how long memorize and recall last, how tricky the decoys are, how many mistakes are allowed, what a wrong pick costs, and how strong a bot is. Single player, the daily challenge, training and multiplayer duels (server, clients and bots) all read from it. To change how the game feels, change the engine; nothing else needs to move.
 
 Code: [`src/lib/engine/`](../src/lib/engine/)

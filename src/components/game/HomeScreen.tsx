@@ -3,14 +3,17 @@
 import { Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword, Trophy } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ComponentProps } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { SOLO_DIFFICULTY, getRoundSpec } from "@/lib/engine";
 import { playCue } from "@/lib/feedback";
 import { currentStreak, shareMessage } from "@/lib/progress";
 import { isGuestLocked } from "@/lib/solo/guest";
 import type { Stats } from "@/lib/storage";
+import type { ProfileState } from "@/lib/profile";
 import { GuestHint } from "./SoloAuth";
+import { ProfileBar } from "./ProfileBar";
+import { PROFILES_ENABLED } from "@/lib/profile";
+import { ProgressCard } from "./ProgressCard";
 import { StatTile } from "./StatTile";
 
 interface HomeScreenProps {
@@ -21,6 +24,9 @@ interface HomeScreenProps {
   onPlayLevel: () => void;
   onPlayDaily: () => void;
   onTraining: () => void;
+  profiles: ProfileState;
+  levelItems: number;
+  progress: ComponentProps<typeof ProgressCard>;
 }
 
 const FLOATERS = [
@@ -81,7 +87,7 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
   );
 }
 
-export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayDaily, onTraining }: HomeScreenProps) {
+export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayDaily, onTraining, profiles, levelItems, progress }: HomeScreenProps) {
   const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
   const countdown = useResetCountdown();
@@ -135,6 +141,8 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         </p>
       </div>
 
+      {PROFILES_ENABLED ? <ProfileBar state={profiles} /> : null}
+
       <div className="flex flex-col gap-2">
         <motion.div
           animate={reduce || locked ? undefined : { scale: [1, 1.03, 1] }}
@@ -156,7 +164,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
             ) : (
               <>
                 <Play className="size-6 fill-current" /> Play level {stats.level}
-                <span className="text-sm font-normal opacity-80">({getRoundSpec({ mode: "level", difficulty: SOLO_DIFFICULTY, level: stats.level }).itemCount} items)</span>
+                <span className="text-sm font-normal opacity-80">({levelItems} items)</span>
               </>
             )}
           </Button>
@@ -250,6 +258,8 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         <StatTile label="Accuracy" value={accuracy === null ? "–" : `${accuracy}%`} />
         <StatTile label="Best score" value={String(stats.bestScore)} />
       </dl>
+
+      <ProgressCard {...progress} />
 
       <Button
         variant="ghost"

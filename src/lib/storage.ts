@@ -1,4 +1,5 @@
 import { useMemo, useSyncExternalStore } from "react";
+import { activeProfileId, scopedKey, subscribeProfiles } from "./profile";
 import { DEFAULT_STATS, type Stats } from "./stats";
 
 const KEY = "blinq:v1";
@@ -10,15 +11,17 @@ const listeners = new Set<() => void>();
 function subscribe(listener: () => void) {
   listeners.add(listener);
   window.addEventListener("storage", listener);
+  const unsubscribeProfiles = subscribeProfiles(listener);
   return () => {
     listeners.delete(listener);
     window.removeEventListener("storage", listener);
+    unsubscribeProfiles();
   };
 }
 
 function readRaw(): string | null {
   try {
-    return window.localStorage.getItem(KEY);
+    return window.localStorage.getItem(scopedKey(KEY, activeProfileId()));
   } catch {
     return null;
   }
@@ -35,7 +38,7 @@ function parse(raw: string | null): Stats {
 
 export function saveStats(stats: Stats) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(stats));
+    window.localStorage.setItem(scopedKey(KEY, activeProfileId()), JSON.stringify(stats));
   } catch {
     // storage unavailable (private mode / quota): game still works for this session
   }

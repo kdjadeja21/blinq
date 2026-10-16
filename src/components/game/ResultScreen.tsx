@@ -1,18 +1,21 @@
 "use client";
 
-import { ArrowRight, Check, House, LogIn, RotateCcw, Share2, Star, Trophy } from "lucide-react";
+import { ArrowRight, Check, FastForward, House, LogIn, RotateCcw, Share2, Star, Trophy } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { shareMessage } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
+import { GraduationCard } from "./GraduationCard";
+import { ChangeBoard } from "./ChangeBoard";
+import { OrderSlots } from "./OrderBoard";
+import { PositionBoard } from "./PositionBoard";
 import { Confetti } from "./Confetti";
 import { StatTile } from "./StatTile";
 import { useCountUp } from "./useCountUp";
@@ -25,9 +28,16 @@ interface ResultScreenProps {
   guest: boolean;
   onHome: () => void;
   onStartPlaying: () => void;
+  /** level offered by the skip-ahead button, null when there is no offer */
+  skipTo?: number | null;
+  onSkipAhead?: () => void;
+  /** items in the next level, shown when a level is cleared */
+  nextItems?: number;
+  /** memory check: single attempt, then back home */
+  check?: boolean;
 }
 
-export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying }: ResultScreenProps) {
+export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying, skipTo = null, onSkipAhead, nextItems, check = false }: ResultScreenProps) {
   const [copied, setCopied] = useState(false);
   const result = round.result;
   const won = result?.won ?? false;
@@ -41,16 +51,22 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
   const training = round.mode === "training";
   const missed = result.total - result.correct;
-  const trainingRetry = training && !result.perfect && round.attempt < 2;
+  const trainingRetry = training && !check && !result.perfect && round.attempt < 2;
   const leveledUp = round.mode === "level" && result.stars === 3;
   const nextLocked = leveledUp && isGuestLocked(guest, round.level + 1);
 
   const isNewBest = !training && result.score > 0 && result.score >= stats.bestScore;
   const nextStarNeed = nextStarGap(result.correct, result.total);
 
+  const boss = round.stage.count > 1;
+  const graduated = boss && result.stars === 3;
+
   let headline: string;
   let sub: string;
-  if (result.perfect) {
+  if (boss) {
+    headline = graduated ? "You graduated!" : result.won ? "So close to graduating" : "The boss won this time";
+    sub = graduated ? "Both stages cleared." : `You recalled ${result.correct} of ${result.total} across both stages.`;
+  } else if (result.perfect) {
     headline = "Perfect recall!";
     sub = result.speedBonus > 0 ? `+${result.speedBonus} speed bonus` : "Every item remembered.";
   } else if (missed === 1) {
@@ -115,13 +131,25 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
         <p className="text-muted-foreground">{sub}</p>
       </div>
 
+      {boss && !training && (
+        <GraduationCard level={round.level} kids={round.spec.kids} graduated={graduated} score={result.score} correct={result.correct} total={result.total} />
+      )}
+
       <dl className="grid grid-cols-3 gap-2 text-center">
         <StatTile label="Recalled" value={`${result.correct}/${result.total}`} />
         <StatTile label="Score" value={String(score)} />
         <StatTile label="Wrong" value={String(result.wrongCount)} />
       </dl>
 
-      <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
+      {round.spec.roundType === "position" && round.layout ? (
+        <PositionBoard items={round.items} layout={round.layout} mode="reveal" placedIds={round.recalled.map((r) => r.id)} />
+      ) : round.spec.roundType === "change" && round.table ? (
+        <ChangeBoard table={round.table} mode="reveal" foundIds={round.recalled.map((r) => r.id)} wrongIds={[]} />
+      ) : round.spec.roundType === "order" ? (
+        <OrderSlots items={round.items} placedIds={round.recalled.map((r) => r.id)} reveal />
+      ) : (
+        <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
+      )}
 
       {!result.perfect && result.stars < 3 && (
         <p className="text-center text-sm text-muted-foreground">
@@ -135,7 +163,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
       )}
       {leveledUp && (
         <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          {nextLocked ? `You cleared the guest levels! Sign in to play level ${round.level + 1}.` : <>Level {round.level + 1} unlocked! ({getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1 }).itemCount} items)</>}
+          {nextLocked ? `You cleared the guest levels! Sign in to play level ${round.level + 1}.` : <>Level {round.level + 1} unlocked! {nextItems === undefined ? null : `(${nextItems} items)`}</>}
         </p>
       )}
 
@@ -152,7 +180,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
             </>
           ) : (
             <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={onStartPlaying}>
-              Start playing
+              {check ? "Done" : "Start playing"}
             </Button>
           )
         ) : round.mode === "daily" ? (
@@ -185,6 +213,11 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
                 )}
               </Button>
             </div>
+            {skipTo !== null && !nextLocked && onSkipAhead ? (
+              <Button variant="outline" className="h-12 w-full rounded-2xl text-base" onClick={onSkipAhead}>
+                <FastForward className="size-4" /> Skip to level {skipTo}
+              </Button>
+            ) : null}
             <Button variant="ghost" className="h-11 w-full" onClick={onHome}>
               <House className="size-4" /> Home
             </Button>

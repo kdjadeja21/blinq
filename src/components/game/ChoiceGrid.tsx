@@ -16,7 +16,8 @@ interface ChoiceGridProps {
 
 export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds, disabled = false, onPick }: ChoiceGridProps) {
   const reduce = useReducedMotion();
-  const cols = choices.length <= 12 ? "grid-cols-4" : "grid-cols-5";
+  const cols = choices.length <= 12 ? "grid-cols-4" : choices.length <= 20 ? "grid-cols-5" : "grid-cols-6";
+  const dense = choices.length > 20;
   return (
     <ul className={cn("grid w-full gap-2", cols)} aria-label="Tap the items you saw">
       {choices.map((item, index) => {
@@ -43,7 +44,8 @@ export function ChoiceGrid({ choices, recalledIds, wrongIds, hintId, pendingIds,
               onClick={() => onPick(item.id)}
               aria-label={`${item.name}${right ? ", correct" : wrong ? ", not on the table" : ""}`}
               className={cn(
-                "relative flex aspect-square w-full min-h-11 items-center justify-center rounded-2xl border-2 border-b-4 bg-card text-4xl shadow-md outline-none transition-colors",
+                "relative flex aspect-square w-full min-h-11 items-center justify-center rounded-2xl border-2 border-b-4 bg-card shadow-md outline-none transition-colors",
+                dense ? "text-3xl" : "text-4xl",
                 "focus-visible:ring-3 focus-visible:ring-ring/50 enabled:active:translate-y-0.5 enabled:active:border-b-2",
                 right && "border-success bg-success/20 shadow-success/40",
                 pending && "scale-95 border-primary bg-primary/15",

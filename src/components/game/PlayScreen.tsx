@@ -4,13 +4,19 @@ import { Lightbulb, SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MODIFIER_LABELS } from "@/lib/engine";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
+import { ROUND_TYPE_LABELS, getLevelConfig } from "@/lib/levelConfig";
+import { hintNudge } from "@/lib/rounds/intro";
+import { isCorrectNext, shownIndex } from "@/lib/rounds/order";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { ChangeBoard } from "./ChangeBoard";
+import { DistractionTask } from "./DistractionTask";
+import { OrderShowcase, OrderSlots } from "./OrderBoard";
+import { PlaceTray, PositionBoard } from "./PositionBoard";
 import { Lives } from "./Lives";
 import { TimerRing } from "./TimerRing";
 
@@ -19,6 +25,8 @@ interface PlayScreenProps {
   now: number;
   dispatch: (action: Action) => void;
   onSkipTraining: () => void;
+  /** memory check: no hints */
+  check?: boolean;
 }
 
 function formatSeconds(ms: number) {
@@ -30,12 +38,16 @@ function announcement(seconds: number): string {
   return "";
 }
 
-export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenProps) {
+export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false }: PlayScreenProps) {
   const [hintId, setHintId] = useState<string | null>(null);
+  const [nudge, setNudge] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lastWrongSlot, setLastWrongSlot] = useState<number | null>(null);
   const training = round.mode === "training";
 
   const phase = round.phase;
-  const totalMs = phase === "memorize" ? round.spec.memorizeMs : round.spec.recallMs;
+  const totalMs =
+    phase === "memorize" ? round.spec.memorizeMs : phase === "distract" ? round.spec.distractMs : round.spec.recallMs;
   const remainingMs = Math.min(totalMs, Math.max(0, round.phaseEndsAt - now));
   const seconds = formatSeconds(remainingMs);
   const progress = phase === "hide" ? 0 : Math.min(1, remainingMs / totalMs);
@@ -48,27 +60,81 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const lastRecalled = round.recalled[round.recalled.length - 1];
 
   function pick(id: string) {
-    const correct = round.items.some((i) => i.id === id);
+    const correct =
+      round.spec.roundType === "order"
+        ? isCorrectNext(round.items, round.recalled.length, id)
+        : round.items.some((i) => i.id === id);
     if (!correct) playCue("wrong");
     else if (!musicHit(round.combo)) playCue("correct");
     dispatch({ type: "pick", id, now: Date.now() });
   }
 
+  function place(slot: number) {
+    if (!selectedId || !round.layout) return;
+    const correct = round.layout.slots[selectedId] === slot;
+    if (!correct) {
+      playCue("wrong");
+      setLastWrongSlot(slot);
+    } else if (!musicHit(round.combo)) {
+      playCue("correct");
+    }
+    if (correct) setLastWrongSlot(null);
+    setSelectedId(null);
+    dispatch({ type: "place", id: selectedId, slot, now: Date.now() });
+  }
+
   function showHint() {
+    if (round.spec.roundType !== "item") {
+      setNudge(hintNudge(round.spec.roundType));
+      return;
+    }
     const missing = round.items.find((i) => !round.recalled.some((r) => r.id === i.id));
     setHintId(missing?.id ?? null);
   }
 
   const boardMode: BoardMode = phase === "memorize" ? "memorize" : "hide";
   const total = round.items.length;
+  const layout = round.spec.roundType === "position" ? round.layout : null;
+  const ordered = round.spec.roundType === "order";
+  const table = round.spec.roundType === "change" ? round.table : null;
+  const orderIndex =
+    phase === "memorize"
+      ? shownIndex(total, round.spec.memorizeMs, now - (round.phaseEndsAt - round.spec.memorizeMs))
+      : null;
   const label =
-    phase === "memorize" ? "Memorize the table" : phase === "hide" ? "Get ready..." : "Tap what you saw";
+    phase === "memorize"
+      ? layout
+        ? "Remember where each item sits"
+        : ordered
+          ? "Remember the order"
+          : table
+            ? "Study the table"
+            : "Memorize the table"
+      : phase === "hide"
+        ? "Get ready..."
+        : phase === "distract"
+          ? "Tap the glowing dot!"
+        : layout
+          ? "Put each item back in its spot"
+          : ordered
+            ? "Tap them in the order you saw"
+            : table
+              ? "Tap what changed"
+              : "Tap what you saw";
+  const strategyTip =
+    phase === "memorize" && round.mode === "level" && round.stage.index === 0
+      ? getLevelConfig(round.level, round.spec.difficulty, 0, round.spec.kids).strategyTip
+      : undefined;
   const tip = !training
-    ? null
-    : phase === "memorize"
+    ? strategyTip
+      ? `Strategy: ${strategyTip}`
+      : null
+    : nudge && phase === "recall"
+      ? `Hint: ${nudge}`
+      : phase === "memorize"
       ? "Tip: watch the timer above, then try to picture each item."
       : phase === "recall"
-        ? "Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training. Stuck? Use Hint."
+        ? `Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training.${check ? "" : " Stuck? Use Hint."}`
         : null;
 
   return (
@@ -76,8 +142,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}`}
-            {round.spec.modifiers.map((modifier) => ` · ${MODIFIER_LABELS[modifier]}`)}
+            {check ? "Memory check" : training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}, ${ROUND_TYPE_LABELS[round.spec.roundType]}`}
+            {round.stage.count > 1 ? ` · Boss stage ${round.stage.index + 1}/${round.stage.count}` : ""}
           </p>
           <h2 className="text-xl font-bold">{label}</h2>
         </div>
@@ -116,7 +182,60 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       {tip && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{tip}</p>}
 
       <div className="relative">
-        {phase === "recall" ? (
+        {phase === "distract" ? (
+          <DistractionTask />
+        ) : table ? (
+          <ChangeBoard
+            table={table}
+            mode={phase === "memorize" ? "memorize" : phase === "hide" ? "hide" : "recall"}
+            foundIds={round.recalled.map((r) => r.id)}
+            wrongIds={round.wrong}
+            disabled={round.lives <= 0}
+            onPick={pick}
+          />
+        ) : layout ? (
+          <div className="flex flex-col gap-4">
+            <PositionBoard
+              items={round.items}
+              layout={layout}
+              mode={phase === "memorize" ? "memorize" : phase === "hide" ? "hide" : "recall"}
+              placedIds={round.recalled.map((r) => r.id)}
+              wrongSlots={lastWrongSlot !== null && phase === "recall" ? [lastWrongSlot] : []}
+              canPlace={phase === "recall" && round.lives > 0 && selectedId !== null}
+              onSlot={place}
+            />
+            {phase === "recall" ? (
+              <PlaceTray
+                items={round.items}
+                placedIds={round.recalled.map((r) => r.id)}
+                selectedId={selectedId}
+                disabled={round.lives <= 0}
+                onSelect={(id) => {
+                  setLastWrongSlot(null);
+                  setSelectedId((current) => (current === id ? null : id));
+                }}
+              />
+            ) : null}
+          </div>
+        ) : ordered ? (
+          <div className="flex flex-col gap-4">
+            {phase === "recall" ? (
+              <>
+                <OrderSlots items={round.items} placedIds={round.recalled.map((r) => r.id)} />
+                <PlaceTray
+                  items={round.choices}
+                  placedIds={round.recalled.map((r) => r.id)}
+                  selectedId={null}
+                  disabled={round.lives <= 0}
+                  label="Items to tap in order"
+                  onSelect={pick}
+                />
+              </>
+            ) : (
+              <OrderShowcase items={round.items} index={orderIndex} />
+            )}
+          </div>
+        ) : phase === "recall" ? (
           <ChoiceGrid
             choices={round.choices}
             recalledIds={round.recalled.map((r) => r.id)}
@@ -169,8 +288,8 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             <Lives lives={round.lives} max={round.spec.rules.lives} />
           )}
           <div className="flex gap-2">
-            {training && (
-              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={hintId !== null}>
+            {training && !check && (
+              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={round.spec.roundType === "item" ? hintId !== null : nudge !== null}>
                 <Lightbulb className="size-4" /> Hint
               </Button>
             )}
@@ -181,7 +300,19 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
-          {phase === "memorize" ? `Remember all ${total} items - you'll pick them out of a crowd next.` : " "}
+          {phase === "distract"
+            ? "Keep tapping. Recall starts in a moment."
+            : phase === "memorize"
+            ? round.spec.roundType === "delayed"
+              ? `Remember all ${total} items. A short distraction comes before recall.`
+              : ordered
+              ? `Remember all ${total} items and the order they come in.`
+              : table
+                ? `Remember all ${table.before.length} items. ${total === 1 ? "One" : total} will change.`
+                : layout
+                ? `Remember all ${total} items and where they sit.`
+                : `Remember all ${total} items - you'll pick them out of a crowd next.`
+            : " "}
         </p>
       )}
     </div>

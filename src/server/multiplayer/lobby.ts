@@ -18,6 +18,7 @@ import {
 import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
+import { DEFAULT_ROUND_TYPE, validRoundType, type RoomRoundType } from "@/lib/multiplayer/roundTypes";
 import { resolveTeamStyle } from "@/lib/multiplayer/teamStyle";
 import {
   ROOM_MODES,
@@ -67,8 +68,15 @@ function validTeamStyle(raw: unknown, mode: RoomMode): TeamStyle {
   return result.style;
 }
 
+function validRoomRoundType(raw: unknown, mode: RoomMode): RoomRoundType {
+  const result = validRoundType(raw, mode);
+  if (!result.ok) throw new ApiError(400, result.error);
+  return result.type;
+}
+
 interface RoomSettingsInput {
   maxLevels?: unknown;
+  roundType?: unknown;
   difficulty?: unknown;
   pacing?: unknown;
   mode?: unknown;
@@ -93,6 +101,7 @@ function validSettings(input: RoomSettingsInput) {
     pacing: pacing as Pacing,
     mode,
     teamStyle: validTeamStyle(input.teamStyle, mode),
+    roundType: validRoomRoundType(input.roundType, mode),
   };
 }
 
@@ -122,6 +131,7 @@ export async function createRoom(
         pacing: settings.pacing,
         mode: settings.mode,
         team_style: settings.teamStyle,
+        round_type: settings.roundType,
         expires_at: new Date(Date.now() + ROOM_TTL_MS).toISOString(),
       })
       .select()
@@ -235,7 +245,13 @@ export async function playAgain(userId: string, roomId: string) {
   must(await db().from("rounds").delete().eq("room_id", room.id));
   must(await db().from("teams").update({ score: 0 }).eq("room_id", room.id));
   must(await db().from("players").update({ team_id: null, seat: null }).eq("room_id", room.id));
-  const next = await swapPhase(room, { phase: "lobby", level: 1, duel_index: 0, ...timedPhase(null) });
+  const next = await swapPhase(room, {
+    phase: "lobby",
+    level: 1,
+    duel_index: 0,
+    game_seed: crypto.randomUUID(),
+    ...timedPhase(null),
+  });
   if (!next) throw new ApiError(409, "The room changed. Try again.");
   return { roomId: room.id };
 }
@@ -276,6 +292,7 @@ export async function startGame(userId: string, roomId: string) {
 
 export interface SettingsInput {
   mode?: unknown;
+  roundType?: unknown;
   teamStyle?: unknown;
   maxLevels?: unknown;
   difficulty?: unknown;
@@ -307,6 +324,11 @@ export async function updateSettings(userId: string, roomId: string, input: Sett
       }
       patch.team_style = style;
     }
+  }
+  if (input.roundType !== undefined || (patch.mode === "team" && room.round_type !== DEFAULT_ROUND_TYPE)) {
+    if (!preGame) throw new ApiError(409, "The round type is locked once the game starts.");
+    const roundType = validRoomRoundType(input.roundType ?? DEFAULT_ROUND_TYPE, nextMode);
+    if (roundType !== room.round_type) patch.round_type = roundType;
   }
   if (input.maxLevels !== undefined || input.difficulty !== undefined) {
     if (!preGame) throw new ApiError(409, "Levels and difficulty are locked once the game starts.");
