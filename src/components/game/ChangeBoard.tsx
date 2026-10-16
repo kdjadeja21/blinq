@@ -42,7 +42,13 @@ export function ChangeBoard({ table, mode, foundIds, wrongIds, disabled = false,
             className="aspect-square"
             initial={reduce ? false : { scale: 0.5, opacity: 0 }}
             animate={wrong && !reduce ? { scale: 1, opacity: 1, x: [0, -6, 6, -4, 4, 0] } : { scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 380, damping: 20, delay: reduce ? 0 : slot * 0.03 }}
+            transition={{
+              type: "spring",
+              stiffness: 380,
+              damping: 20,
+              delay: reduce ? 0 : slot * 0.03,
+              x: { type: "tween", duration: 0.4, delay: 0 },
+            }}
           >
             <button
               type="button"

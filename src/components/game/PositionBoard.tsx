@@ -46,7 +46,13 @@ export function PositionBoard({ items, layout, mode, placedIds, wrongSlots = [],
             key={slot}
             initial={reduce ? false : { scale: 0.6, opacity: 0 }}
             animate={wrong && !reduce ? { scale: 1, opacity: 1, x: [0, -6, 6, -4, 4, 0] } : { scale: 1, opacity: 1 }}
-            transition={{ type: "spring", stiffness: 380, damping: 20, delay: reduce ? 0 : slot * 0.02 }}
+            transition={{
+              type: "spring",
+              stiffness: 380,
+              damping: 20,
+              delay: reduce ? 0 : slot * 0.02,
+              x: { type: "tween", duration: 0.4, delay: 0 },
+            }}
           >
             <button
               type="button"
