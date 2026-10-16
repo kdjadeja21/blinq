@@ -61,6 +61,7 @@ describe("boss round", () => {
     const stageOneItems = round.items.length;
     let now = 1000;
     for (const item of round.items) round = roundReducer(round, { type: "pick", id: item.id, now: (now += 200) })!;
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "memorize");
     assert.equal(round.stage.index, 1);
     assert.equal(round.spec.roundType, "position");
@@ -71,6 +72,7 @@ describe("boss round", () => {
     for (const item of round.items) {
       round = roundReducer(round, { type: "place", id: item.id, slot: round.layout!.slots[item.id], now: (now += 200) })!;
     }
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "result");
     assert.equal(round.result?.total, stageOneItems + round.items.length);
     assert.equal(round.result?.correct, round.result?.total);
@@ -83,6 +85,7 @@ describe("boss round", () => {
     for (let i = 0; i < round.spec.rules.lives; i++) {
       round = roundReducer(round, { type: "pick", id: `${wrongId}${i}`, now: 1000 + i })!;
     }
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "result");
     const specs = getComboStageSpecs("medium", 20);
     assert.equal(round.result?.total, specs[0].itemCount + specs[1].itemCount);

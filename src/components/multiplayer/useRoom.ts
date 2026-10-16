@@ -4,11 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { HEARTBEAT_MS, isSquad } from "@/lib/multiplayer/config";
 import { myDuel } from "@/lib/multiplayer/squad";
 import { callMp } from "@/lib/multiplayer/api";
+import { RESULTS_TRANSITION_DELAY_MS } from "@/lib/roundEnd";
 import type {
   DuelProgressRow,
   DuelResultRow,
   DuelRow,
   PlayerRow,
+  RoomPhase,
   RoomRow,
   RoundDoneRow,
   RoundResultRow,
@@ -46,9 +48,11 @@ export interface RoomState {
   now: () => number;
   /** Re-reads the room immediately instead of waiting for a realtime event. */
   refresh: () => Promise<void>;
+  /** Call on every local recall tap so the results screen waits for its feedback. */
+  noteTap: () => void;
 }
 
-const EMPTY: Omit<RoomState, "now" | "refresh"> = {
+const EMPTY: Omit<RoomState, "now" | "refresh" | "noteTap"> = {
   status: "loading",
   error: null,
   room: null,
@@ -70,7 +74,7 @@ const EMPTY: Omit<RoomState, "now" | "refresh"> = {
   round: null,
 };
 
-type Data = Omit<RoomState, "now" | "refresh" | "online" | "status" | "error" | "me" | "isAdmin" | "duel" | "round">;
+type Data = Omit<RoomState, "now" | "refresh" | "noteTap" | "online" | "status" | "error" | "me" | "isAdmin" | "duel" | "round">;
 const EMPTY_DATA: Data = {
   room: null,
   players: [],
@@ -98,6 +102,43 @@ export function useRoom(code: string): RoomState {
   const memorizedRef = useRef<{ stageId: string; keys: string[] } | null>(null);
 
   const now = useCallback(() => Date.now() + offsetRef.current, []);
+
+  const lastTapRef = useRef(0);
+  const phaseRef = useRef<RoomPhase | null>(null);
+  const pendingRef = useRef<Data | null>(null);
+  const holdRef = useRef<number | undefined>(undefined);
+  const noteTap = useCallback(() => {
+    lastTapRef.current = Date.now();
+  }, []);
+
+  const commit = useCallback((next: Data) => {
+    phaseRef.current = next.room?.phase ?? null;
+    setData(next);
+  }, []);
+
+  // Server-driven round ends only change what this player sees after the last tap had time to show.
+  // The update is held back (latest one wins), never dropped, and nothing is sent or changed on the server.
+  const apply = useCallback(
+    (next: Data) => {
+      if (holdRef.current !== undefined) {
+        pendingRef.current = next;
+        return;
+      }
+      const wait = lastTapRef.current + RESULTS_TRANSITION_DELAY_MS - Date.now();
+      if (phaseRef.current === "recall" && next.room?.phase !== "recall" && wait > 0) {
+        pendingRef.current = next;
+        holdRef.current = window.setTimeout(() => {
+          holdRef.current = undefined;
+          const held = pendingRef.current;
+          pendingRef.current = null;
+          if (held) commit(held);
+        }, wait);
+        return;
+      }
+      commit(next);
+    },
+    [commit],
+  );
 
   const refresh = useCallback(async () => {
     const client = supabase();
@@ -144,7 +185,7 @@ export function useRoom(code: string): RoomState {
     const itemKeys = (items?.data ?? []).map((r: { item_key: string }) => r.item_key);
     if (stageId && itemKeys.length > 0) memorizedRef.current = { stageId, keys: itemKeys };
     const memorized = memorizedRef.current;
-    setData({
+    apply({
       room,
       players: players.data ?? [],
       teams: teams.data ?? [],
@@ -159,7 +200,7 @@ export function useRoom(code: string): RoomState {
       choiceKeys: (choices?.data ?? []).map((r: { item_key: string }) => r.item_key),
     });
     setStatus("ready");
-  }, [code]);
+  }, [code, apply]);
 
   useEffect(() => {
     let cancelled = false;
@@ -210,6 +251,9 @@ export function useRoom(code: string): RoomState {
     return () => {
       cancelled = true;
       window.clearTimeout(timer);
+      window.clearTimeout(holdRef.current);
+      holdRef.current = undefined;
+      pendingRef.current = null;
       document.removeEventListener("visibilitychange", onVisible);
       void client.removeChannel(channel);
     };
@@ -276,5 +320,5 @@ export function useRoom(code: string): RoomState {
     };
   }, [roomId, version, deadline, isAdmin, duelist]);
 
-  return { ...data, status, error, online, me, isAdmin, duel, round, now, refresh };
+  return { ...data, status, error, online, me, isAdmin, duel, round, now, refresh, noteTap };
 }

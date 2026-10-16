@@ -1,5 +1,6 @@
 "use client";
 
+import { cn } from "cn";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { Board } from "@/components/game/Board";
@@ -125,7 +126,7 @@ function RecallRound({ state, round, clock, startedAt }: { state: RoomState; rou
     () => (change ? (state.choiceKeys.length ? changedOriginals(state.memorizedKeys, state.choiceKeys) : []) : state.memorizedKeys),
     [change, state.memorizedKeys, state.choiceKeys],
   );
-  const picks = useDuelPicks({ duel: round, kind: "round", startedAt, memorized: known, now: state.now });
+  const picks = useDuelPicks({ duel: round, kind: "round", startedAt, memorized: known, now: state.now, onTap: state.noteTap });
   const { score } = picks;
 
   const current = clock || startedAt;
@@ -168,7 +169,7 @@ function RecallRound({ state, round, clock, startedAt }: { state: RoomState; rou
           </div>
         }
       />
-      <div className="relative">
+      <div className={cn("relative", waiting && "pointer-events-none")}>
         {change ? (
           <ChangeBoard table={table} mode="recall" foundIds={picks.right} wrongIds={picks.wrong} disabled={waiting} onPick={picks.pick} />
         ) : (

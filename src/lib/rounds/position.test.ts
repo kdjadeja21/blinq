@@ -55,6 +55,7 @@ describe("position round", () => {
     for (const item of round.items) {
       round = roundReducer(round, { type: "place", id: item.id, slot: round.layout!.slots[item.id], now: (now += 200) })!;
     }
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "result");
     assert.equal(round.result?.perfect, true);
     assert.equal(round.result?.stars, 3);

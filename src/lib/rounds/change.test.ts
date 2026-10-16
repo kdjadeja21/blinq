@@ -70,6 +70,7 @@ describe("change round", () => {
     for (const slot of table!.changed) {
       round = roundReducer(round, { type: "pick", id: table!.before[slot].id, now: (now += 300) })!;
     }
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "result");
     assert.equal(round.result?.total, table!.changed.length);
     assert.equal(round.result?.perfect, true);

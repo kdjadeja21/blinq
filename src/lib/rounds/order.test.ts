@@ -26,6 +26,7 @@ describe("order round", () => {
     let round = startRound();
     let now = 1000;
     for (const item of round.items) round = roundReducer(round, { type: "pick", id: item.id, now: (now += 300) })!;
+    round = roundReducer(round, { type: "finish", key: round.key, now: 50_000 })!;
     assert.equal(round.phase, "result");
     assert.equal(round.result?.perfect, true);
     assert.equal(round.wrong.length, 0);

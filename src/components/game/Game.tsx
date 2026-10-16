@@ -4,6 +4,7 @@ import { useClerk } from "@clerk/nextjs";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
 import { SOLO_DIFFICULTY, generateRound, getCheckSpec, getComboStageSpecs, getRoundSpec, getTrainingSpec, type RoundSpec } from "@/lib/engine";
+import { RESULTS_TRANSITION_DELAY_MS } from "@/lib/roundEnd";
 import { roundReducer, type Mode, type Stage } from "@/lib/game";
 import { getLevelConfig, updateAdaptive } from "@/lib/levelConfig";
 import { hasSeenIntro, loadLevelProgress, markIntroSeen, recordLevelResult, saveLevelProgress, useLevelProgress } from "@/lib/levelProgress";
@@ -17,6 +18,7 @@ import { loadStats, saveStats, useStats } from "@/lib/storage";
 import { HomeScreen } from "./HomeScreen";
 import { PlayScreen } from "./PlayScreen";
 import { ResultScreen } from "./ResultScreen";
+import { ResultsTransition } from "./ResultsTransition";
 import { SoloAuthControl } from "./SoloAuth";
 import { SoundToggle } from "./SoundToggle";
 import { ThemeToggle } from "./ThemeToggle";
@@ -88,6 +90,14 @@ export function Game() {
     }, 100);
     return () => window.clearInterval(id);
   }, [timed, phaseEndsAt]);
+
+  const roundKey = round?.key;
+  const ending = Boolean(round?.ending);
+  useEffect(() => {
+    if (!ending || roundKey === undefined) return;
+    const id = window.setTimeout(() => dispatch({ type: "finish", key: roundKey, now: Date.now() }), RESULTS_TRANSITION_DELAY_MS);
+    return () => window.clearTimeout(id);
+  }, [ending, roundKey]);
 
   useEffect(() => {
     if (!round?.result || committedRef.current === round.key) return;
@@ -240,8 +250,8 @@ export function Game() {
     );
   } else if (round.phase === "result") {
     body = (
+      <ResultsTransition key={round.key}>
       <ResultScreen
-        key={round.key}
         round={round}
         stats={stats}
         guest={guest}
@@ -254,6 +264,7 @@ export function Game() {
         skipTo={skipOffer?.key === round.key ? skipOffer.to : null}
         onSkipAhead={skipAhead}
       />
+      </ResultsTransition>
     );
   } else {
     body = <PlayScreen key={`${round.key}-${round.stage.index}`} round={round} now={now} dispatch={dispatch} onSkipTraining={checking ? finishCheck : finishTraining} check={checking} />;

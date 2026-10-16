@@ -104,7 +104,7 @@ export function Popups({ kind, points, penaltyMs, id }: { kind: "good" | "bad"; 
 
 function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel: DuelRow; clock: number; startedAt: number }) {
   const choices = useMemo(() => toItems(state.choiceKeys), [state.choiceKeys]);
-  const picks = useDuelPicks({ duel, startedAt, memorized: state.memorizedKeys, now: state.now });
+  const picks = useDuelPicks({ duel, startedAt, memorized: state.memorizedKeys, now: state.now, onTap: state.noteTap });
   const { score } = picks;
 
   const current = clock || startedAt;
@@ -155,7 +155,7 @@ function RecallPanel({ state, duel, clock, startedAt }: { state: RoomState; duel
           </div>
         }
       />
-      <div className="relative">
+      <div className={cn("relative", waiting && "pointer-events-none")}>
         <ChoiceGrid
           choices={choices}
           recalledIds={picks.right}

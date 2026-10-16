@@ -6,6 +6,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { buttonVariants } from "@/components/ui/button";
+import { ResultsTransition } from "@/components/game/ResultsTransition";
 import { SoundToggle } from "@/components/game/SoundToggle";
 import type { RoomPhase, TeamRow } from "@/lib/multiplayer/types";
 import { DuelView } from "./DuelView";
@@ -111,9 +112,13 @@ function Screen({ state }: { state: RoomState }) {
     case "recall":
       return individual ? <RoundView state={state} /> : <DuelView state={state} />;
     case "duel_result":
-      return <DuelResultView state={state} />;
+      return <ResultsTransition key={`${phase}-${state.room?.level}-${state.room?.duel_index}`}><DuelResultView state={state} /></ResultsTransition>;
     case "level_result":
-      return individual ? <RoundResultView state={state} /> : <LevelResultView state={state} />;
+      return (
+        <ResultsTransition key={`${phase}-${state.room?.level}`}>
+          {individual ? <RoundResultView state={state} /> : <LevelResultView state={state} />}
+        </ResultsTransition>
+      );
     case "finished":
       return individual ? <IndividualFinalView state={state} /> : <FinalView state={state} />;
     case undefined:
