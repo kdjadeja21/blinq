@@ -1,5 +1,6 @@
 import type { RoundSpec } from "@/lib/engine";
 import type { Item } from "./items";
+import { isCorrectNext, orderKey } from "./rounds/order";
 import { isCorrectPlacement, itemAt, placementKey, type Layout } from "./rounds/position";
 import { WIN_RATIO, nextCombo, pointsForCombo, starsFor } from "./scoring";
 
@@ -161,6 +162,12 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
     case "pick": {
       if (round.phase !== "recall") return round;
       if (round.recalled.some((r) => r.id === action.id) || round.wrong.includes(action.id)) return round;
+      if (round.spec.roundType === "order") {
+        const position = round.recalled.length;
+        const key = orderKey(action.id, position);
+        if (round.wrong.includes(key) || !round.items.some((i) => i.id === action.id)) return round;
+        return applyAnswer(round, action.id, isCorrectNext(round.items, position, action.id), key, action.now);
+      }
       return applyAnswer(round, action.id, round.items.some((i) => i.id === action.id), action.id, action.now);
     }
     case "place": {

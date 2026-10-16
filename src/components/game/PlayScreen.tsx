@@ -8,9 +8,11 @@ import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
 import { ROUND_TYPE_LABELS } from "@/lib/levelConfig";
+import { isCorrectNext, shownIndex } from "@/lib/rounds/order";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { OrderShowcase, OrderSlots } from "./OrderBoard";
 import { PlaceTray, PositionBoard } from "./PositionBoard";
 import { Lives } from "./Lives";
 import { TimerRing } from "./TimerRing";
@@ -51,7 +53,10 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const lastRecalled = round.recalled[round.recalled.length - 1];
 
   function pick(id: string) {
-    const correct = round.items.some((i) => i.id === id);
+    const correct =
+      round.spec.roundType === "order"
+        ? isCorrectNext(round.items, round.recalled.length, id)
+        : round.items.some((i) => i.id === id);
     if (!correct) playCue("wrong");
     else if (!musicHit(round.combo)) playCue("correct");
     dispatch({ type: "pick", id, now: Date.now() });
@@ -79,16 +84,25 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const boardMode: BoardMode = phase === "memorize" ? "memorize" : "hide";
   const total = round.items.length;
   const layout = round.spec.roundType === "position" ? round.layout : null;
+  const ordered = round.spec.roundType === "order";
+  const orderIndex =
+    phase === "memorize"
+      ? shownIndex(total, round.spec.memorizeMs, now - (round.phaseEndsAt - round.spec.memorizeMs))
+      : null;
   const label =
     phase === "memorize"
       ? layout
         ? "Remember where each item sits"
-        : "Memorize the table"
+        : ordered
+          ? "Remember the order"
+          : "Memorize the table"
       : phase === "hide"
         ? "Get ready..."
         : layout
           ? "Put each item back in its spot"
-          : "Tap what you saw";
+          : ordered
+            ? "Tap them in the order you saw"
+            : "Tap what you saw";
   const tip = !training
     ? null
     : phase === "memorize"
@@ -165,6 +179,24 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
               />
             ) : null}
           </div>
+        ) : ordered ? (
+          <div className="flex flex-col gap-4">
+            {phase === "recall" ? (
+              <>
+                <OrderSlots items={round.items} placedIds={round.recalled.map((r) => r.id)} />
+                <PlaceTray
+                  items={round.choices}
+                  placedIds={round.recalled.map((r) => r.id)}
+                  selectedId={null}
+                  disabled={round.lives <= 0}
+                  label="Items to tap in order"
+                  onSelect={pick}
+                />
+              </>
+            ) : (
+              <OrderShowcase items={round.items} index={orderIndex} />
+            )}
+          </div>
         ) : phase === "recall" ? (
           <ChoiceGrid
             choices={round.choices}
@@ -230,7 +262,13 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         </div>
       ) : (
         <p className="text-center text-sm text-muted-foreground">
-          {phase === "memorize" ? `Remember all ${total} items - you'll pick them out of a crowd next.` : " "}
+          {phase === "memorize"
+            ? ordered
+              ? `Remember all ${total} items and the order they come in.`
+              : layout
+                ? `Remember all ${total} items and where they sit.`
+                : `Remember all ${total} items - you'll pick them out of a crowd next.`
+            : " "}
         </p>
       )}
     </div>

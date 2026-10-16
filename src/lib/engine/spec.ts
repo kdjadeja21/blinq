@@ -22,7 +22,7 @@ import type { Difficulty, Modifier, RoundInput, RoundMode, RoundRules, RoundSpec
 export const ENGINE_VERSION = 3;
 
 /** Round types the game can play so far. Others fall back to item recall. */
-const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position"];
+const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order"];
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;

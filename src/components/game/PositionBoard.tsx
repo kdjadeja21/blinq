@@ -80,13 +80,14 @@ interface PlaceTrayProps {
   placedIds: string[];
   selectedId: string | null;
   disabled?: boolean;
+  label?: string;
   onSelect: (id: string) => void;
 }
 
-export function PlaceTray({ items, placedIds, selectedId, disabled = false, onSelect }: PlaceTrayProps) {
+export function PlaceTray({ items, placedIds, selectedId, disabled = false, label = "Items to place. Pick one, then tap its spot.", onSelect }: PlaceTrayProps) {
   const waiting = items.filter((item) => !placedIds.includes(item.id));
   return (
-    <ul className="flex flex-wrap justify-center gap-2" aria-label="Items to place. Pick one, then tap its spot.">
+    <ul className="flex flex-wrap justify-center gap-2" aria-label={label}>
       {waiting.map((item) => (
         <li key={item.id}>
           <button

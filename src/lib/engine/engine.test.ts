@@ -81,7 +81,7 @@ describe("getRoundSpec", () => {
     for (let level = 1; level <= 30; level++) {
       const spec = getRoundSpec({ mode: "level", difficulty: "medium", level });
       assert.ok(spec.choiceCount <= 24);
-      assert.ok(spec.roundType === "item" || spec.roundType === "position");
+      assert.ok(["item", "position", "order"].includes(spec.roundType));
       if (level <= 10) {
         assert.equal(spec.roundType, "item");
         assert.ok(spec.itemCount >= prev);
