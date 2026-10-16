@@ -18,7 +18,7 @@ import { tapTime } from "./taps";
 export async function ensureRound(room: RoomRow, level: number): Promise<RoundRow> {
   const roundType = roundTypeForLevel(room.round_type ?? "item", level);
   const spec = getRoomRoundSpec(room.difficulty, level, roundType);
-  const { items, choices, table } = generateRound(spec, seededRandom(`${room.id}:round-items:${level}`));
+  const { items, choices, table } = generateRound(spec, seededRandom(`${room.id}:${room.game_seed}:round-items:${level}`));
 
   // Change rounds store the table before the change as the items and the table after it as the choices.
   const shown = table ? table.before : items;

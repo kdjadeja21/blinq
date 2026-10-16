@@ -40,6 +40,8 @@ export interface RoomRow {
   mode: RoomMode;
   team_style: TeamStyle;
   round_type: RoomRoundType;
+  /** changes on every play again, so a replay gets fresh tables */
+  game_seed: string;
   duel_index: number;
   expires_at: string;
   created_at: string;

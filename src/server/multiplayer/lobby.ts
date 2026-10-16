@@ -245,7 +245,13 @@ export async function playAgain(userId: string, roomId: string) {
   must(await db().from("rounds").delete().eq("room_id", room.id));
   must(await db().from("teams").update({ score: 0 }).eq("room_id", room.id));
   must(await db().from("players").update({ team_id: null, seat: null }).eq("room_id", room.id));
-  const next = await swapPhase(room, { phase: "lobby", level: 1, duel_index: 0, ...timedPhase(null) });
+  const next = await swapPhase(room, {
+    phase: "lobby",
+    level: 1,
+    duel_index: 0,
+    game_seed: crypto.randomUUID(),
+    ...timedPhase(null),
+  });
   if (!next) throw new ApiError(409, "The room changed. Try again.");
   return { roomId: room.id };
 }

@@ -57,7 +57,7 @@ export async function ensureLevel(
     teamA,
     teamB,
     history,
-    seededRandom(`${room.id}:pairs:${level}`),
+    seededRandom(`${room.id}:${room.game_seed}:pairs:${level}`),
   );
 
   const spec = getRoundSpec({ mode: "duel", difficulty: room.difficulty, level });
@@ -81,7 +81,7 @@ export async function ensureLevel(
     rules,
     bot_plan:
       botIds.has(pair.a) || botIds.has(pair.b)
-        ? makeBotPlan(spec, seededRandom(`${room.id}:bot:${level}:${index}`))
+        ? makeBotPlan(spec, seededRandom(`${room.id}:${room.game_seed}:bot:${level}:${index}`))
         : null,
   }));
   must(
@@ -102,7 +102,7 @@ export async function ensureLevel(
       .returns<Pick<DuelRow, "id" | "duel_index">[]>(),
   );
   for (const duel of duels) {
-    const random = seededRandom(`${room.id}:items:${level}:${duel.duel_index}`);
+    const random = seededRandom(`${room.id}:${room.game_seed}:items:${level}:${duel.duel_index}`);
     const { items, choices } = generateRound(spec, random);
     const toRows = (list: Item[]) =>
       list.map((item, position) => ({
