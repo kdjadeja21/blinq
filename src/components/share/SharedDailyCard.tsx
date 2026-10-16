@@ -1,9 +1,9 @@
 "use client";
 
-import { Star } from "lucide-react";
+import { Check, Star } from "lucide-react";
 import Image from "next/image";
 import { motion, useReducedMotion } from "framer-motion";
-import { cn } from "@/lib/utils";
+import { SHARE_BACKGROUND, SHARE_COLORS, SHARE_TILE_MISS_BACKGROUND, tileTilt } from "@/lib/share-design";
 
 interface SharedDailyCardProps {
   when: string;
@@ -22,43 +22,61 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
   return (
     <section
       aria-label={`Remembered ${correct} of ${total} on ${when}`}
-      className="w-full rounded-[2rem] bg-gradient-to-br from-[#5b2bd6] to-[#c13fd8] p-3 shadow-lg"
+      className="relative w-full overflow-hidden rounded-[2rem] p-5 shadow-lg sm:p-8"
+      style={{ background: SHARE_BACKGROUND }}
     >
-      <div className="flex items-center justify-between gap-4 rounded-3xl bg-white p-5 text-left text-[#2a1a63] sm:p-8">
+      <div
+        aria-hidden
+        className="absolute -left-16 -top-24 size-72 rounded-full"
+        style={{ background: SHARE_COLORS.circleLarge }}
+      />
+      <div
+        aria-hidden
+        className="absolute -bottom-24 -right-16 size-60 rounded-full"
+        style={{ background: SHARE_COLORS.circleSmall }}
+      />
+      <div className="relative flex items-center justify-between gap-4 text-left">
         <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
-          <p className="flex items-center gap-3 text-3xl font-extrabold tracking-tight sm:text-5xl">
-            <Image src="/icon.svg" alt="" width={56} height={56} priority className="size-10 rounded-xl shadow-md sm:size-14" />
-            <span className="bg-gradient-to-r from-primary to-fuchsia-500 bg-[length:170%_100%] bg-center bg-clip-text text-transparent">Blinq</span>
+          <p className="flex items-center gap-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <Image src="/icon.svg" alt="" width={64} height={64} priority className="size-10 rounded-xl sm:size-14" />
+            Blinq
           </p>
-          <p className="text-xs font-semibold text-[#7a6bb0] sm:text-base">Daily Challenge · {when}</p>
+          <p className="text-xl font-bold leading-tight text-white sm:text-4xl">
+            <span className="whitespace-nowrap">I remembered</span>
+            <br />
+            {correct}/{total}
+          </p>
+          <p className="text-sm font-bold sm:text-xl" style={{ color: SHARE_COLORS.accent }}>
+            Daily Challenge · {when}
+          </p>
           <div className="flex gap-1" role="img" aria-label={`${stars} of 3 stars`}>
             {[0, 1, 2].map((i) => (
               <Star
                 key={i}
-                className={cn(
-                  "size-6 sm:size-8",
-                  i < stars ? "fill-[#ffc531] text-[#ffc531]" : "fill-[#ddd5f5] text-[#ddd5f5]",
-                )}
+                className="size-6 sm:size-9"
+                style={{
+                  color: i < stars ? SHARE_COLORS.accent : SHARE_COLORS.starOff,
+                  fill: i < stars ? SHARE_COLORS.accent : SHARE_COLORS.starOff,
+                }}
               />
             ))}
           </div>
-          <p className="flex flex-wrap items-baseline gap-x-2">
-            <span className="text-4xl font-extrabold sm:text-6xl">
-              {correct}/{total}
-            </span>
-            <span className="text-xs font-bold sm:text-lg">remembered</span>
-          </p>
-          <p className="text-xs font-bold text-[#5b2bd6] sm:text-base">Can you beat me?</p>
         </div>
-        <div className="grid w-[38%] max-w-44 shrink-0 grid-cols-4 gap-1.5 sm:gap-2.5" aria-hidden>
+        <div className="grid w-[36%] max-w-44 shrink-0 grid-cols-4 gap-1.5 sm:gap-2.5" aria-hidden>
           {cells.map((hit, i) => (
             <motion.span
               key={i}
-              className={cn("aspect-square w-full rounded-md sm:rounded-xl", hit ? "bg-[#2ecb70]" : "bg-[#e4defa]")}
-              initial={reduce ? false : { scale: 0, rotate: -20, opacity: 0 }}
-              animate={{ scale: 1, rotate: 0, opacity: 1 }}
+              className="flex aspect-square w-full items-center justify-center rounded-md border-2 border-b-4 text-[10px] font-bold text-white sm:rounded-xl sm:text-lg"
+              style={{
+                background: hit ? SHARE_COLORS.tileHitFace : SHARE_TILE_MISS_BACKGROUND,
+                borderColor: hit ? SHARE_COLORS.tileHitEdge : SHARE_COLORS.tileMissBorder,
+              }}
+              initial={reduce ? { rotate: tileTilt(i) } : { scale: 0, rotate: -20, opacity: 0 }}
+              animate={{ scale: 1, rotate: tileTilt(i), opacity: 1 }}
               transition={{ type: "spring", stiffness: 380, damping: 14, delay: 0.15 + i * TILE_STAGGER }}
-            />
+            >
+              {hit ? <Check className="size-3/5" style={{ color: SHARE_COLORS.hitMark }} strokeWidth={4} /> : "?"}
+            </motion.span>
           ))}
         </div>
       </div>
