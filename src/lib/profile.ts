@@ -1,5 +1,8 @@
 import { useSyncExternalStore } from "react";
 
+/** Profiles are built and tested but hidden for now. Set to true to show the profile switcher. */
+export const PROFILES_ENABLED = false;
+
 const KEY = "blinq:profiles:v1";
 export const DEFAULT_PROFILE_ID = "default";
 export const MAX_PROFILES = 6;

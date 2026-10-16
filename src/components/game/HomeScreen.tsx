@@ -12,6 +12,7 @@ import type { Stats } from "@/lib/storage";
 import type { ProfileState } from "@/lib/profile";
 import { GuestHint } from "./SoloAuth";
 import { ProfileBar } from "./ProfileBar";
+import { PROFILES_ENABLED } from "@/lib/profile";
 import { ProgressCard } from "./ProgressCard";
 import { StatTile } from "./StatTile";
 
@@ -140,7 +141,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         </p>
       </div>
 
-      <ProfileBar state={profiles} />
+      {PROFILES_ENABLED ? <ProfileBar state={profiles} /> : null}
 
       <div className="flex flex-col gap-2">
         <motion.div
