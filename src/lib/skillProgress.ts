@@ -1,7 +1,7 @@
 import type { RoundType } from "./levelConfig";
 
-/** The baseline memory check is built and tested but hidden for now. Set to true to offer it again. */
-export const MEMORY_CHECK_ENABLED = false;
+/** Offers the 1-minute memory test and the retest. Set to false to hide it. */
+export const MEMORY_CHECK_ENABLED = true;
 
 export type SkillType = Exclude<RoundType, "combo">;
 export const SKILL_TYPES: readonly SkillType[] = ["item", "position", "order", "change", "delayed"];

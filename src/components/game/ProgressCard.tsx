@@ -36,19 +36,22 @@ export function ProgressCard({ trends, checkChange, checkDue, hasBaseline, onSta
         </ul>
       ) : null}
       {checkChange !== null ? (
-        <p className="mt-2 text-sm text-muted-foreground">Memory check: {signed(checkChange)} points since day 1.</p>
+        <p className="mt-2 text-sm text-muted-foreground">
+          Since your first memory test: <span className="font-bold">{signed(checkChange)} points</span>.
+        </p>
       ) : null}
       {checkDue ? (
-        <>
-          <p className="mt-2 text-sm text-muted-foreground">
+        <div className="mt-3 rounded-2xl bg-muted p-3">
+          <p className="font-bold">{hasBaseline ? "Time to retest" : "Measure your memory"}</p>
+          <p className="mt-1 text-sm text-muted-foreground">
             {hasBaseline
-              ? `It has been ${RETEST_AFTER_DAYS} days. Re-test to see how far you have come.`
-              : "A one-minute check sets your starting point, so you can see your progress."}
+              ? `It has been ${RETEST_AFTER_DAYS}+ days since your last test. Take it again to see how much you improved.`
+              : `A 1-minute test with no hints. We save your score, and after ${RETEST_AFTER_DAYS} days you can retest to see your improvement.`}
           </p>
           <Button variant="secondary" className="mt-2 h-12 w-full rounded-2xl" onClick={onStartCheck}>
-            {hasBaseline ? "Take the re-test" : "Take the memory check"}
+            {hasBaseline ? "Retest now" : "Start 1-minute test"}
           </Button>
-        </>
+        </div>
       ) : null}
     </section>
   );

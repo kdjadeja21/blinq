@@ -253,13 +253,13 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
         </Link>
       </section>
 
-      <ProgressCard {...progress} />
-
       <dl className="grid grid-cols-3 gap-2 text-center">
         <StatTile label="Best level" value={String(stats.bestLevel)} />
         <StatTile label="Accuracy" value={accuracy === null ? "–" : `${accuracy}%`} />
         <StatTile label="Best score" value={String(stats.bestScore)} />
       </dl>
+
+      <ProgressCard {...progress} />
 
       <Button
         variant="ghost"
