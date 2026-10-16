@@ -4,10 +4,10 @@ import { Lightbulb, SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { MODIFIER_LABELS } from "@/lib/engine";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
+import { ROUND_TYPE_LABELS } from "@/lib/levelConfig";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
@@ -76,8 +76,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}`}
-            {round.spec.modifiers.map((modifier) => ` · ${MODIFIER_LABELS[modifier]}`)}
+            {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}, ${ROUND_TYPE_LABELS[round.spec.roundType]}`}
           </p>
           <h2 className="text-xl font-bold">{label}</h2>
         </div>

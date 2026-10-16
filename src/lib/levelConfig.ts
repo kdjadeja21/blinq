@@ -28,6 +28,15 @@ export interface LevelConfig {
   strategyTip?: string;
 }
 
+export const ROUND_TYPE_LABELS: Record<RoundType, string> = {
+  item: "Item Recall",
+  position: "Position Recall",
+  order: "Order Recall",
+  change: "Spot the Change",
+  delayed: "Delayed Recall",
+  combo: "Combo",
+};
+
 export interface AdaptiveState {
   winStreak: number;
   lossStreak: number;

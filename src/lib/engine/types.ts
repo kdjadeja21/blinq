@@ -1,3 +1,5 @@
+import type { RoundType } from "@/lib/levelConfig";
+
 export const DIFFICULTY_LEVELS = ["easy", "medium", "hard"] as const;
 export type Difficulty = (typeof DIFFICULTY_LEVELS)[number];
 
@@ -34,6 +36,10 @@ export interface RoundSpec {
   difficulty: Difficulty;
   level: number;
   tier: number;
+  /** skill the round trains; only item recall is playable so far */
+  roundType: RoundType;
+  /** 0-based level block */
+  block: number;
   itemCount: number;
   choiceCount: number;
   memorizeMs: number;

@@ -1,4 +1,5 @@
 import { ITEMS } from "@/lib/items";
+import { getLevelConfig, type RoundType } from "@/lib/levelConfig";
 import {
   COMBO_WINDOW_MS,
   DAILY_LEVEL,
@@ -15,10 +16,13 @@ import {
   type PhaseTiming,
   type Ramp,
 } from "./profiles";
-import type { Modifier, RoundInput, RoundMode, RoundRules, RoundSpec } from "./types";
+import type { Difficulty, Modifier, RoundInput, RoundMode, RoundRules, RoundSpec } from "./types";
 
 /** Bump when the curve changes in a way stored rounds should be told apart by. */
-export const ENGINE_VERSION = 2;
+export const ENGINE_VERSION = 3;
+
+/** Round types the game can play so far. Others fall back to item recall. */
+const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item"];
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;
@@ -98,6 +102,8 @@ function trainingSpec(): RoundSpec {
     difficulty: SOLO_DIFFICULTY,
     level: 1,
     tier: 1,
+    roundType: "item",
+    block: 0,
     itemCount,
     choiceCount: itemCount * 2,
     memorizeMs: TRAINING_PRESET.memorizeMs,
@@ -114,12 +120,36 @@ function trainingSpec(): RoundSpec {
  * The single source of truth for a round: how many items, how long each phase lasts,
  * how tricky the decoys are, and the rules. Pure and deterministic.
  */
+function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: number): RoundSpec {
+  const config = getLevelConfig(level, difficulty);
+  const profile = PROFILES[difficulty];
+  return {
+    engineVersion: ENGINE_VERSION,
+    mode,
+    difficulty,
+    level: config.level,
+    tier: config.block + 1,
+    roundType: PLAYABLE_ROUND_TYPES.includes(config.roundType) ? config.roundType : "item",
+    block: config.block,
+    itemCount: config.items,
+    choiceCount: config.gridTiles,
+    memorizeMs: config.showTimeMs,
+    hideMs: HIDE_MS,
+    recallMs: config.recallTimeMs,
+    lookalikeRatio: config.lookAlikeShare,
+    modifiers: [],
+    rules: rulesOf(profile, mode, config.level),
+    bot: botOf(profile, config.level),
+  };
+}
+
 export function getRoundSpec(input: RoundInput): RoundSpec {
   if (input.mode === "training") return trainingSpec();
+  if (input.mode === "level") return levelSpec("level", input.difficulty, normalizeLevel(input.level));
+  if (input.mode === "daily") return levelSpec("daily", SOLO_DIFFICULTY, DAILY_LEVEL);
 
-  const daily = input.mode === "daily";
-  const difficulty = daily ? SOLO_DIFFICULTY : input.difficulty;
-  const level = daily ? DAILY_LEVEL : normalizeLevel(input.level);
+  const difficulty = input.difficulty;
+  const level = normalizeLevel(input.level);
   const profile = PROFILES[difficulty];
   const modifiers = modifiersFor(level);
 
@@ -133,6 +163,8 @@ export function getRoundSpec(input: RoundInput): RoundSpec {
     difficulty,
     level,
     tier: tierOf(level),
+    roundType: "item",
+    block: 0,
     itemCount,
     choiceCount,
     memorizeMs: phaseMs(profile.memorize, itemCount, level, MIN_MEMORIZE_MS, MIN_MEMORIZE_PER_ITEM_MS, flash),

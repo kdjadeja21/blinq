@@ -34,7 +34,7 @@ function pickTargets(spec: RoundSpec, random: () => number): { items: Item[]; po
   return { items: shuffle(ITEMS, random).slice(0, spec.itemCount), pool: [] };
 }
 
-/** Lookalikes of the targets first (up to the spec's share), then same-theme items, then anything. */
+/** Lookalikes of the targets first (up to the spec's share), then items from the targets' categories, then the theme, then anything. */
 function pickDecoys(spec: RoundSpec, items: Item[], pool: Item[], random: () => number): Item[] {
   const decoyTarget = Math.max(0, spec.choiceCount - items.length);
   const lookalikeTarget = Math.round(decoyTarget * spec.lookalikeRatio);
@@ -59,7 +59,9 @@ function pickDecoys(spec: RoundSpec, items: Item[], pool: Item[], random: () => 
     }
   }
 
-  for (const filler of [...shuffle(pool, random), ...shuffle(ITEMS, random)]) {
+  const categories = new Set(items.map((item) => item.category));
+  const sameCategory = ITEMS.filter((item) => categories.has(item.category));
+  for (const filler of [...shuffle(sameCategory, random), ...shuffle(pool, random), ...shuffle(ITEMS, random)]) {
     if (decoys.length >= decoyTarget) break;
     if (!taken.has(filler.id)) take(filler);
   }
