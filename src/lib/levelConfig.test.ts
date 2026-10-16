@@ -20,10 +20,10 @@ describe("getLevelConfig", () => {
     const c = getLevelConfig(1);
     assert.equal(c.block, 0);
     assert.equal(c.roundType, "item");
-    assert.equal(c.items, 6);
-    assert.equal(c.gridTiles, 12);
-    assert.equal(c.showTimeMs, 12_000);
-    assert.equal(c.recallTimeMs, 9_400);
+    assert.equal(c.items, 4);
+    assert.equal(c.gridTiles, 10);
+    assert.equal(c.showTimeMs, 8_000);
+    assert.equal(c.recallTimeMs, 7_600);
     assert.equal(c.isIntro, true);
     assert.equal(c.isBoss, false);
     assert.ok(c.strategyTip);

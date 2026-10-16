@@ -25,10 +25,10 @@ function lookalikeShare(spec: RoundSpec, seed: number): number {
 describe("getRoundSpec", () => {
   it("builds solo levels from the level config", () => {
     const spec = getRoundSpec({ mode: "level", difficulty: "medium", level: 1 });
-    assert.equal(spec.itemCount, 6);
-    assert.equal(spec.choiceCount, 12);
-    assert.equal(spec.memorizeMs, 12_000);
-    assert.equal(spec.recallMs, 9_400);
+    assert.equal(spec.itemCount, 4);
+    assert.equal(spec.choiceCount, 10);
+    assert.equal(spec.memorizeMs, 8_000);
+    assert.equal(spec.recallMs, 7_600);
     assert.equal(spec.roundType, "item");
     assert.deepEqual(spec.rules, { lives: 3, wrongPenaltyMs: 0, comboWindowMs: 3_000 });
   });

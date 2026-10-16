@@ -83,7 +83,7 @@ interface BlockDef {
 
 /** One skill per block. Past the last entry the game loops through "combo". */
 const BLOCKS: readonly BlockDef[] = [
-  { type: "item", startItems: 6, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
+  { type: "item", startItems: 4, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
   { type: "position", startItems: 4, itemCap: 12, tip: "Picture the table as a room and place each item in a spot." },
   { type: "order", startItems: 4, itemCap: 12, tip: "Link items into a silly story, in order." },
   { type: "change", startItems: 5, itemCap: 14, tip: "Scan in zones, left to right, so nothing escapes you." },
