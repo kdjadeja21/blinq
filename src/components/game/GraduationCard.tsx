@@ -11,13 +11,14 @@ interface GraduationCardProps {
   score: number;
   correct: number;
   total: number;
+  kids?: boolean;
 }
 
-export function GraduationCard({ level, graduated, score, correct, total }: GraduationCardProps) {
+export function GraduationCard({ level, graduated, score, correct, total, kids = false }: GraduationCardProps) {
   const reduce = useReducedMotion();
-  const block = getLevelConfig(level).block + 1;
-  const skill = ROUND_TYPE_LABELS[getComboStageTypes(level)[1]];
-  const next = ROUND_TYPE_LABELS[getLevelConfig(level + 1).roundType];
+  const block = getLevelConfig(level, "medium", 0, kids).block + 1;
+  const skill = ROUND_TYPE_LABELS[getComboStageTypes(level, kids)[1]];
+  const next = ROUND_TYPE_LABELS[getLevelConfig(level + 1, "medium", 0, kids).roundType];
   return (
     <motion.section
       aria-label={graduated ? `Block ${block} graduation` : `Block ${block} boss`}

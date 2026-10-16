@@ -6,7 +6,6 @@ import { cn } from "cn";
 import { motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
-import { getRoundSpec } from "@/lib/engine";
 import type { Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { shareMessage } from "@/lib/progress";
@@ -32,9 +31,13 @@ interface ResultScreenProps {
   /** level offered by the skip-ahead button, null when there is no offer */
   skipTo?: number | null;
   onSkipAhead?: () => void;
+  /** items in the next level, shown when a level is cleared */
+  nextItems?: number;
+  /** memory check: single attempt, then back home */
+  check?: boolean;
 }
 
-export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying, skipTo = null, onSkipAhead }: ResultScreenProps) {
+export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying, skipTo = null, onSkipAhead, nextItems, check = false }: ResultScreenProps) {
   const [copied, setCopied] = useState(false);
   const result = round.result;
   const won = result?.won ?? false;
@@ -48,7 +51,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
   const training = round.mode === "training";
   const missed = result.total - result.correct;
-  const trainingRetry = training && !result.perfect && round.attempt < 2;
+  const trainingRetry = training && !check && !result.perfect && round.attempt < 2;
   const leveledUp = round.mode === "level" && result.stars === 3;
   const nextLocked = leveledUp && isGuestLocked(guest, round.level + 1);
 
@@ -129,7 +132,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
       </div>
 
       {boss && !training && (
-        <GraduationCard level={round.level} graduated={graduated} score={result.score} correct={result.correct} total={result.total} />
+        <GraduationCard level={round.level} kids={round.spec.kids} graduated={graduated} score={result.score} correct={result.correct} total={result.total} />
       )}
 
       <dl className="grid grid-cols-3 gap-2 text-center">
@@ -160,7 +163,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
       )}
       {leveledUp && (
         <p className="text-center text-sm font-medium text-emerald-600 dark:text-emerald-400">
-          {nextLocked ? `You cleared the guest levels! Sign in to play level ${round.level + 1}.` : <>Level {round.level + 1} unlocked! ({getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1 }).itemCount} items)</>}
+          {nextLocked ? `You cleared the guest levels! Sign in to play level ${round.level + 1}.` : <>Level {round.level + 1} unlocked! {nextItems === undefined ? null : `(${nextItems} items)`}</>}
         </p>
       )}
 
@@ -177,7 +180,7 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
             </>
           ) : (
             <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={onStartPlaying}>
-              Start playing
+              {check ? "Done" : "Start playing"}
             </Button>
           )
         ) : round.mode === "daily" ? (

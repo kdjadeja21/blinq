@@ -96,6 +96,16 @@ const BLOCKS: readonly BlockDef[] = [
   { type: "delayed", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Repeat a vivid mental image to keep it alive during the pause." },
 ];
 
+/** Kids see the visual skills first (item, position, change) and never get more than 10 items. */
+export const KIDS_ITEM_CAP = 10;
+export const KIDS_FIRST_BLOCK_ITEM_CAP = 8;
+const KIDS_BLOCK_ORDER = [0, 1, 3, 2, 4] as const;
+
+const KIDS_BLOCKS: readonly BlockDef[] = KIDS_BLOCK_ORDER.map((source, index) => ({
+  ...BLOCKS[source],
+  itemCap: Math.min(BLOCKS[source].itemCap, index === 0 ? KIDS_FIRST_BLOCK_ITEM_CAP : KIDS_ITEM_CAP),
+}));
+
 const COMBO_BLOCK: BlockDef = {
   type: "combo",
   startItems: 4,
@@ -112,20 +122,27 @@ const DIFFICULTY_PRESETS: Record<Difficulty, { time: number; lookAlike: number; 
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
 
-function blockDef(blockIndex: number): BlockDef {
-  return BLOCKS[blockIndex] ?? COMBO_BLOCK;
+function blocksFor(kids: boolean): readonly BlockDef[] {
+  return kids ? KIDS_BLOCKS : BLOCKS;
+}
+
+function blockDef(blockIndex: number, kids: boolean): BlockDef {
+  const found = blocksFor(kids)[blockIndex];
+  if (found) return found;
+  return kids ? { ...COMBO_BLOCK, itemCap: KIDS_ITEM_CAP } : COMBO_BLOCK;
 }
 
 function normalizeLevel(level: number): number {
   return Number.isFinite(level) ? Math.max(1, Math.floor(level)) : 1;
 }
 
-function pickRoundType(level: number, blockIndex: number, pos: number): RoundType {
+function pickRoundType(level: number, blockIndex: number, pos: number, kids: boolean): RoundType {
   if (pos === BLOCK_SIZE - 1) return "combo";
-  const main = blockDef(blockIndex).type;
+  const main = blockDef(blockIndex, kids).type;
   if (pos === 0 || blockIndex === 0) return main;
   if (pos % REVIEW_EVERY === REVIEW_EVERY - 1) {
-    const earlier = BLOCKS.slice(0, Math.min(blockIndex, BLOCKS.length));
+    const blocks = blocksFor(kids);
+    const earlier = blocks.slice(0, Math.min(blockIndex, blocks.length));
     return earlier[level % earlier.length].type;
   }
   return main;
@@ -157,12 +174,13 @@ const COMBO_SKILLS: readonly RoundType[] = ["position", "order", "change", "dela
  * The stages of a boss round: item recall first, then the block's own skill.
  * The item block chains item recall with itself, later combo blocks rotate through the skills.
  */
-export function getComboStageTypes(level: number): RoundType[] {
+export function getComboStageTypes(level: number, kids = false): RoundType[] {
   const blockIndex = Math.floor((normalizeLevel(level) - 1) / BLOCK_SIZE);
+  const blocks = blocksFor(kids);
   const skill: RoundType =
     blockIndex === 0
       ? "item"
-      : (BLOCKS[blockIndex]?.type ?? COMBO_SKILLS[(blockIndex - BLOCKS.length) % COMBO_SKILLS.length]);
+      : (blocks[blockIndex]?.type ?? COMBO_SKILLS[(blockIndex - blocks.length) % COMBO_SKILLS.length]);
   return ["item", skill];
 }
 
@@ -170,11 +188,12 @@ export function getLevelConfig(
   level: number,
   difficulty: Difficulty = "medium",
   adaptiveOffset = 0,
+  kids = false,
 ): LevelConfig {
   const lvl = normalizeLevel(level);
   const blockIndex = Math.floor((lvl - 1) / BLOCK_SIZE);
   const pos = (lvl - 1) % BLOCK_SIZE;
-  const block = blockDef(blockIndex);
+  const block = blockDef(blockIndex, kids);
   const preset = DIFFICULTY_PRESETS[difficulty];
   const offset = clamp(Math.round(adaptiveOffset), -ADAPTIVE_MAX_OFFSET, ADAPTIVE_MAX_OFFSET);
 
@@ -194,7 +213,7 @@ export function getLevelConfig(
   return {
     level: lvl,
     block: blockIndex,
-    roundType: pickRoundType(lvl, blockIndex, pos),
+    roundType: pickRoundType(lvl, blockIndex, pos, kids),
     items,
     gridTiles,
     showTimeMs,

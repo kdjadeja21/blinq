@@ -1,4 +1,7 @@
-import { BLOCK_SIZE, SKIP_AHEAD_PERFECT_RUN, shouldSkipAhead, skipTargetLevel } from "./levelConfig";
+import { BLOCK_SIZE, INITIAL_ADAPTIVE, SKIP_AHEAD_PERFECT_RUN, shouldSkipAhead, skipTargetLevel, type AdaptiveState } from "./levelConfig";
+import { useMemo, useSyncExternalStore } from "react";
+import { activeProfileId, scopedKey, subscribeProfiles } from "./profile";
+import type { MemoryCheck, SkillLog } from "./skillProgress";
 
 const KEY = "blinq:levels:v1";
 /** Skip-ahead is judged on the first levels of a block. */
@@ -13,9 +16,12 @@ export interface LevelProgress {
   broken: boolean;
   /** blocks whose guided intro was already played */
   introsSeen: number[];
+  adaptive: AdaptiveState;
+  skills: SkillLog;
+  checks: MemoryCheck[];
 }
 
-export const DEFAULT_LEVEL_PROGRESS: LevelProgress = { block: 0, run: 0, broken: false, introsSeen: [] };
+export const DEFAULT_LEVEL_PROGRESS: LevelProgress = { block: 0, run: 0, broken: false, introsSeen: [], adaptive: INITIAL_ADAPTIVE, skills: {}, checks: [] };
 
 export interface LevelOutcome {
   state: LevelProgress;
@@ -45,19 +51,51 @@ export function markIntroSeen(state: LevelProgress, block: number): LevelProgres
   return state.introsSeen.includes(block) ? state : { ...state, introsSeen: [...state.introsSeen, block] };
 }
 
-export function loadLevelProgress(): LevelProgress {
+const listeners = new Set<() => void>();
+
+function readRaw(): string | null {
   try {
-    const raw = window.localStorage.getItem(KEY);
-    return raw ? { ...DEFAULT_LEVEL_PROGRESS, ...(JSON.parse(raw) as Partial<LevelProgress>) } : DEFAULT_LEVEL_PROGRESS;
+    return window.localStorage.getItem(scopedKey(KEY, activeProfileId()));
+  } catch {
+    return null;
+  }
+}
+
+function parse(raw: string | null): LevelProgress {
+  if (!raw) return DEFAULT_LEVEL_PROGRESS;
+  try {
+    return { ...DEFAULT_LEVEL_PROGRESS, ...(JSON.parse(raw) as Partial<LevelProgress>) };
   } catch {
     return DEFAULT_LEVEL_PROGRESS;
   }
 }
 
+export function loadLevelProgress(): LevelProgress {
+  return parse(readRaw());
+}
+
 export function saveLevelProgress(state: LevelProgress) {
   try {
-    window.localStorage.setItem(KEY, JSON.stringify(state));
+    window.localStorage.setItem(scopedKey(KEY, activeProfileId()), JSON.stringify(state));
   } catch {
-    // storage unavailable: the offer just will not appear
+    // storage unavailable: progress lasts for this session only
   }
+  listeners.forEach((l) => l());
+}
+
+function subscribe(listener: () => void) {
+  listeners.add(listener);
+  window.addEventListener("storage", listener);
+  const unsubscribeProfiles = subscribeProfiles(listener);
+  return () => {
+    listeners.delete(listener);
+    window.removeEventListener("storage", listener);
+    unsubscribeProfiles();
+  };
+}
+
+/** The active profile's level progress, or null on the server and during hydration. */
+export function useLevelProgress(): LevelProgress | null {
+  const raw = useSyncExternalStore(subscribe, () => readRaw() ?? "", () => null);
+  return useMemo(() => (raw === null ? null : parse(raw || null)), [raw]);
 }

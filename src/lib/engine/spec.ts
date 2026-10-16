@@ -111,6 +111,7 @@ export function getTrainingSpec(roundType: RoundType = "item"): RoundSpec {
     tier: 1,
     roundType: type,
     block: 0,
+    kids: false,
     itemCount,
     choiceCount: itemCount * 2,
     memorizeMs: TRAINING_PRESET.memorizeMs,
@@ -124,14 +125,29 @@ export function getTrainingSpec(roundType: RoundType = "item"): RoundSpec {
   };
 }
 
+const CHECK_ITEMS = 6;
+const CHECK_MEMORIZE_MS = 12_000;
+const CHECK_RECALL_MS = 25_000;
+
+/** The memory check: the same fixed item round every time, so results compare across weeks. */
+export function getCheckSpec(): RoundSpec {
+  return {
+    ...getTrainingSpec("item"),
+    itemCount: CHECK_ITEMS,
+    choiceCount: CHECK_ITEMS * 2,
+    memorizeMs: CHECK_MEMORIZE_MS,
+    recallMs: CHECK_RECALL_MS,
+  };
+}
+
 /**
  * The single source of truth for a round: how many items, how long each phase lasts,
  * how tricky the decoys are, and the rules. Pure and deterministic.
  */
-function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: number): RoundSpec {
-  const config = getLevelConfig(level, difficulty);
+function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: number, adaptiveOffset: number, kids: boolean): RoundSpec {
+  const config = getLevelConfig(level, difficulty, adaptiveOffset, kids);
   const roundType = PLAYABLE_ROUND_TYPES.includes(config.roundType) ? config.roundType : "item";
-  return specFor(mode, difficulty, config.level, roundType, config.items, {
+  return specFor(mode, difficulty, config.level, roundType, config.items, kids, {
     choiceCount: config.gridTiles,
     memorizeMs: config.showTimeMs,
     recallMs: config.recallTimeMs,
@@ -144,9 +160,10 @@ function specFor(
   level: number,
   roundType: RoundType,
   items: number,
+  kids: boolean,
   sized: { choiceCount: number; memorizeMs: number; recallMs: number },
 ): RoundSpec {
-  const config = getLevelConfig(level, difficulty);
+  const config = getLevelConfig(level, difficulty, 0, kids);
   const profile = PROFILES[difficulty];
   return {
     engineVersion: ENGINE_VERSION,
@@ -156,6 +173,7 @@ function specFor(
     tier: config.block + 1,
     roundType,
     block: config.block,
+    kids,
     itemCount: items,
     choiceCount: sized.choiceCount,
     memorizeMs: sized.memorizeMs,
@@ -170,14 +188,14 @@ function specFor(
 }
 
 /** The two stages of a boss level: item recall, then the block's skill. Each takes about half the items. */
-export function getComboStageSpecs(difficulty: Difficulty, level: number): RoundSpec[] {
-  const config = getLevelConfig(level, difficulty);
+export function getComboStageSpecs(difficulty: Difficulty, level: number, kids = false): RoundSpec[] {
+  const config = getLevelConfig(level, difficulty, 0, kids);
   const first = Math.max(MIN_STAGE_ITEMS, Math.ceil(config.items / 2));
   const counts = [first, Math.max(MIN_STAGE_ITEMS, config.items - first)];
-  return getComboStageTypes(config.level).map((type, index) => {
+  return getComboStageTypes(config.level, kids).map((type, index) => {
     const items = counts[index];
     const roundType = PLAYABLE_ROUND_TYPES.includes(type) ? type : "item";
-    return specFor("level", difficulty, config.level, roundType, items, {
+    return specFor("level", difficulty, config.level, roundType, items, kids, {
       choiceCount: gridTilesFor(items),
       ...stageTimes(config.level, difficulty, items),
     });
@@ -191,8 +209,8 @@ function stageTimes(level: number, difficulty: Difficulty, items: number) {
 
 export function getRoundSpec(input: RoundInput): RoundSpec {
   if (input.mode === "training") return getTrainingSpec();
-  if (input.mode === "level") return levelSpec("level", input.difficulty, normalizeLevel(input.level));
-  if (input.mode === "daily") return levelSpec("daily", SOLO_DIFFICULTY, DAILY_LEVEL);
+  if (input.mode === "level") return levelSpec("level", input.difficulty, normalizeLevel(input.level), input.adaptiveOffset ?? 0, input.kids ?? false);
+  if (input.mode === "daily") return levelSpec("daily", SOLO_DIFFICULTY, DAILY_LEVEL, 0, false);
 
   const difficulty = input.difficulty;
   const level = normalizeLevel(input.level);
@@ -211,6 +229,7 @@ export function getRoundSpec(input: RoundInput): RoundSpec {
     tier: tierOf(level),
     roundType: "item",
     block: 0,
+    kids: false,
     itemCount,
     choiceCount,
     memorizeMs: phaseMs(profile.memorize, itemCount, level, MIN_MEMORIZE_MS, MIN_MEMORIZE_PER_ITEM_MS, flash),

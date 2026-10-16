@@ -12,6 +12,10 @@ export interface RoundInput {
   mode: RoundMode;
   difficulty: Difficulty;
   level: number;
+  /** solo levels only: adaptive difficulty step, -2..+2 */
+  adaptiveOffset?: number;
+  /** solo levels only: kids profile (easier skills first, smaller grids) */
+  kids?: boolean;
 }
 
 /** The rules a player is judged by during recall. */
@@ -40,6 +44,8 @@ export interface RoundSpec {
   roundType: RoundType;
   /** 0-based level block */
   block: number;
+  /** built for a kids profile */
+  kids: boolean;
   itemCount: number;
   choiceCount: number;
   memorizeMs: number;

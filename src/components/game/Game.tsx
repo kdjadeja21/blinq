@@ -3,10 +3,12 @@
 import { useClerk } from "@clerk/nextjs";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
-import { SOLO_DIFFICULTY, generateRound, getComboStageSpecs, getRoundSpec, getTrainingSpec, type RoundSpec } from "@/lib/engine";
+import { SOLO_DIFFICULTY, generateRound, getCheckSpec, getComboStageSpecs, getRoundSpec, getTrainingSpec, type RoundSpec } from "@/lib/engine";
 import { roundReducer, type Mode, type Stage } from "@/lib/game";
-import { getLevelConfig } from "@/lib/levelConfig";
-import { hasSeenIntro, loadLevelProgress, markIntroSeen, recordLevelResult, saveLevelProgress } from "@/lib/levelProgress";
+import { getLevelConfig, updateAdaptive } from "@/lib/levelConfig";
+import { hasSeenIntro, loadLevelProgress, markIntroSeen, recordLevelResult, saveLevelProgress, useLevelProgress } from "@/lib/levelProgress";
+import { activeProfile, loadProfiles, useProfiles } from "@/lib/profile";
+import { SKILL_TYPES, checkChange, checkDue, recordCheck, recordSkill, skillTrends } from "@/lib/skillProgress";
 import { applyRoundResult } from "@/lib/progress";
 import { hash, mulberry32, utcDateKey } from "@/lib/rng";
 import { introCards } from "@/lib/rounds/intro";
@@ -27,6 +29,11 @@ const TRAINING_PROMPT_DELAY_MS = 2000;
 
 function buildStages(specs: RoundSpec[]): Stage[] {
   return specs.map((spec) => ({ spec, ...generateRound(spec) }));
+}
+
+function soloSettings(): { kids: boolean; difficulty: typeof SOLO_DIFFICULTY } {
+  const kids = activeProfile(loadProfiles()).kids;
+  return { kids, difficulty: kids ? "easy" : SOLO_DIFFICULTY };
 }
 
 function subscribeNever() {
@@ -57,6 +64,9 @@ export function Game() {
   const [practiceLevel, setPracticeLevel] = useState<number | null>(null);
   const [skipOffer, setSkipOffer] = useState<{ key: number; to: number } | null>(null);
 
+  const [checking, setChecking] = useState(false);
+  const profiles = useProfiles();
+  const levelProgress = useLevelProgress();
   const { guest, recordRound } = useSoloSync();
   const { openSignIn } = useClerk();
 
@@ -80,26 +90,42 @@ export function Game() {
     committedRef.current = round.key;
     const before = loadStats();
     saveStats(applyRoundResult(before, round, Date.now()));
-    if (round.mode === "level" && round.result.stars === 3 && round.level === before.level) {
-      const outcome = recordLevelResult(loadLevelProgress(), round.level, round.result.perfect);
-      saveLevelProgress(outcome.state);
-      const offer = outcome.skipTo ? { key: round.key, to: outcome.skipTo } : null;
-      queueMicrotask(() => setSkipOffer(offer));
+    const day = utcDateKey(Date.now());
+    const { result } = round;
+    let progress = loadLevelProgress();
+    if (round.mode === "level") {
+      progress = { ...progress, adaptive: updateAdaptive(progress.adaptive, result.won) };
+      const skill = SKILL_TYPES.find((type) => type === round.spec.roundType);
+      if (round.stage.count === 1 && skill) {
+        progress = { ...progress, skills: recordSkill(progress.skills, skill, day, result.correct, result.total) };
+      }
+      if (result.stars === 3 && round.level === before.level) {
+        const outcome = recordLevelResult(progress, round.level, result.perfect);
+        progress = outcome.state;
+        const offer = outcome.skipTo ? { key: round.key, to: outcome.skipTo } : null;
+        queueMicrotask(() => setSkipOffer(offer));
+      }
+      saveLevelProgress(progress);
+    } else if (checking && round.mode === "training" && round.attempt === 1 && result.total > 0) {
+      saveLevelProgress({ ...progress, checks: recordCheck(progress.checks, day, (result.correct / result.total) * 100) });
     }
     if (round.mode !== "training") recordRound(round);
-  }, [round, recordRound]);
+  }, [round, recordRound, checking]);
 
   const start = useCallback((mode: Mode, skipIntro = false) => {
     const t = Date.now();
     setPracticeLevel(null);
     setSkipOffer(null);
+    setChecking(false);
+    const { kids, difficulty } = soloSettings();
+    const offset = loadLevelProgress().adaptive.offset;
     const level = mode === "level" ? loadStats().level : 1;
     if (guest && (mode === "daily" || (mode === "level" && isGuestLocked(guest, level)))) {
       dispatch({ type: "quit" });
       void openSignIn();
       return;
     }
-    const config = mode === "level" ? getLevelConfig(level, SOLO_DIFFICULTY) : null;
+    const config = mode === "level" ? getLevelConfig(level, difficulty, offset, kids) : null;
     if (config?.isIntro && !skipIntro && !hasSeenIntro(loadLevelProgress(), config.block)) {
       const spec = getTrainingSpec(config.roundType);
       keyRef.current += 1;
@@ -108,12 +134,12 @@ export function Game() {
       return;
     }
     if (config?.isBoss) {
-      const stages = buildStages(getComboStageSpecs(SOLO_DIFFICULTY, level));
+      const stages = buildStages(getComboStageSpecs(difficulty, level, kids));
       keyRef.current += 1;
       dispatch({ type: "start", mode, spec: stages[0].spec, items: stages[0].items, choices: stages[0].choices, stages, level, now: t, key: keyRef.current });
       return;
     }
-    const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
+    const spec = getRoundSpec({ mode, difficulty, level, adaptiveOffset: offset, kids });
     const seed = mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
     const { items, choices, layout, table } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
     keyRef.current += 1;
@@ -127,10 +153,26 @@ export function Game() {
 
   const finishPractice = useCallback(() => {
     if (practiceLevel === null) return;
-    const block = getLevelConfig(practiceLevel, SOLO_DIFFICULTY).block;
+    const block = getLevelConfig(practiceLevel, soloSettings().difficulty).block;
     saveLevelProgress(markIntroSeen(loadLevelProgress(), block));
     start("level", true);
   }, [practiceLevel, start]);
+
+  const startCheck = useCallback(() => {
+    const t = Date.now();
+    const spec = getCheckSpec();
+    keyRef.current += 1;
+    setPracticeLevel(null);
+    setSkipOffer(null);
+    setChecking(true);
+    dispatch({ type: "start", mode: "training", spec, ...generateRound(spec), introSteps: 1, level: 1, now: t, key: keyRef.current });
+    dispatch({ type: "introNext", now: t });
+  }, []);
+
+  const finishCheck = useCallback(() => {
+    setChecking(false);
+    dispatch({ type: "quit" });
+  }, []);
 
   const skipAhead = useCallback(() => {
     if (!skipOffer) return;
@@ -153,8 +195,13 @@ export function Game() {
     dispatch({ type: "retry", now, key: keyRef.current });
   }, [round]);
 
+  const profile = profiles ? activeProfile(profiles) : null;
+  const kids = profile?.kids ?? false;
+  const difficulty = kids ? "easy" : SOLO_DIFFICULTY;
+  const offset = levelProgress?.adaptive.offset ?? 0;
+
   let body: React.ReactNode;
-  if (!stats) {
+  if (!stats || !profiles || !levelProgress) {
     body = <Splash />;
   } else if (!round) {
     body = (
@@ -166,6 +213,15 @@ export function Game() {
         onPlayLevel={() => start("level")}
         onPlayDaily={() => start("daily")}
         onTraining={() => start("training")}
+        profiles={profiles}
+        levelItems={getRoundSpec({ mode: "level", difficulty, level: stats.level, adaptiveOffset: offset, kids }).itemCount}
+        progress={{
+          trends: skillTrends(levelProgress.skills, today),
+          checkChange: checkChange(levelProgress.checks),
+          checkDue: today !== "" && checkDue(levelProgress.checks, today),
+          hasBaseline: levelProgress.checks.length > 0,
+          onStartCheck: startCheck,
+        }}
       />
     );
   } else if (round.phase === "intro") {
@@ -174,7 +230,7 @@ export function Game() {
         step={round.introStep}
         onNext={() => dispatch({ type: "introNext", now: Date.now() })}
         onSkip={practiceLevel === null ? finishTraining : finishPractice}
-        cards={practiceLevel === null ? undefined : introCards(round.spec.roundType, getLevelConfig(practiceLevel, SOLO_DIFFICULTY).strategyTip)}
+        cards={practiceLevel === null ? undefined : introCards(round.spec.roundType, getLevelConfig(practiceLevel, difficulty, 0, kids).strategyTip)}
         label={practiceLevel === null ? "Training" : "Practice"}
       />
     );
@@ -188,13 +244,15 @@ export function Game() {
         onRetry={retry}
         onNextLevel={() => start("level")}
         onHome={() => dispatch({ type: "quit" })}
-        onStartPlaying={practiceLevel === null ? finishTraining : finishPractice}
+        onStartPlaying={checking ? finishCheck : practiceLevel === null ? finishTraining : finishPractice}
+        check={checking}
+        nextItems={getRoundSpec({ mode: "level", difficulty: round.spec.difficulty, level: round.level + 1, adaptiveOffset: offset, kids: round.spec.kids }).itemCount}
         skipTo={skipOffer?.key === round.key ? skipOffer.to : null}
         onSkipAhead={skipAhead}
       />
     );
   } else {
-    body = <PlayScreen key={`${round.key}-${round.stage.index}`} round={round} now={now} dispatch={dispatch} onSkipTraining={finishTraining} />;
+    body = <PlayScreen key={`${round.key}-${round.stage.index}`} round={round} now={now} dispatch={dispatch} onSkipTraining={checking ? finishCheck : finishTraining} check={checking} />;
   }
 
   const eligibleForTraining = Boolean(stats && !stats.trainingDone && !round);

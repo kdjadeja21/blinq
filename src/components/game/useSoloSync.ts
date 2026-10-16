@@ -4,6 +4,7 @@ import { useAuth } from "@clerk/nextjs";
 import { useCallback, useEffect, useRef } from "react";
 import { statsEqual, type RoundSummary } from "@/lib/progress";
 import { recordSoloRound, syncSoloStats } from "@/lib/solo/api";
+import { DEFAULT_PROFILE_ID, activeProfile, useProfiles } from "@/lib/profile";
 import { loadStats, saveStats } from "@/lib/storage";
 
 /**
@@ -14,7 +15,10 @@ export function useSoloSync(): { signedIn: boolean; guest: boolean; recordRound:
   const { isLoaded, isSignedIn, userId } = useAuth();
   const queue = useRef<Promise<void>>(Promise.resolve());
   const behind = useRef(true);
+  const profiles = useProfiles();
+  const onAccountProfile = !profiles || activeProfile(profiles).id === DEFAULT_PROFILE_ID;
   const signedIn = Boolean(isLoaded && isSignedIn && userId);
+  const syncing = signedIn && onAccountProfile;
   const guest = Boolean(isLoaded && !isSignedIn);
 
   const enqueue = useCallback((task: () => Promise<void>) => {
@@ -32,16 +36,16 @@ export function useSoloSync(): { signedIn: boolean; guest: boolean; recordRound:
   }, []);
 
   useEffect(() => {
-    if (!signedIn) {
+    if (!syncing) {
       behind.current = true;
       return;
     }
     enqueue(runSync);
-  }, [signedIn, userId, enqueue, runSync]);
+  }, [syncing, userId, enqueue, runSync]);
 
   const recordRound = useCallback(
     (round: RoundSummary) => {
-      if (!signedIn) return;
+      if (!syncing) return;
       enqueue(async () => {
         if (behind.current) {
           await runSync();
@@ -54,7 +58,7 @@ export function useSoloSync(): { signedIn: boolean; guest: boolean; recordRound:
         }
       });
     },
-    [signedIn, enqueue, runSync],
+    [syncing, enqueue, runSync],
   );
 
   return { signedIn, guest, recordRound };

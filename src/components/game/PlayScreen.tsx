@@ -25,6 +25,8 @@ interface PlayScreenProps {
   now: number;
   dispatch: (action: Action) => void;
   onSkipTraining: () => void;
+  /** memory check: no hints */
+  check?: boolean;
 }
 
 function formatSeconds(ms: number) {
@@ -36,7 +38,7 @@ function announcement(seconds: number): string {
   return "";
 }
 
-export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenProps) {
+export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false }: PlayScreenProps) {
   const [hintId, setHintId] = useState<string | null>(null);
   const [nudge, setNudge] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -121,7 +123,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
               : "Tap what you saw";
   const strategyTip =
     phase === "memorize" && round.mode === "level" && round.stage.index === 0
-      ? getLevelConfig(round.level, round.spec.difficulty).strategyTip
+      ? getLevelConfig(round.level, round.spec.difficulty, 0, round.spec.kids).strategyTip
       : undefined;
   const tip = !training
     ? strategyTip
@@ -132,7 +134,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       : phase === "memorize"
       ? "Tip: watch the timer above, then try to picture each item."
       : phase === "recall"
-        ? "Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training. Stuck? Use Hint."
+        ? `Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training.${check ? "" : " Stuck? Use Hint."}`
         : null;
 
   return (
@@ -140,7 +142,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       <div className="flex items-center justify-between gap-2">
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-            {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}, ${ROUND_TYPE_LABELS[round.spec.roundType]}`}
+            {check ? "Memory check" : training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}, ${ROUND_TYPE_LABELS[round.spec.roundType]}`}
             {round.stage.count > 1 ? ` · Boss stage ${round.stage.index + 1}/${round.stage.count}` : ""}
           </p>
           <h2 className="text-xl font-bold">{label}</h2>
@@ -286,7 +288,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             <Lives lives={round.lives} max={round.spec.rules.lives} />
           )}
           <div className="flex gap-2">
-            {training && (
+            {training && !check && (
               <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={round.spec.roundType === "item" ? hintId !== null : nudge !== null}>
                 <Lightbulb className="size-4" /> Hint
               </Button>
