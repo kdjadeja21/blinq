@@ -1,35 +1,35 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { defaultPlayerName } from "./names";
+import { NAME_MAX } from "./config";
+import { defaultPlayerName, type PlayerNameSource } from "./names";
 
 describe("defaultPlayerName", () => {
   it("returns an empty string for a guest", () => {
     assert.equal(defaultPlayerName(null), "");
   });
 
-  it("uses the first and last name when they fit", () => {
-    assert.equal(defaultPlayerName({ firstName: "Ada", lastName: "Lovelace" }), "Ada Lovelace");
+  it("uses the username when it fits", () => {
+    assert.equal(defaultPlayerName({ username: "ada" }), "ada");
   });
 
-  it("falls back to the first name when the full name is too long", () => {
-    assert.equal(
-      defaultPlayerName({ firstName: "Christopher", lastName: "Alexander", username: "chris" }),
-      "Christopher",
-    );
+  it("ignores legacy given names on the user object", () => {
+    const user = { username: "ada_lovelace", firstName: "Ada", lastName: "Lovelace" };
+    assert.equal(defaultPlayerName(user as PlayerNameSource), "ada_lovelace");
   });
 
-  it("falls back to the username when the given names do not fit", () => {
-    assert.equal(
-      defaultPlayerName({ firstName: "A", lastName: "Verylonglastname", username: "ada" }),
-      "ada",
-    );
+  it("returns an empty string for a reserved username", () => {
+    assert.equal(defaultPlayerName({ username: "Botty" }), "");
   });
 
-  it("skips a reserved or blocked candidate", () => {
-    assert.equal(defaultPlayerName({ firstName: "Botty", username: "Ada" }), "Ada");
+  it("returns an empty string when the username is too short", () => {
+    assert.equal(defaultPlayerName({ username: "x" }), "");
   });
 
-  it("returns an empty string when nothing fits", () => {
-    assert.equal(defaultPlayerName({ firstName: "A", username: "x" }), "");
+  it("returns an empty string when the username is too long", () => {
+    assert.equal(defaultPlayerName({ username: "a".repeat(NAME_MAX + 1) }), "");
+  });
+
+  it("returns an empty string when the username is missing", () => {
+    assert.equal(defaultPlayerName({}), "");
   });
 });
