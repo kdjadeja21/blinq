@@ -7,7 +7,8 @@ import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
 import { playCue } from "@/lib/feedback";
 import { musicHit } from "@/lib/music";
-import { ROUND_TYPE_LABELS } from "@/lib/levelConfig";
+import { ROUND_TYPE_LABELS, getLevelConfig } from "@/lib/levelConfig";
+import { hintNudge } from "@/lib/rounds/intro";
 import { isCorrectNext, shownIndex } from "@/lib/rounds/order";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
@@ -37,6 +38,7 @@ function announcement(seconds: number): string {
 
 export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenProps) {
   const [hintId, setHintId] = useState<string | null>(null);
+  const [nudge, setNudge] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [lastWrongSlot, setLastWrongSlot] = useState<number | null>(null);
   const training = round.mode === "training";
@@ -80,6 +82,10 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   }
 
   function showHint() {
+    if (round.spec.roundType !== "item") {
+      setNudge(hintNudge(round.spec.roundType));
+      return;
+    }
     const missing = round.items.find((i) => !round.recalled.some((r) => r.id === i.id));
     setHintId(missing?.id ?? null);
   }
@@ -113,9 +119,17 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
             : table
               ? "Tap what changed"
               : "Tap what you saw";
+  const strategyTip =
+    phase === "memorize" && round.mode === "level" && round.stage.index === 0
+      ? getLevelConfig(round.level, round.spec.difficulty).strategyTip
+      : undefined;
   const tip = !training
-    ? null
-    : phase === "memorize"
+    ? strategyTip
+      ? `Strategy: ${strategyTip}`
+      : null
+    : nudge && phase === "recall"
+      ? `Hint: ${nudge}`
+      : phase === "memorize"
       ? "Tip: watch the timer above, then try to picture each item."
       : phase === "recall"
         ? "Tip: tap the items you saw. Lookalikes are traps, but wrong taps are free in training. Stuck? Use Hint."
@@ -273,7 +287,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
           )}
           <div className="flex gap-2">
             {training && (
-              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={hintId !== null}>
+              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={round.spec.roundType === "item" ? hintId !== null : nudge !== null}>
                 <Lightbulb className="size-4" /> Hint
               </Button>
             )}

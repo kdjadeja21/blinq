@@ -32,6 +32,8 @@ export const MIN_DECOYS = 4;
 export const MAX_ITEMS = Math.min(ITEMS.length - MIN_DECOYS, MAX_CHOICES - MIN_DECOYS);
 
 const MIN_STAGE_ITEMS = 3;
+const TRAINING_CHANGE_ITEMS = 4;
+const TRAINING_DISTRACT_MS = 4_000;
 const MIN_MEMORIZE_MS = 4_000;
 const MIN_RECALL_MS = 6_000;
 const MIN_MEMORIZE_PER_ITEM_MS = 700;
@@ -96,22 +98,24 @@ function botOf(profile: DifficultyProfile, level: number): RoundSpec["bot"] {
   };
 }
 
-function trainingSpec(): RoundSpec {
+/** A short, free practice round for a skill. Item recall is the original tutorial round. */
+export function getTrainingSpec(roundType: RoundType = "item"): RoundSpec {
   const profile = PROFILES[SOLO_DIFFICULTY];
-  const itemCount = TRAINING_PRESET.itemCount;
+  const type = PLAYABLE_ROUND_TYPES.includes(roundType) ? roundType : "item";
+  const itemCount = type === "change" ? TRAINING_CHANGE_ITEMS : TRAINING_PRESET.itemCount;
   return {
     engineVersion: ENGINE_VERSION,
     mode: "training",
     difficulty: SOLO_DIFFICULTY,
     level: 1,
     tier: 1,
-    roundType: "item",
+    roundType: type,
     block: 0,
     itemCount,
     choiceCount: itemCount * 2,
     memorizeMs: TRAINING_PRESET.memorizeMs,
-    hideMs: HIDE_MS,
-    distractMs: 0,
+    hideMs: type === "change" ? CHANGE_HIDE_MS : HIDE_MS,
+    distractMs: type === "delayed" ? TRAINING_DISTRACT_MS : 0,
     recallMs: TRAINING_PRESET.recallMs,
     lookalikeRatio: 1,
     modifiers: [],
@@ -186,7 +190,7 @@ function stageTimes(level: number, difficulty: Difficulty, items: number) {
 }
 
 export function getRoundSpec(input: RoundInput): RoundSpec {
-  if (input.mode === "training") return trainingSpec();
+  if (input.mode === "training") return getTrainingSpec();
   if (input.mode === "level") return levelSpec("level", input.difficulty, normalizeLevel(input.level));
   if (input.mode === "daily") return levelSpec("daily", SOLO_DIFFICULTY, DAILY_LEVEL);
 

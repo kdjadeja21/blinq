@@ -3,9 +3,9 @@
 import { SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
-import { INTRO_STEPS } from "@/lib/game";
+import type { IntroCard } from "@/lib/rounds/intro";
 
-const CARDS = [
+const DEFAULT_CARDS: IntroCard[] = [
   { emoji: "👀", title: "Memorize the table", body: "A few items appear for a short time. Look closely." },
   { emoji: "👆", title: "Tap what you saw", body: "The items vanish and get mixed with lookalikes. Tap only the ones that were on the table." },
   { emoji: "⏱️", title: "Mind the clock", body: "In real rounds you get 3 mistakes, and from level 11 a wrong tap also costs 3 seconds. Here in training, it's free." },
@@ -15,15 +15,17 @@ interface TrainingIntroProps {
   step: number;
   onNext: () => void;
   onSkip: () => void;
+  cards?: IntroCard[];
+  label?: string;
 }
 
-export function TrainingIntro({ step, onNext, onSkip }: TrainingIntroProps) {
-  const card = CARDS[step];
+export function TrainingIntro({ step, onNext, onSkip, cards = DEFAULT_CARDS, label = "Training" }: TrainingIntroProps) {
+  const card = cards[step];
   return (
     <div className="flex w-full flex-1 flex-col gap-6">
       <div className="flex items-center justify-between">
         <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-          Training {step + 1}/{INTRO_STEPS}
+          {label} {step + 1}/{cards.length}
         </p>
         <Button variant="ghost" className="h-11 px-3" onClick={onSkip}>
           <SkipForward className="size-4" /> Skip
@@ -50,7 +52,7 @@ export function TrainingIntro({ step, onNext, onSkip }: TrainingIntroProps) {
         </motion.div>
       </AnimatePresence>
       <Button variant="game" className="h-14 rounded-2xl text-lg" onClick={onNext}>
-        {step < INTRO_STEPS - 1 ? "Next" : "Let's go"}
+        {step < cards.length - 1 ? "Next" : "Let's go"}
       </Button>
     </div>
   );

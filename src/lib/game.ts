@@ -62,6 +62,8 @@ export interface Round {
   lives: number;
   phase: Phase;
   introStep: number;
+  /** number of intro cards before the first memorize phase */
+  introSteps: number;
   phaseEndsAt: number;
   recallEndsAt: number;
   recalled: Recalled[];
@@ -80,7 +82,7 @@ export interface Round {
 }
 
 export type Action =
-  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; layout?: Layout | null; table?: ChangeTable | null; stages?: Stage[]; level: number; now: number; key: number }
+  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; layout?: Layout | null; table?: ChangeTable | null; stages?: Stage[]; introSteps?: number; level: number; now: number; key: number }
   | { type: "introNext"; now: number }
   | { type: "tick"; now: number }
   | { type: "pick"; id: string; now: number }
@@ -203,6 +205,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       lives: first.spec.rules.lives,
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
+      introSteps: action.introSteps ?? INTRO_STEPS,
       phaseEndsAt: 0,
       recallEndsAt: 0,
       recalled: [],
@@ -219,7 +222,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
   switch (action.type) {
     case "introNext": {
       if (round.phase !== "intro") return round;
-      if (round.introStep < INTRO_STEPS - 1) return { ...round, introStep: round.introStep + 1 };
+      if (round.introStep < round.introSteps - 1) return { ...round, introStep: round.introStep + 1 };
       return beginMemorize(round, action.now);
     }
     case "tick": {
@@ -270,12 +273,13 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         layout: action.layout ?? round.layout,
         table: action.table ?? round.table,
         stages: action.stages,
+        introSteps: round.introSteps,
         level: round.level,
         now: action.now,
         key: action.key,
       });
       if (!fresh) return fresh;
-      return beginMemorize({ ...fresh, attempt: round.attempt + 1, introStep: INTRO_STEPS - 1 }, action.now);
+      return beginMemorize({ ...fresh, attempt: round.attempt + 1, introStep: round.introSteps - 1 }, action.now);
     }
     default: {
       const unreachable: never = action;

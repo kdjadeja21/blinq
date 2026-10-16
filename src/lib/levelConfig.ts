@@ -75,6 +75,8 @@ export const REVIEW_EVERY = 4;
 export const ADAPTIVE_MAX_OFFSET = 2;
 export const ADAPTIVE_STREAK = 2;
 export const SKIP_AHEAD_PERFECT_RUN = 3;
+/** Levels jumped over when a player accepts the skip-ahead offer. */
+export const SKIP_AHEAD_LEVELS = 3;
 
 interface BlockDef {
   type: RoundType;
@@ -229,4 +231,11 @@ export function updateAdaptive(state: AdaptiveState, won: boolean): AdaptiveStat
 
 export function shouldSkipAhead(perfectRunInBlock: number): boolean {
   return perfectRunInBlock >= SKIP_AHEAD_PERFECT_RUN;
+}
+
+/** The level a skip-ahead offer jumps to from the level just cleared. Never reaches the boss. */
+export function skipTargetLevel(level: number): number {
+  const lvl = normalizeLevel(level);
+  const blockStart = Math.floor((lvl - 1) / BLOCK_SIZE) * BLOCK_SIZE + 1;
+  return Math.min(lvl + 1 + SKIP_AHEAD_LEVELS, blockStart + BLOCK_SIZE - 2);
 }

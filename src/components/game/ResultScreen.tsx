@@ -1,6 +1,6 @@
 "use client";
 
-import { ArrowRight, Check, House, LogIn, RotateCcw, Share2, Star, Trophy } from "lucide-react";
+import { ArrowRight, Check, FastForward, House, LogIn, RotateCcw, Share2, Star, Trophy } from "lucide-react";
 import Link from "next/link";
 import { cn } from "cn";
 import { motion } from "framer-motion";
@@ -13,6 +13,7 @@ import { shareMessage } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
+import { GraduationCard } from "./GraduationCard";
 import { ChangeBoard } from "./ChangeBoard";
 import { OrderSlots } from "./OrderBoard";
 import { PositionBoard } from "./PositionBoard";
@@ -28,9 +29,12 @@ interface ResultScreenProps {
   guest: boolean;
   onHome: () => void;
   onStartPlaying: () => void;
+  /** level offered by the skip-ahead button, null when there is no offer */
+  skipTo?: number | null;
+  onSkipAhead?: () => void;
 }
 
-export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying }: ResultScreenProps) {
+export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome, onStartPlaying, skipTo = null, onSkipAhead }: ResultScreenProps) {
   const [copied, setCopied] = useState(false);
   const result = round.result;
   const won = result?.won ?? false;
@@ -51,9 +55,15 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
   const isNewBest = !training && result.score > 0 && result.score >= stats.bestScore;
   const nextStarNeed = nextStarGap(result.correct, result.total);
 
+  const boss = round.stage.count > 1;
+  const graduated = boss && result.stars === 3;
+
   let headline: string;
   let sub: string;
-  if (result.perfect) {
+  if (boss) {
+    headline = graduated ? "You graduated!" : result.won ? "So close to graduating" : "The boss won this time";
+    sub = graduated ? "Both stages cleared." : `You recalled ${result.correct} of ${result.total} across both stages.`;
+  } else if (result.perfect) {
     headline = "Perfect recall!";
     sub = result.speedBonus > 0 ? `+${result.speedBonus} speed bonus` : "Every item remembered.";
   } else if (missed === 1) {
@@ -117,6 +127,10 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
         )}
         <p className="text-muted-foreground">{sub}</p>
       </div>
+
+      {boss && !training && (
+        <GraduationCard level={round.level} graduated={graduated} score={result.score} correct={result.correct} total={result.total} />
+      )}
 
       <dl className="grid grid-cols-3 gap-2 text-center">
         <StatTile label="Recalled" value={`${result.correct}/${result.total}`} />
@@ -196,6 +210,11 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
                 )}
               </Button>
             </div>
+            {skipTo !== null && !nextLocked && onSkipAhead ? (
+              <Button variant="outline" className="h-12 w-full rounded-2xl text-base" onClick={onSkipAhead}>
+                <FastForward className="size-4" /> Skip to level {skipTo}
+              </Button>
+            ) : null}
             <Button variant="ghost" className="h-11 w-full" onClick={onHome}>
               <House className="size-4" /> Home
             </Button>

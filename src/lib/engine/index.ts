@@ -1,6 +1,6 @@
 export { generateRound, type GeneratedRound } from "./generate";
 export { HIDE_MS, MODIFIER_LABELS, SOLO_DIFFICULTY } from "./profiles";
-export { ENGINE_VERSION, MAX_CHOICES, getComboStageSpecs, getRoundSpec, modifiersFor, tierOf } from "./spec";
+export { ENGINE_VERSION, MAX_CHOICES, getComboStageSpecs, getRoundSpec, getTrainingSpec, modifiersFor, tierOf } from "./spec";
 export {
   DIFFICULTY_LEVELS,
   type BotSkill,
