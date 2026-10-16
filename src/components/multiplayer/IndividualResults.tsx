@@ -3,13 +3,9 @@
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Trophy } from "lucide-react";
-import { Board } from "@/components/game/Board";
-import { ChangeBoard } from "@/components/game/ChangeBoard";
 import { Confetti } from "@/components/game/Confetti";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { cumulativeStandings, levelStandings, type RoundScore } from "@/lib/multiplayer/leaderboard";
-import { toItems } from "./DuelView";
-import { toChangeTable } from "./RoundView";
 import { ErrorNote, Segmented } from "./shared";
 import { useAction } from "./LobbyView";
 import { Leaderboard, Podium } from "./Leaderboard";
@@ -35,38 +31,6 @@ function useStandings(state: RoomState) {
       level: levelStandings(humans, scores, room.level),
     };
   }, [room, players, roundResults]);
-}
-
-/** The player's own table for the level: what they found and what they missed. */
-function RoundReview({ state }: { state: RoomState }) {
-  const { round, me, roundResults, itemKeys, choiceKeys } = state;
-  const mine = round && me ? roundResults.find((r) => r.round_id === round.id && r.player_id === me.id) : undefined;
-  const table = useMemo(() => toChangeTable(itemKeys, choiceKeys), [itemKeys, choiceKeys]);
-  if (!round || !mine || itemKeys.length === 0) return null;
-  const change = round.rules.roundType === "change";
-  const missed = round.item_count - mine.correct_count;
-  const summary =
-    missed === 0
-      ? "You found every one."
-      : `You found ${mine.correct_count} of ${round.item_count}, missed ${missed}.`;
-  return (
-    <section className="flex flex-col gap-3 rounded-3xl border-2 bg-card p-4 shadow-lg" aria-labelledby="review-title">
-      <div className="text-center">
-        <h3 id="review-title" className="text-lg font-bold">
-          {change ? "What changed" : "The table"}
-        </h3>
-        <p className="text-sm text-muted-foreground">
-          {summary}
-          {mine.wrong_count > 0 ? ` ${mine.wrong_count} wrong ${mine.wrong_count === 1 ? "tap" : "taps"}.` : ""}
-        </p>
-      </div>
-      {change ? (
-        <ChangeBoard table={table} mode="reveal" foundIds={mine.found_keys} wrongIds={[]} disabled />
-      ) : (
-        <Board items={toItems(itemKeys)} mode="reveal" recalledIds={mine.found_keys} />
-      )}
-    </section>
-  );
 }
 
 export function RoundResultView({ state }: { state: RoomState }) {
@@ -108,7 +72,6 @@ export function RoundResultView({ state }: { state: RoomState }) {
           showChanges={view === "overall" && room.level > 1}
         />
       </section>
-      <RoundReview state={state} />
       <NextControl state={state} label={last ? "See final result" : "Next level"} />
     </div>
   );

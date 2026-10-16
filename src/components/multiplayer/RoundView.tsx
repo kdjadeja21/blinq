@@ -25,7 +25,7 @@ function isChange(round: RoundRow): boolean {
 }
 
 /** The table before the change, and the table after it once the recall choices are known. */
-export function toChangeTable(beforeKeys: string[], afterKeys: string[]): ChangeTable {
+function toChangeTable(beforeKeys: string[], afterKeys: string[]): ChangeTable {
   const before = beforeKeys.flatMap((key) => {
     const item = ITEMS_BY_ID.get(key);
     return item ? [item] : [];
