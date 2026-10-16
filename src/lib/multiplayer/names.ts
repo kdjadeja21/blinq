@@ -5,25 +5,19 @@ const CODE_PATTERN = new RegExp(`^[${ROOM_CODE_ALPHABET}]{${ROOM_CODE_LENGTH}}$`
 /** Starter list; swap for a maintained profanity package before a public launch. */
 const BLOCKED = ["fuck", "shit", "bitch", "cunt", "asshole", "nigg", "faggot", "slut", "whore", "dick"];
 
-/** A Clerk-shaped name. Only the fields used for the lobby default are required. */
+/** Clerk user fields used for the lobby default. */
 export type PlayerNameSource = {
-  firstName?: string | null;
-  lastName?: string | null;
   username?: string | null;
 };
 
 /**
- * Lobby default for a signed-in player. Prefers "First Last", then the first
- * name, then the username. Returns "" when nothing fits the room name rules.
+ * Lobby default for a signed-in player. Uses the Clerk username when it fits
+ * room name rules. Returns "" when missing or invalid.
  */
 export function defaultPlayerName(user: PlayerNameSource | null): string {
   if (!user) return "";
-  const full = [user.firstName, user.lastName].filter(Boolean).join(" ");
-  for (const candidate of [full, user.firstName, user.username]) {
-    const cleaned = cleanName(candidate);
-    if (cleaned.ok) return cleaned.name;
-  }
-  return "";
+  const cleaned = cleanName(user.username);
+  return cleaned.ok ? cleaned.name : "";
 }
 
 export function cleanName(raw: unknown): { ok: true; name: string } | { ok: false; error: string } {
