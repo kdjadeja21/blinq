@@ -5,10 +5,13 @@ import { Settings, UserX, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { DIFFICULTIES, MAX_ROOM_LEVELS } from "@/lib/multiplayer/config";
+import { ROOM_ROUND_TYPES, ROUND_TYPE_OPTIONS } from "@/lib/multiplayer/roundTypes";
 import type { Difficulty } from "@/lib/multiplayer/types";
 import { useAction } from "./LobbyView";
 import { ErrorNote, PlayerChip, Segmented } from "./shared";
 import type { RoomState } from "./useRoom";
+
+const ROUND_TYPE_CHOICES = ROOM_ROUND_TYPES.map((value) => ({ value, label: ROUND_TYPE_OPTIONS[value].label }));
 
 const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((value) => ({
   value,
@@ -77,6 +80,14 @@ export function AdminDialog({ state }: { state: RoomState }) {
                 options={DIFFICULTY_OPTIONS}
                 onChange={(difficulty) => void run("update_settings", { roomId: room.id, difficulty })}
               />
+              {room.mode === "individual" && (
+                <Segmented
+                  label="Round type"
+                  value={room.round_type}
+                  options={ROUND_TYPE_CHOICES}
+                  onChange={(roundType) => void run("update_settings", { roomId: room.id, roundType })}
+                />
+              )}
             </>
           )}
 

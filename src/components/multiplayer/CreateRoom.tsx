@@ -20,6 +20,7 @@ import {
   TEAM_STYLES_INFO,
   maxPlayersFor,
 } from "@/lib/multiplayer/config";
+import { ROOM_ROUND_TYPES, ROUND_TYPE_OPTIONS, DEFAULT_ROUND_TYPE, type RoomRoundType } from "@/lib/multiplayer/roundTypes";
 import { TEAM_STYLES, type Difficulty, type Pacing, type RoomMode, type TeamStyle } from "@/lib/multiplayer/types";
 import { ErrorNote, Segmented, Spinner, TextField } from "./shared";
 
@@ -35,6 +36,10 @@ const TEAM_STYLE_OPTIONS: { value: TeamStyle; label: string }[] = TEAM_STYLES.ma
   value,
   label: TEAM_STYLES_INFO[value].label,
 }));
+const ROUND_TYPE_CHOICES: { value: RoomRoundType; label: string }[] = ROOM_ROUND_TYPES.map((value) => ({
+  value,
+  label: ROUND_TYPE_OPTIONS[value].label,
+}));
 const PACING_OPTIONS: { value: Pacing; label: string }[] = [
   { value: "manual", label: "Manual" },
   { value: "auto", label: "Auto" },
@@ -48,6 +53,7 @@ export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
   const [pacing, setPacing] = useState<Pacing>(DEFAULT_PACING);
   const [mode, setMode] = useState<RoomMode>(DEFAULT_MODE);
   const [teamStyle, setTeamStyle] = useState<TeamStyle>(DEFAULT_TEAM_STYLE);
+  const [roundType, setRoundType] = useState<RoomRoundType>(DEFAULT_ROUND_TYPE);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -66,7 +72,7 @@ export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
         difficulty,
         pacing,
         mode,
-        ...(mode === "team" ? { teamStyle } : {}),
+        ...(mode === "team" ? { teamStyle } : { roundType }),
       });
       router.push(`/room/${room.code}`);
     } catch (e) {
@@ -116,6 +122,12 @@ export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
           />
         </div>
         <Segmented label="Difficulty" value={difficulty} options={DIFFICULTY_OPTIONS} onChange={setDifficulty} />
+        {mode === "individual" && (
+          <>
+            <Segmented label="Round type" value={roundType} options={ROUND_TYPE_CHOICES} onChange={setRoundType} />
+            <p className="-mt-2 text-xs text-muted-foreground">{ROUND_TYPE_OPTIONS[roundType].description}</p>
+          </>
+        )}
         <Segmented label="Pacing" value={pacing} options={PACING_OPTIONS} onChange={setPacing} />
         <p className="-mt-2 text-xs text-muted-foreground">
           Manual: you tap Next after each result. Auto: results advance on their own. You can switch any time.

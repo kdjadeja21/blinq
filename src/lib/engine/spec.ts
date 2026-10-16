@@ -125,6 +125,18 @@ export function getTrainingSpec(roundType: RoundType = "item"): RoundSpec {
   };
 }
 
+/**
+ * A multiplayer round: the room's duel curve (items, timers, rules) played as another round type.
+ * Adaptive difficulty is never used here, so every player gets the same round.
+ */
+export function getRoomRoundSpec(difficulty: Difficulty, level: number, roundType: "item" | "change" | "delayed"): RoundSpec {
+  const base = getRoundSpec({ mode: "duel", difficulty, level });
+  if (roundType === "item") return base;
+  if (roundType === "change") return { ...base, roundType, hideMs: CHANGE_HIDE_MS };
+  const distractMs = distractMsFor(base.level);
+  return { ...base, roundType, distractMs, memorizeMs: base.memorizeMs + distractMs };
+}
+
 const CHECK_ITEMS = 6;
 const CHECK_MEMORIZE_MS = 12_000;
 const CHECK_RECALL_MS = 25_000;

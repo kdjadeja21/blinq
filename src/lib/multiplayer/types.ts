@@ -1,4 +1,6 @@
 import type { Difficulty, Modifier, RoundRules } from "@/lib/engine";
+import type { RoundType } from "@/lib/levelConfig";
+import type { RoomRoundType } from "./roundTypes";
 
 export type { Difficulty };
 
@@ -37,6 +39,7 @@ export interface RoomRow {
   pacing: Pacing;
   mode: RoomMode;
   team_style: TeamStyle;
+  round_type: RoomRoundType;
   duel_index: number;
   expires_at: string;
   created_at: string;
@@ -72,6 +75,12 @@ export interface DuelRules extends RoundRules {
   engineVersion: number;
   choiceCount: number;
   modifiers: Modifier[];
+  /** individual rooms: what this round plays. Missing on older rounds, which are item rounds. */
+  roundType?: RoundType;
+  /** change rounds: how long the table is hidden between the two views */
+  hideMs?: number;
+  /** delayed rounds: the tapping task at the end of memorize */
+  distractMs?: number;
 }
 
 export interface DuelRow {

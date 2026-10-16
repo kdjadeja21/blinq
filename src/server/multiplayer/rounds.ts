@@ -1,5 +1,4 @@
-import { generateRound, getRoundSpec } from "@/lib/engine";
-import type { Item } from "@/lib/items";
+import { generateRound, getRoomRoundSpec } from "@/lib/engine";
 import { GUESSES_PER_SECOND, GUESS_GRACE_MS, ONLINE_WITHIN_MS, autoResultMs } from "@/lib/multiplayer/config";
 import type {
   DuelRules,
@@ -8,6 +7,7 @@ import type {
   RoundRow,
   RoundSubmissionRow,
 } from "@/lib/multiplayer/types";
+import { GONE_KEY, changedOriginals, judgePick, roundTypeForLevel } from "@/lib/multiplayer/roundTypes";
 import { scoreRecall } from "@/lib/scoring";
 import { ApiError, db, isUniqueViolation, must, seededRandom } from "./db";
 import { toPicks } from "./duels";
@@ -16,12 +16,21 @@ import { tapTime } from "./taps";
 
 /** Builds the shared round of a level. Seeded and upserted, so concurrent callers agree. */
 export async function ensureRound(room: RoomRow, level: number): Promise<RoundRow> {
-  const spec = getRoundSpec({ mode: "duel", difficulty: room.difficulty, level });
+  const roundType = roundTypeForLevel(room.round_type ?? "item", level);
+  const spec = getRoomRoundSpec(room.difficulty, level, roundType);
+  const { items, choices, table } = generateRound(spec, seededRandom(`${room.id}:round-items:${level}`));
+
+  // Change rounds store the table before the change as the items and the table after it as the choices.
+  const shown = table ? table.before : items;
+  const offered = table ? table.after.map((item) => item?.id ?? GONE_KEY) : choices.map((item) => item.id);
   const rules: DuelRules = {
     ...spec.rules,
     engineVersion: spec.engineVersion,
     choiceCount: spec.choiceCount,
     modifiers: spec.modifiers,
+    roundType,
+    hideMs: spec.hideMs,
+    distractMs: spec.distractMs,
   };
   must(
     await db()
@@ -30,7 +39,7 @@ export async function ensureRound(room: RoomRow, level: number): Promise<RoundRo
         {
           room_id: room.id,
           level,
-          item_count: spec.itemCount,
+          item_count: table ? table.changed.length : spec.itemCount,
           memorize_ms: spec.memorizeMs,
           recall_ms: spec.recallMs,
           rules,
@@ -41,11 +50,20 @@ export async function ensureRound(room: RoomRow, level: number): Promise<RoundRo
   const round = await findRound(room.id, level);
   if (!round) throw new ApiError(500, "The round is missing.");
 
-  const { items, choices } = generateRound(spec, seededRandom(`${room.id}:round-items:${level}`));
-  const toRows = (list: Item[]) => list.map((item, position) => ({ round_id: round.id, position, item_key: item.id }));
+  const toRows = (keys: string[]) => keys.map((key, position) => ({ round_id: round.id, position, item_key: key }));
   const opts = { onConflict: "round_id,position", ignoreDuplicates: true };
-  must(await db().from("round_items").upsert(toRows(items), opts));
-  must(await db().from("round_choices").upsert(toRows(choices), opts));
+  must(await db().from("round_items").upsert(toRows(shown.map((item) => item.id)), opts));
+  must(await db().from("round_choices").upsert(toRows(offered), opts));
+  if (table) {
+    must(
+      await db()
+        .from("round_puzzles")
+        .upsert(
+          { round_id: round.id, changed: changedOriginals(table.before.map((i) => i.id), offered) },
+          { onConflict: "round_id", ignoreDuplicates: true },
+        ),
+    );
+  }
   return round;
 }
 
@@ -84,10 +102,11 @@ async function loadRecall(userId: string, roundId: string) {
 export async function submitRoundGuess(userId: string, roundId: unknown, itemKey: unknown, claimedAt?: unknown) {
   if (typeof roundId !== "string" || typeof itemKey !== "string") throw new ApiError(400, "Bad guess.");
   const now = Date.now();
-  const [{ round, room, player, mine }, choice, target] = await Promise.all([
+  const [{ round, room, player, mine }, choice, target, puzzle] = await Promise.all([
     loadRecall(userId, roundId),
     db().from("round_choices").select("item_key").eq("round_id", roundId).eq("item_key", itemKey).maybeSingle(),
     db().from("round_items").select("item_key").eq("round_id", roundId).eq("item_key", itemKey).maybeSingle(),
+    db().from("round_puzzles").select("changed").eq("round_id", roundId).maybeSingle<{ changed: string[] }>(),
   ]);
 
   const startedAt = Date.parse(room.phase_started_at ?? "");
@@ -104,8 +123,12 @@ export async function submitRoundGuess(userId: string, roundId: unknown, itemKey
     throw new ApiError(429, "Slow down.");
   }
 
-  if (!must(choice)) throw new ApiError(400, "That item is not in this round.");
-  const correct = Boolean(must(target));
+  const { valid, correct } = judgePick(round.rules.roundType, {
+    inItems: Boolean(must(target)),
+    inChoices: Boolean(must(choice)),
+    inChanged: must(puzzle)?.changed.includes(itemKey) ?? false,
+  });
+  if (!valid) throw new ApiError(400, "That item is not in this round.");
 
   const createdAt = new Date(at).toISOString();
   const { error } = await db()

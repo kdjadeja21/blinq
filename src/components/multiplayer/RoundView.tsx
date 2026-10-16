@@ -3,17 +3,38 @@
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { useMemo } from "react";
 import { Board } from "@/components/game/Board";
+import { ChangeBoard } from "@/components/game/ChangeBoard";
 import { ChoiceGrid } from "@/components/game/ChoiceGrid";
+import { DistractionTask } from "@/components/game/DistractionTask";
 import { Lives } from "@/components/game/Lives";
 import { Button } from "@/components/ui/button";
 import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { layoutFor } from "@/lib/multiplayer/layout";
+import { ITEMS_BY_ID, type Item } from "@/lib/items";
+import { ROUND_TYPE_OPTIONS, changedOriginals } from "@/lib/multiplayer/roundTypes";
 import type { RoundRow } from "@/lib/multiplayer/types";
+import type { ChangeTable } from "@/lib/rounds/change";
 import { comboMultiplier } from "@/lib/scoring";
 import { Header, Popups, TimesUp, toItems, useTickCue } from "./DuelView";
 import { Avatar, useServerNow } from "./shared";
 import { useDuelPicks } from "./useDuelPicks";
 import type { RoomState } from "./useRoom";
+
+function isChange(round: RoundRow): boolean {
+  return round.rules.roundType === "change";
+}
+
+/** The table before the change, and the table after it once the recall choices are known. */
+function toChangeTable(beforeKeys: string[], afterKeys: string[]): ChangeTable {
+  const before = beforeKeys.flatMap((key) => {
+    const item = ITEMS_BY_ID.get(key);
+    return item ? [item] : [];
+  });
+  const after: (Item | null)[] =
+    afterKeys.length === before.length ? afterKeys.map((key) => ITEMS_BY_ID.get(key) ?? null) : [...before];
+  const changed = before.flatMap((item, slot) => (after[slot]?.id === item.id ? [] : [slot]));
+  return { before, after, changed };
+}
 
 function RoundIntro({ state, round, seconds }: { state: RoomState; round: RoundRow; seconds: number }) {
   const reduce = useReducedMotion();
@@ -25,7 +46,8 @@ function RoundIntro({ state, round, seconds }: { state: RoomState; round: RoundR
       </p>
       <h2 className="text-3xl font-extrabold">Everyone plays at once</h2>
       <p className="text-sm text-muted-foreground">
-        {round.item_count} items. Same items for all {humans.length} players, but your tiles are laid out your own way.
+        {ROUND_TYPE_OPTIONS[round.rules.roundType === "change" || round.rules.roundType === "delayed" ? round.rules.roundType : "item"].description}{" "}
+        {isChange(round) ? `${round.item_count} to find.` : `${round.item_count} items.`} Same table for all {humans.length} players, but your tiles are laid out your own way.
       </p>
       <ul className="flex max-w-full flex-wrap justify-center gap-1" aria-label="Players">
         {humans.map((p) => (
@@ -52,6 +74,30 @@ function MemorizeRound({ state, round, seconds, remaining, durationMs }: { state
   const meId = state.me?.id ?? "";
   const items = useMemo(() => layoutFor(round.id, meId, "board", toItems(state.itemKeys)), [round.id, meId, state.itemKeys]);
   const twists = round.rules.modifiers.map((modifier) => ` · ${MODIFIER_LABELS[modifier]}`).join("");
+  const distractMs = round.rules.roundType === "delayed" ? (round.rules.distractMs ?? 0) : 0;
+  const hideMs = round.rules.hideMs ?? HIDE_MS;
+  if (isChange(round)) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Header label="Memorize the table" seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
+        <ChangeBoard
+          table={toChangeTable(state.itemKeys, [])}
+          mode={remaining <= hideMs ? "hide" : "memorize"}
+          foundIds={[]}
+          wrongIds={[]}
+          disabled
+        />
+      </div>
+    );
+  }
+  if (distractMs > 0 && remaining <= distractMs) {
+    return (
+      <div className="flex flex-col gap-3">
+        <Header label="Keep tapping the glowing dot" seconds={seconds} progress={Math.min(1, remaining / distractMs)} />
+        <DistractionTask />
+      </div>
+    );
+  }
   return (
     <div className="flex flex-col gap-3">
       <Header label={`Memorize the table${twists}`} seconds={seconds} progress={durationMs ? Math.min(1, remaining / durationMs) : 0} />
@@ -73,7 +119,13 @@ function FinishedCounter({ state }: { state: RoomState }) {
 function RecallRound({ state, round, clock, startedAt }: { state: RoomState; round: RoundRow; clock: number; startedAt: number }) {
   const meId = state.me?.id ?? "";
   const choices = useMemo(() => layoutFor(round.id, meId, "choices", toItems(state.choiceKeys)), [round.id, meId, state.choiceKeys]);
-  const picks = useDuelPicks({ duel: round, kind: "round", startedAt, memorized: state.memorizedKeys, now: state.now });
+  const change = isChange(round);
+  const table = useMemo(() => toChangeTable(state.memorizedKeys, state.choiceKeys), [state.memorizedKeys, state.choiceKeys]);
+  const known = useMemo(
+    () => (change ? (state.choiceKeys.length ? changedOriginals(state.memorizedKeys, state.choiceKeys) : []) : state.memorizedKeys),
+    [change, state.memorizedKeys, state.choiceKeys],
+  );
+  const picks = useDuelPicks({ duel: round, kind: "round", startedAt, memorized: known, now: state.now });
   const { score } = picks;
 
   const current = clock || startedAt;
@@ -94,7 +146,7 @@ function RecallRound({ state, round, clock, startedAt }: { state: RoomState; rou
   return (
     <div className="flex flex-col gap-3">
       <Header
-        label="Tap what you saw"
+        label={change ? "Tap what changed" : "Tap what you saw"}
         seconds={seconds}
         progress={Math.min(1, remaining / round.recall_ms)}
         extra={
@@ -117,15 +169,19 @@ function RecallRound({ state, round, clock, startedAt }: { state: RoomState; rou
         }
       />
       <div className="relative">
-        <ChoiceGrid
-          choices={choices}
-          recalledIds={picks.right}
-          wrongIds={picks.wrong}
-          hintId={null}
-          pendingIds={picks.pending}
-          disabled={waiting}
-          onPick={picks.pick}
-        />
+        {change ? (
+          <ChangeBoard table={table} mode="recall" foundIds={picks.right} wrongIds={picks.wrong} disabled={waiting} onPick={picks.pick} />
+        ) : (
+          <ChoiceGrid
+            choices={choices}
+            recalledIds={picks.right}
+            wrongIds={picks.wrong}
+            hintId={null}
+            pendingIds={picks.pending}
+            disabled={waiting}
+            onPick={picks.pick}
+          />
+        )}
         <AnimatePresence>
           {picks.popup && <Popups key={picks.popup.key} id={picks.popup.key} kind={picks.popup.kind} points={picks.popup.points} penaltyMs={round.rules.wrongPenaltyMs} />}
         </AnimatePresence>
