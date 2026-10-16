@@ -8,7 +8,7 @@ import { roundReducer, type Mode, type Stage } from "@/lib/game";
 import { getLevelConfig, updateAdaptive } from "@/lib/levelConfig";
 import { hasSeenIntro, loadLevelProgress, markIntroSeen, recordLevelResult, saveLevelProgress, useLevelProgress } from "@/lib/levelProgress";
 import { activeProfile, loadProfiles, useProfiles } from "@/lib/profile";
-import { SKILL_TYPES, checkChange, checkDue, recordCheck, recordSkill, skillTrends } from "@/lib/skillProgress";
+import { MEMORY_CHECK_ENABLED, SKILL_TYPES, checkChange, checkDue, recordCheck, recordSkill, skillTrends } from "@/lib/skillProgress";
 import { applyRoundResult } from "@/lib/progress";
 import { hash, mulberry32, utcDateKey } from "@/lib/rng";
 import { introCards } from "@/lib/rounds/intro";
@@ -217,8 +217,8 @@ export function Game() {
         levelItems={getRoundSpec({ mode: "level", difficulty, level: stats.level, adaptiveOffset: offset, kids }).itemCount}
         progress={{
           trends: skillTrends(levelProgress.skills, today),
-          checkChange: checkChange(levelProgress.checks),
-          checkDue: today !== "" && checkDue(levelProgress.checks, today),
+          checkChange: MEMORY_CHECK_ENABLED ? checkChange(levelProgress.checks) : null,
+          checkDue: MEMORY_CHECK_ENABLED && today !== "" && checkDue(levelProgress.checks, today),
           hasBaseline: levelProgress.checks.length > 0,
           onStartCheck: startCheck,
         }}
