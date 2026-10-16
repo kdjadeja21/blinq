@@ -44,6 +44,8 @@ interface Options {
   /** keys seen during memorize; empty when this client joined late and must wait for the server */
   memorized: string[];
   now: () => number;
+  /** called on every accepted local tap */
+  onTap?: () => void;
 }
 
 /**
@@ -51,7 +53,7 @@ interface Options {
  * instant (same model as single-player). Each tap is queued and sent to the server in order;
  * the server stays authoritative and its answer only corrects the local state if they differ.
  */
-export function useDuelPicks({ duel, kind = "duel", startedAt, memorized, now }: Options) {
+export function useDuelPicks({ duel, kind = "duel", startedAt, memorized, now, onTap }: Options) {
   const stageKey = kind === "round" ? "roundId" : "duelId";
   const [picks, setPicks] = useState<Pick[]>([]);
   const [finished, setFinished] = useState(false);
@@ -109,6 +111,7 @@ export function useDuelPicks({ duel, kind = "duel", startedAt, memorized, now }:
       const at = t - startedAt;
       const correct = known.size > 0 ? known.has(id) : null;
       setPicks((list) => [...list, { id, correct, at }]);
+      onTap?.();
 
       if (correct === null) playCue("tap");
       else if (correct) {
@@ -121,7 +124,7 @@ export function useDuelPicks({ duel, kind = "duel", startedAt, memorized, now }:
       }
       queue.current = queue.current.then(() => send(id, t));
     },
-    [now, stopped, startedAt, score.deadlineMs, score.combo, score.finishedMs, rules.comboWindowMs, known, send],
+    [now, onTap, stopped, startedAt, score.deadlineMs, score.combo, score.finishedMs, rules.comboWindowMs, known, send],
   );
 
   const finish = useCallback(() => {

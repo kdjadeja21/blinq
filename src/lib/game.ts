@@ -72,6 +72,8 @@ export interface Round {
   combo: number;
   lastCorrectAt: number | null;
   result: RoundResult | null;
+  /** set once recall is over; the board stays up until a `finish` action moves on */
+  ending: { now: number; early: boolean } | null;
   /** which stage is playing; count is 1 for normal levels and 2 for boss levels */
   stage: { index: number; count: number };
   /** stages still to come after this one */
@@ -88,6 +90,7 @@ export type Action =
   | { type: "pick"; id: string; now: number }
   | { type: "place"; id: string; slot: number; now: number }
   | { type: "submit"; now: number }
+  | { type: "finish"; key: number; now: number }
   | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[]; layout?: Layout | null; table?: ChangeTable | null; stages?: Stage[] }
   | { type: "quit" };
 
@@ -95,7 +98,13 @@ function beginMemorize(round: Round, now: number): Round {
   return { ...round, phase: "memorize", phaseEndsAt: now + round.spec.memorizeMs };
 }
 
-function finish(round: Round, now: number, early: boolean): Round {
+/** Marks recall as over without leaving the board, so the last tap's feedback can be seen. */
+function beginEnd(round: Round, now: number, early: boolean): Round {
+  return round.ending ? round : { ...round, ending: { now, early } };
+}
+
+/** `now` is when recall ended (scoring); `at` is the real clock, used to start the next stage. */
+function finish(round: Round, now: number, early: boolean, at = now): Round {
   const total = round.items.length;
   const correct = round.recalled.length;
   const remainingSeconds = Math.max(0, Math.floor((round.recallEndsAt - now) / 1000));
@@ -122,12 +131,13 @@ function finish(round: Round, now: number, early: boolean): Round {
         upcoming: rest,
         stage: { ...round.stage, index: round.stage.index + 1 },
         carry,
+        ending: null,
         recalled: [],
         wrong: [],
         combo: 0,
         lastCorrectAt: null,
       },
-      now,
+      at,
     );
   }
 
@@ -136,6 +146,7 @@ function finish(round: Round, now: number, early: boolean): Round {
   return {
     ...round,
     phase: "result",
+    ending: null,
     upcoming: [],
     result: {
       correct: carry.correct,
@@ -165,7 +176,7 @@ function applyAnswer(round: Round, id: string, correct: boolean, wrongKey: strin
       phaseEndsAt: round.phaseEndsAt - rules.wrongPenaltyMs,
       recallEndsAt: round.recallEndsAt - rules.wrongPenaltyMs,
     };
-    return next.lives <= 0 || now >= next.phaseEndsAt ? finish(next, now, false) : next;
+    return next.lives <= 0 || now >= next.phaseEndsAt ? beginEnd(next, now, false) : next;
   }
   const combo = nextCombo(round.combo, round.lastCorrectAt, now, rules.comboWindowMs);
   const points = pointsForCombo(combo);
@@ -175,7 +186,7 @@ function applyAnswer(round: Round, id: string, correct: boolean, wrongKey: strin
     combo,
     lastCorrectAt: now,
   };
-  return next.recalled.length === next.items.length ? finish(next, now, true) : next;
+  return next.recalled.length === next.items.length ? beginEnd(next, now, true) : next;
 }
 
 export function roundReducer(round: Round | null, action: Action): Round | null {
@@ -213,6 +224,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       combo: 0,
       lastCorrectAt: null,
       result: null,
+      ending: null,
     };
     return action.mode === "training" ? base : beginMemorize(base, action.now);
   }
@@ -226,7 +238,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       return beginMemorize(round, action.now);
     }
     case "tick": {
-      if (action.now < round.phaseEndsAt) return round;
+      if (action.now < round.phaseEndsAt || round.ending) return round;
       if (round.phase === "memorize") {
         return { ...round, phase: "hide", phaseEndsAt: round.phaseEndsAt + round.spec.hideMs };
       }
@@ -237,11 +249,11 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         const recallEndsAt = action.now + round.spec.recallMs;
         return { ...round, phase: "recall", phaseEndsAt: recallEndsAt, recallEndsAt };
       }
-      if (round.phase === "recall") return finish(round, action.now, false);
+      if (round.phase === "recall") return beginEnd(round, action.now, false);
       return round;
     }
     case "pick": {
-      if (round.phase !== "recall") return round;
+      if (round.phase !== "recall" || round.ending) return round;
       if (round.recalled.some((r) => r.id === action.id) || round.wrong.includes(action.id)) return round;
       if (round.spec.roundType === "order") {
         const position = round.recalled.length;
@@ -253,7 +265,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
     }
     case "place": {
       const { layout } = round;
-      if (round.phase !== "recall" || !layout) return round;
+      if (round.phase !== "recall" || round.ending || !layout) return round;
       if (!round.items.some((i) => i.id === action.id) || round.recalled.some((r) => r.id === action.id)) return round;
       const owner = itemAt(layout, action.slot);
       if (owner !== null && round.recalled.some((r) => r.id === owner)) return round;
@@ -262,7 +274,12 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       return applyAnswer(round, action.id, isCorrectPlacement(layout, action.id, action.slot), key, action.now);
     }
     case "submit":
-      return round.phase === "recall" ? finish(round, action.now, true) : round;
+      return round.phase === "recall" && !round.ending ? finish(round, action.now, true) : round;
+    case "finish": {
+      const { ending } = round;
+      if (action.key !== round.key || round.phase !== "recall" || !ending) return round;
+      return finish(round, ending.now, ending.early, action.now);
+    }
     case "retry": {
       const fresh = roundReducer(null, {
         type: "start",

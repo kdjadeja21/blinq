@@ -2,6 +2,7 @@
 
 import { Lightbulb, SkipForward } from "lucide-react";
 import { AnimatePresence, motion } from "framer-motion";
+import { cn } from "cn";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { type Action, type Round } from "@/lib/game";
@@ -60,6 +61,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false
   const lastRecalled = round.recalled[round.recalled.length - 1];
 
   function pick(id: string) {
+    if (round.ending) return;
     const correct =
       round.spec.roundType === "order"
         ? isCorrectNext(round.items, round.recalled.length, id)
@@ -70,7 +72,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false
   }
 
   function place(slot: number) {
-    if (!selectedId || !round.layout) return;
+    if (round.ending || !selectedId || !round.layout) return;
     const correct = round.layout.slots[selectedId] === slot;
     if (!correct) {
       playCue("wrong");
@@ -181,7 +183,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false
       </p>
       {tip && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{tip}</p>}
 
-      <div className="relative">
+      <div className={cn("relative", round.ending && "pointer-events-none")} inert={round.ending ? true : undefined}>
         {phase === "distract" ? (
           <DistractionTask />
         ) : table ? (
@@ -289,11 +291,11 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining, check = false
           )}
           <div className="flex gap-2">
             {training && !check && (
-              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={round.spec.roundType === "item" ? hintId !== null : nudge !== null}>
+              <Button variant="outline" className="h-11 px-4" onClick={showHint} disabled={Boolean(round.ending) || (round.spec.roundType === "item" ? hintId !== null : nudge !== null)}>
                 <Lightbulb className="size-4" /> Hint
               </Button>
             )}
-            <Button variant="secondary" className="h-11 px-4" onClick={() => dispatch({ type: "submit", now: Date.now() })}>
+            <Button variant="secondary" className="h-11 px-4" disabled={Boolean(round.ending)} onClick={() => dispatch({ type: "submit", now: Date.now() })}>
               I&apos;m done
             </Button>
           </div>
