@@ -68,6 +68,7 @@ export function Game() {
   const profiles = useProfiles();
   const levelProgress = useLevelProgress();
   const { guest, recordRound } = useSoloSync();
+  const memoryCheckOn = MEMORY_CHECK_ENABLED && !guest;
   const { openSignIn } = useClerk();
 
   useGameMusic(round, now);
@@ -217,8 +218,8 @@ export function Game() {
         levelItems={getRoundSpec({ mode: "level", difficulty, level: stats.level, adaptiveOffset: offset, kids }).itemCount}
         progress={{
           trends: skillTrends(levelProgress.skills, today),
-          checkChange: MEMORY_CHECK_ENABLED ? checkChange(levelProgress.checks) : null,
-          checkDue: MEMORY_CHECK_ENABLED && today !== "" && checkDue(levelProgress.checks, today),
+          checkChange: memoryCheckOn ? checkChange(levelProgress.checks) : null,
+          checkDue: memoryCheckOn && today !== "" && checkDue(levelProgress.checks, today),
           hasBaseline: levelProgress.checks.length > 0,
           onStartCheck: startCheck,
         }}
