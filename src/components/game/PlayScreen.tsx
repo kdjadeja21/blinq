@@ -127,6 +127,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         <div>
           <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
             {training ? "Training" : round.mode === "daily" ? "Daily challenge" : `Level ${round.level}, ${ROUND_TYPE_LABELS[round.spec.roundType]}`}
+            {round.stage.count > 1 ? ` · Boss stage ${round.stage.index + 1}/${round.stage.count}` : ""}
           </p>
           <h2 className="text-xl font-bold">{label}</h2>
         </div>

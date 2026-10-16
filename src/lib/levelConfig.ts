@@ -129,6 +129,41 @@ function pickRoundType(level: number, blockIndex: number, pos: number): RoundTyp
   return main;
 }
 
+/** Items plus distractors, never above the grid cap. */
+export function gridTilesFor(items: number): number {
+  return Math.min(items + clamp(items, MIN_DISTRACTORS, MAX_DISTRACTORS), GRID_CAP);
+}
+
+function timingFor(level: number, items: number, diffTime: number, blockIndex: number, pos: number) {
+  const timeFactor = diffTime * (blockIndex > 0 && pos < NEW_SKILL_LEVELS ? NEW_SKILL_TIME_FACTOR : 1);
+  const perItemMs = Math.max(SHOW_MIN_PER_ITEM_MS, SHOW_BASE_PER_ITEM_MS - SHOW_DECAY_PER_LEVEL_MS * (level - 1));
+  return {
+    showTimeMs: Math.round(items * perItemMs * timeFactor),
+    recallTimeMs: Math.round((RECALL_BASE_MS + items * RECALL_PER_ITEM_MS) * timeFactor),
+  };
+}
+
+/** Show and recall time for a different item count at the same level, used by the stages of a boss round. */
+export function getStageTiming(level: number, difficulty: Difficulty, items: number) {
+  const lvl = normalizeLevel(level);
+  return timingFor(lvl, items, DIFFICULTY_PRESETS[difficulty].time, Math.floor((lvl - 1) / BLOCK_SIZE), (lvl - 1) % BLOCK_SIZE);
+}
+
+const COMBO_SKILLS: readonly RoundType[] = ["position", "order", "change", "delayed"];
+
+/**
+ * The stages of a boss round: item recall first, then the block's own skill.
+ * The item block chains item recall with itself, later combo blocks rotate through the skills.
+ */
+export function getComboStageTypes(level: number): RoundType[] {
+  const blockIndex = Math.floor((normalizeLevel(level) - 1) / BLOCK_SIZE);
+  const skill: RoundType =
+    blockIndex === 0
+      ? "item"
+      : (BLOCKS[blockIndex]?.type ?? COMBO_SKILLS[(blockIndex - BLOCKS.length) % COMBO_SKILLS.length]);
+  return ["item", skill];
+}
+
 export function getLevelConfig(
   level: number,
   difficulty: Difficulty = "medium",
@@ -145,14 +180,8 @@ export function getLevelConfig(
     block.startItems + block.perLevel * pos + preset.itemDelta + offset * ITEMS_PER_ADAPTIVE_STEP;
   const items = clamp(rawItems, MIN_ITEMS, block.itemCap);
 
-  const distractors = clamp(items, MIN_DISTRACTORS, MAX_DISTRACTORS);
-  const gridTiles = Math.min(items + distractors, GRID_CAP);
-
-  const timeFactor =
-    preset.time * (blockIndex > 0 && pos < NEW_SKILL_LEVELS ? NEW_SKILL_TIME_FACTOR : 1);
-  const perItemMs = Math.max(SHOW_MIN_PER_ITEM_MS, SHOW_BASE_PER_ITEM_MS - SHOW_DECAY_PER_LEVEL_MS * (lvl - 1));
-  const showTimeMs = Math.round(items * perItemMs * timeFactor);
-  const recallTimeMs = Math.round((RECALL_BASE_MS + items * RECALL_PER_ITEM_MS) * timeFactor);
+  const gridTiles = gridTilesFor(items);
+  const { showTimeMs, recallTimeMs } = timingFor(lvl, items, preset.time, blockIndex, pos);
 
   const lookAlikeShare = Math.min(
     LOOKALIKE_MAX,

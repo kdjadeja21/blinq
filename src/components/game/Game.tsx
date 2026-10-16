@@ -3,8 +3,9 @@
 import { useClerk } from "@clerk/nextjs";
 import { AnimatePresence } from "framer-motion";
 import { useCallback, useEffect, useReducer, useRef, useState, useSyncExternalStore } from "react";
-import { SOLO_DIFFICULTY, generateRound, getRoundSpec } from "@/lib/engine";
-import { roundReducer, type Mode } from "@/lib/game";
+import { SOLO_DIFFICULTY, generateRound, getComboStageSpecs, getRoundSpec, type RoundSpec } from "@/lib/engine";
+import { roundReducer, type Mode, type Stage } from "@/lib/game";
+import { getLevelConfig } from "@/lib/levelConfig";
 import { applyRoundResult } from "@/lib/progress";
 import { hash, mulberry32, utcDateKey } from "@/lib/rng";
 import { isGuestLocked } from "@/lib/solo/guest";
@@ -21,6 +22,10 @@ import { useGameMusic } from "./useGameMusic";
 import { useSoloSync } from "./useSoloSync";
 
 const TRAINING_PROMPT_DELAY_MS = 2000;
+
+function buildStages(specs: RoundSpec[]): Stage[] {
+  return specs.map((spec) => ({ spec, ...generateRound(spec) }));
+}
 
 function subscribeNever() {
   return () => {};
@@ -81,6 +86,12 @@ export function Game() {
       void openSignIn();
       return;
     }
+    if (mode === "level" && getLevelConfig(level, SOLO_DIFFICULTY).isBoss) {
+      const stages = buildStages(getComboStageSpecs(SOLO_DIFFICULTY, level));
+      keyRef.current += 1;
+      dispatch({ type: "start", mode, spec: stages[0].spec, items: stages[0].items, choices: stages[0].choices, stages, level, now: t, key: keyRef.current });
+      return;
+    }
     const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
     const seed = mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
     const { items, choices, layout, table } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
@@ -96,6 +107,10 @@ export function Game() {
   const retry = useCallback(() => {
     keyRef.current += 1;
     const now = Date.now();
+    if (round && round.stageSpecs.length > 1) {
+      dispatch({ type: "retry", now, key: keyRef.current, stages: buildStages(round.stageSpecs) });
+      return;
+    }
     if (round?.mode === "level" || round?.mode === "training") {
       dispatch({ type: "retry", now, key: keyRef.current, ...generateRound(round.spec) });
       return;
@@ -140,7 +155,7 @@ export function Game() {
       />
     );
   } else {
-    body = <PlayScreen key={round.key} round={round} now={now} dispatch={dispatch} onSkipTraining={finishTraining} />;
+    body = <PlayScreen key={`${round.key}-${round.stage.index}`} round={round} now={now} dispatch={dispatch} onSkipTraining={finishTraining} />;
   }
 
   const eligibleForTraining = Boolean(stats && !stats.trainingDone && !round);
