@@ -5,7 +5,7 @@ import { MissingRoom } from "@/components/multiplayer/MissingRoom";
 import { signedInDefaultName } from "@/server/multiplayer/playerName";
 import { findOpenRoomByCode } from "@/server/multiplayer/queries";
 
-const TITLE = "You're invited to a Blinq team battle";
+const TITLE = "You're invited to a Blinq multiplayer battle";
 const DESCRIPTION = "Think you've got a sharp memory? Join the room before we start.";
 
 export const metadata: Metadata = {

@@ -17,9 +17,9 @@ export function MultiplayerMenu() {
         <p className="text-6xl" aria-hidden>
           🧠⚔️🧠
         </p>
-        <h1 className="mt-2 text-4xl font-extrabold tracking-tight">Team battle</h1>
+        <h1 className="mt-2 text-4xl font-extrabold tracking-tight">Multiplayer battle</h1>
         <p className="mx-auto mt-2 max-w-xs text-muted-foreground">
-          Play friends in a private room. Teams duel one-on-one, level by level.
+          Play friends in a private room. Go solo or team up, level by level.
         </p>
       </div>
       {!ready && (
