@@ -26,9 +26,9 @@ language sql stable security definer set search_path = public as $$
         ro.level < r.level
         or (
           ro.level = r.level
-          and r.phase in (
-            case when ro.rules->>'roundType' = 'change' then 'recall' else 'memorize' end,
-            'recall', 'level_result', 'finished'
+          and (
+            r.phase in ('recall', 'level_result', 'finished')
+            or (r.phase = 'memorize' and coalesce(ro.rules->>'roundType', 'item') <> 'change')
           )
         )
       )
