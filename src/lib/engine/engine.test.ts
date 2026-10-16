@@ -76,15 +76,33 @@ describe("getRoundSpec", () => {
     assert.ok(duel("medium", 20).memorizeMs < duel("medium", 19).memorizeMs);
   });
 
-  it("solo levels 1-10 ramp items, keep the grid within 24 and only play item recall", () => {
+  it("solo levels ramp items, keep the grid within 24 and play item or position recall", () => {
     let prev = 0;
     for (let level = 1; level <= 30; level++) {
       const spec = getRoundSpec({ mode: "level", difficulty: "medium", level });
       assert.ok(spec.choiceCount <= 24);
-      assert.equal(spec.roundType, "item");
+      assert.ok(spec.roundType === "item" || spec.roundType === "position");
       if (level <= 10) {
+        assert.equal(spec.roundType, "item");
         assert.ok(spec.itemCount >= prev);
         prev = spec.itemCount;
+      }
+    }
+    assert.equal(getRoundSpec({ mode: "level", difficulty: "medium", level: 11 }).roundType, "position");
+  });
+
+  it("builds position layouts with one distinct slot per item", () => {
+    for (const level of [11, 12, 15, 19]) {
+      const spec = getRoundSpec({ mode: "level", difficulty: "medium", level });
+      for (const seed of SEEDS) {
+        const { items, choices, layout } = generateRound(spec, mulberry32(seed));
+        assert.ok(layout);
+        assert.equal(items.length, spec.itemCount);
+        assert.equal(choices.length, items.length);
+        assert.equal(layout.slotCount, spec.choiceCount);
+        const slots = items.map((i) => layout.slots[i.id]);
+        assert.equal(new Set(slots).size, items.length);
+        assert.ok(slots.every((s) => s >= 0 && s < layout.slotCount));
       }
     }
   });

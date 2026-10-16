@@ -1,5 +1,6 @@
 import { ITEMS, ITEMS_BY_ID, LOOKALIKES, type Item } from "@/lib/items";
 import { shuffle } from "@/lib/rng";
+import { buildLayout, type Layout } from "@/lib/rounds/position";
 import type { RoundSpec } from "./types";
 
 export interface GeneratedRound {
@@ -7,6 +8,8 @@ export interface GeneratedRound {
   items: Item[];
   /** targets mixed with decoys, shuffled */
   choices: Item[];
+  /** slot positions, only for position rounds */
+  layout: Layout | null;
 }
 
 const MAX_THEME_CATEGORIES = 2;
@@ -71,6 +74,9 @@ function pickDecoys(spec: RoundSpec, items: Item[], pool: Item[], random: () => 
 /** Builds the table and the choice grid for a spec. Deterministic for a seeded `random`. */
 export function generateRound(spec: RoundSpec, random: () => number = Math.random): GeneratedRound {
   const { items, pool } = pickTargets(spec, random);
+  if (spec.roundType === "position") {
+    return { items, choices: shuffle(items, random), layout: buildLayout(items, spec.choiceCount, random) };
+  }
   const decoys = pickDecoys(spec, items, pool, random);
-  return { items, choices: shuffle([...items, ...decoys], random) };
+  return { items, choices: shuffle([...items, ...decoys], random), layout: null };
 }

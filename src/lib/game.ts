@@ -1,5 +1,6 @@
 import type { RoundSpec } from "@/lib/engine";
 import type { Item } from "./items";
+import { isCorrectPlacement, itemAt, placementKey, type Layout } from "./rounds/position";
 import { WIN_RATIO, nextCombo, pointsForCombo, starsFor } from "./scoring";
 
 export type Mode = "training" | "level" | "daily";
@@ -32,6 +33,8 @@ export interface Round {
   spec: RoundSpec;
   items: Item[];
   choices: Item[];
+  /** slot positions for position rounds, null otherwise */
+  layout: Layout | null;
   lives: number;
   phase: Phase;
   introStep: number;
@@ -46,12 +49,13 @@ export interface Round {
 }
 
 export type Action =
-  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; level: number; now: number; key: number }
+  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; layout?: Layout | null; level: number; now: number; key: number }
   | { type: "introNext"; now: number }
   | { type: "tick"; now: number }
   | { type: "pick"; id: string; now: number }
+  | { type: "place"; id: string; slot: number; now: number }
   | { type: "submit"; now: number }
-  | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[] }
+  | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[]; layout?: Layout | null }
   | { type: "quit" };
 
 function beginMemorize(round: Round, now: number): Round {
@@ -82,6 +86,33 @@ function finish(round: Round, now: number, early: boolean): Round {
   };
 }
 
+/** Shared by every round type: a correct answer chains the combo, a wrong one costs a life and time. */
+function applyAnswer(round: Round, id: string, correct: boolean, wrongKey: string, now: number): Round {
+  const { rules } = round.spec;
+  if (!correct) {
+    const wrong = [...round.wrong, wrongKey];
+    if (round.mode === "training") return { ...round, wrong, combo: 0 };
+    const next = {
+      ...round,
+      wrong,
+      combo: 0,
+      lives: round.lives - 1,
+      phaseEndsAt: round.phaseEndsAt - rules.wrongPenaltyMs,
+      recallEndsAt: round.recallEndsAt - rules.wrongPenaltyMs,
+    };
+    return next.lives <= 0 || now >= next.phaseEndsAt ? finish(next, now, false) : next;
+  }
+  const combo = nextCombo(round.combo, round.lastCorrectAt, now, rules.comboWindowMs);
+  const points = pointsForCombo(combo);
+  const next: Round = {
+    ...round,
+    recalled: [...round.recalled, { id, points }],
+    combo,
+    lastCorrectAt: now,
+  };
+  return next.recalled.length === next.items.length ? finish(next, now, true) : next;
+}
+
 export function roundReducer(round: Round | null, action: Action): Round | null {
   if (action.type === "start") {
     const base: Round = {
@@ -92,6 +123,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       spec: action.spec,
       items: action.items,
       choices: action.choices,
+      layout: action.layout ?? null,
       lives: action.spec.rules.lives,
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
@@ -129,29 +161,17 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
     case "pick": {
       if (round.phase !== "recall") return round;
       if (round.recalled.some((r) => r.id === action.id) || round.wrong.includes(action.id)) return round;
-      const { rules } = round.spec;
-      if (!round.items.some((i) => i.id === action.id)) {
-        const wrong = [...round.wrong, action.id];
-        if (round.mode === "training") return { ...round, wrong, combo: 0 };
-        const next = {
-          ...round,
-          wrong,
-          combo: 0,
-          lives: round.lives - 1,
-          phaseEndsAt: round.phaseEndsAt - rules.wrongPenaltyMs,
-          recallEndsAt: round.recallEndsAt - rules.wrongPenaltyMs,
-        };
-        return next.lives <= 0 || action.now >= next.phaseEndsAt ? finish(next, action.now, false) : next;
-      }
-      const combo = nextCombo(round.combo, round.lastCorrectAt, action.now, rules.comboWindowMs);
-      const points = pointsForCombo(combo);
-      const next: Round = {
-        ...round,
-        recalled: [...round.recalled, { id: action.id, points }],
-        combo,
-        lastCorrectAt: action.now,
-      };
-      return next.recalled.length === next.items.length ? finish(next, action.now, true) : next;
+      return applyAnswer(round, action.id, round.items.some((i) => i.id === action.id), action.id, action.now);
+    }
+    case "place": {
+      const { layout } = round;
+      if (round.phase !== "recall" || !layout) return round;
+      if (!round.items.some((i) => i.id === action.id) || round.recalled.some((r) => r.id === action.id)) return round;
+      const owner = itemAt(layout, action.slot);
+      if (owner !== null && round.recalled.some((r) => r.id === owner)) return round;
+      const key = placementKey(action.id, action.slot);
+      if (round.wrong.includes(key)) return round;
+      return applyAnswer(round, action.id, isCorrectPlacement(layout, action.id, action.slot), key, action.now);
     }
     case "submit":
       return round.phase === "recall" ? finish(round, action.now, true) : round;
@@ -162,6 +182,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         spec: round.spec,
         items: action.items ?? round.items,
         choices: action.choices ?? round.choices,
+        layout: action.layout ?? round.layout,
         level: round.level,
         now: action.now,
         key: action.key,

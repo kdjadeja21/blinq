@@ -83,9 +83,9 @@ export function Game() {
     }
     const spec = getRoundSpec({ mode, difficulty: SOLO_DIFFICULTY, level });
     const seed = mode === "daily" ? `blinq:${utcDateKey(t)}` : null;
-    const { items, choices } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
+    const { items, choices, layout } = generateRound(spec, seed ? mulberry32(hash(seed)) : Math.random);
     keyRef.current += 1;
-    dispatch({ type: "start", mode, spec, items, choices, level, now: t, key: keyRef.current });
+    dispatch({ type: "start", mode, spec, items, choices, layout, level, now: t, key: keyRef.current });
   }, [guest, openSignIn]);
 
   const finishTraining = useCallback(() => {

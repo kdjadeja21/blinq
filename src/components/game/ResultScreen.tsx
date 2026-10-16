@@ -13,6 +13,7 @@ import { shareMessage } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
+import { PositionBoard } from "./PositionBoard";
 import { Confetti } from "./Confetti";
 import { StatTile } from "./StatTile";
 import { useCountUp } from "./useCountUp";
@@ -121,7 +122,11 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
         <StatTile label="Wrong" value={String(result.wrongCount)} />
       </dl>
 
-      <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
+      {round.spec.roundType === "position" && round.layout ? (
+        <PositionBoard items={round.items} layout={round.layout} mode="reveal" placedIds={round.recalled.map((r) => r.id)} />
+      ) : (
+        <Board items={round.items} mode="reveal" recalledIds={round.recalled.map((r) => r.id)} />
+      )}
 
       {!result.perfect && result.stars < 3 && (
         <p className="text-center text-sm text-muted-foreground">

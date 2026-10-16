@@ -11,6 +11,7 @@ import { ROUND_TYPE_LABELS } from "@/lib/levelConfig";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { PlaceTray, PositionBoard } from "./PositionBoard";
 import { Lives } from "./Lives";
 import { TimerRing } from "./TimerRing";
 
@@ -32,6 +33,8 @@ function announcement(seconds: number): string {
 
 export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenProps) {
   const [hintId, setHintId] = useState<string | null>(null);
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [lastWrongSlot, setLastWrongSlot] = useState<number | null>(null);
   const training = round.mode === "training";
 
   const phase = round.phase;
@@ -54,6 +57,20 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
     dispatch({ type: "pick", id, now: Date.now() });
   }
 
+  function place(slot: number) {
+    if (!selectedId || !round.layout) return;
+    const correct = round.layout.slots[selectedId] === slot;
+    if (!correct) {
+      playCue("wrong");
+      setLastWrongSlot(slot);
+    } else if (!musicHit(round.combo)) {
+      playCue("correct");
+    }
+    if (correct) setLastWrongSlot(null);
+    setSelectedId(null);
+    dispatch({ type: "place", id: selectedId, slot, now: Date.now() });
+  }
+
   function showHint() {
     const missing = round.items.find((i) => !round.recalled.some((r) => r.id === i.id));
     setHintId(missing?.id ?? null);
@@ -61,8 +78,17 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
 
   const boardMode: BoardMode = phase === "memorize" ? "memorize" : "hide";
   const total = round.items.length;
+  const layout = round.spec.roundType === "position" ? round.layout : null;
   const label =
-    phase === "memorize" ? "Memorize the table" : phase === "hide" ? "Get ready..." : "Tap what you saw";
+    phase === "memorize"
+      ? layout
+        ? "Remember where each item sits"
+        : "Memorize the table"
+      : phase === "hide"
+        ? "Get ready..."
+        : layout
+          ? "Put each item back in its spot"
+          : "Tap what you saw";
   const tip = !training
     ? null
     : phase === "memorize"
@@ -115,7 +141,31 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       {tip && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{tip}</p>}
 
       <div className="relative">
-        {phase === "recall" ? (
+        {layout ? (
+          <div className="flex flex-col gap-4">
+            <PositionBoard
+              items={round.items}
+              layout={layout}
+              mode={phase === "memorize" ? "memorize" : phase === "hide" ? "hide" : "recall"}
+              placedIds={round.recalled.map((r) => r.id)}
+              wrongSlots={lastWrongSlot !== null && phase === "recall" ? [lastWrongSlot] : []}
+              canPlace={phase === "recall" && round.lives > 0 && selectedId !== null}
+              onSlot={place}
+            />
+            {phase === "recall" ? (
+              <PlaceTray
+                items={round.items}
+                placedIds={round.recalled.map((r) => r.id)}
+                selectedId={selectedId}
+                disabled={round.lives <= 0}
+                onSelect={(id) => {
+                  setLastWrongSlot(null);
+                  setSelectedId((current) => (current === id ? null : id));
+                }}
+              />
+            ) : null}
+          </div>
+        ) : phase === "recall" ? (
           <ChoiceGrid
             choices={round.choices}
             recalledIds={round.recalled.map((r) => r.id)}
