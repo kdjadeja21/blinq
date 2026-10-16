@@ -22,7 +22,7 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
   return (
     <section
       aria-label={`Remembered ${correct} of ${total} on ${when}`}
-      className="relative w-full overflow-hidden rounded-[2rem] p-6 shadow-lg sm:p-10"
+      className="relative w-full overflow-hidden rounded-[2rem] p-5 shadow-lg sm:p-8"
       style={{ background: SHARE_BACKGROUND }}
     >
       <div
@@ -37,12 +37,12 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
       />
       <div className="relative flex items-center justify-between gap-4 text-left">
         <div className="flex min-w-0 flex-col gap-2 sm:gap-3">
-          <p className="flex items-center gap-3 text-4xl font-bold tracking-tight text-white sm:text-6xl">
-            <Image src="/icon.svg" alt="" width={64} height={64} priority className="size-10 rounded-xl sm:size-16" />
+          <p className="flex items-center gap-3 text-3xl font-bold tracking-tight text-white sm:text-5xl">
+            <Image src="/icon.svg" alt="" width={64} height={64} priority className="size-10 rounded-xl sm:size-14" />
             Blinq
           </p>
-          <p className="text-2xl font-bold leading-tight text-white sm:text-5xl">
-            I remembered
+          <p className="text-xl font-bold leading-tight text-white sm:text-4xl">
+            <span className="whitespace-nowrap">I remembered</span>
             <br />
             {correct}/{total}
           </p>
@@ -62,7 +62,7 @@ export function SharedDailyCard({ when, correct, total, stars, grid }: SharedDai
             ))}
           </div>
         </div>
-        <div className="grid w-[40%] max-w-52 shrink-0 grid-cols-4 gap-1.5 sm:gap-3" aria-hidden>
+        <div className="grid w-[36%] max-w-44 shrink-0 grid-cols-4 gap-1.5 sm:gap-2.5" aria-hidden>
           {cells.map((hit, i) => (
             <motion.span
               key={i}

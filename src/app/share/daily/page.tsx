@@ -50,7 +50,7 @@ export default async function SharedDailyPage({ searchParams }: { searchParams: 
   const when = daily.date ? formatDailyDate(daily.date) : "today";
 
   return (
-    <main className="mx-auto flex w-full max-w-xl flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
+    <main className="mx-auto flex w-full max-w-2xl flex-1 flex-col items-center justify-center gap-6 p-6 text-center">
       <SharedDailyCard when={when} correct={daily.correct} total={daily.total} stars={daily.stars} grid={daily.grid} />
       <h1 className="text-2xl font-bold">Can you beat it?</h1>
       <Link href="/" className={cn(buttonVariants({ variant: "game" }), "h-14 rounded-2xl px-8 text-lg")}>
