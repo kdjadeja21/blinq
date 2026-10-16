@@ -1,5 +1,6 @@
 import type { RoundSpec } from "@/lib/engine";
 import type { Item } from "./items";
+import type { ChangeTable } from "./rounds/change";
 import { isCorrectNext, orderKey } from "./rounds/order";
 import { isCorrectPlacement, itemAt, placementKey, type Layout } from "./rounds/position";
 import { WIN_RATIO, nextCombo, pointsForCombo, starsFor } from "./scoring";
@@ -36,6 +37,8 @@ export interface Round {
   choices: Item[];
   /** slot positions for position rounds, null otherwise */
   layout: Layout | null;
+  /** before and after tables for change rounds, null otherwise */
+  table: ChangeTable | null;
   lives: number;
   phase: Phase;
   introStep: number;
@@ -50,13 +53,13 @@ export interface Round {
 }
 
 export type Action =
-  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; layout?: Layout | null; level: number; now: number; key: number }
+  | { type: "start"; mode: Mode; spec: RoundSpec; items: Item[]; choices: Item[]; layout?: Layout | null; table?: ChangeTable | null; level: number; now: number; key: number }
   | { type: "introNext"; now: number }
   | { type: "tick"; now: number }
   | { type: "pick"; id: string; now: number }
   | { type: "place"; id: string; slot: number; now: number }
   | { type: "submit"; now: number }
-  | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[]; layout?: Layout | null }
+  | { type: "retry"; now: number; key: number; items?: Item[]; choices?: Item[]; layout?: Layout | null; table?: ChangeTable | null }
   | { type: "quit" };
 
 function beginMemorize(round: Round, now: number): Round {
@@ -125,6 +128,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
       items: action.items,
       choices: action.choices,
       layout: action.layout ?? null,
+      table: action.table ?? null,
       lives: action.spec.rules.lives,
       phase: action.mode === "training" ? "intro" : "memorize",
       introStep: 0,
@@ -190,6 +194,7 @@ export function roundReducer(round: Round | null, action: Action): Round | null 
         items: action.items ?? round.items,
         choices: action.choices ?? round.choices,
         layout: action.layout ?? round.layout,
+        table: action.table ?? round.table,
         level: round.level,
         now: action.now,
         key: action.key,

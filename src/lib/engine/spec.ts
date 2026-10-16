@@ -1,4 +1,5 @@
 import { ITEMS } from "@/lib/items";
+import { CHANGE_HIDE_MS } from "@/lib/rounds/change";
 import { getLevelConfig, type RoundType } from "@/lib/levelConfig";
 import {
   COMBO_WINDOW_MS,
@@ -22,7 +23,7 @@ import type { Difficulty, Modifier, RoundInput, RoundMode, RoundRules, RoundSpec
 export const ENGINE_VERSION = 3;
 
 /** Round types the game can play so far. Others fall back to item recall. */
-const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order"];
+const PLAYABLE_ROUND_TYPES: readonly RoundType[] = ["item", "position", "order", "change"];
 
 /** What the choice grid can show (5 columns x 4 rows). */
 export const MAX_CHOICES = 20;
@@ -122,6 +123,7 @@ function trainingSpec(): RoundSpec {
  */
 function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: number): RoundSpec {
   const config = getLevelConfig(level, difficulty);
+  const roundType = PLAYABLE_ROUND_TYPES.includes(config.roundType) ? config.roundType : "item";
   const profile = PROFILES[difficulty];
   return {
     engineVersion: ENGINE_VERSION,
@@ -129,12 +131,12 @@ function levelSpec(mode: "level" | "daily", difficulty: Difficulty, level: numbe
     difficulty,
     level: config.level,
     tier: config.block + 1,
-    roundType: PLAYABLE_ROUND_TYPES.includes(config.roundType) ? config.roundType : "item",
+    roundType,
     block: config.block,
     itemCount: config.items,
     choiceCount: config.gridTiles,
     memorizeMs: config.showTimeMs,
-    hideMs: HIDE_MS,
+    hideMs: roundType === "change" ? CHANGE_HIDE_MS : HIDE_MS,
     recallMs: config.recallTimeMs,
     lookalikeRatio: config.lookAlikeShare,
     modifiers: [],

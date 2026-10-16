@@ -13,6 +13,7 @@ import { shareMessage } from "@/lib/progress";
 import type { Stats } from "@/lib/storage";
 import { isGuestLocked } from "@/lib/solo/guest";
 import { Board } from "./Board";
+import { ChangeBoard } from "./ChangeBoard";
 import { OrderSlots } from "./OrderBoard";
 import { PositionBoard } from "./PositionBoard";
 import { Confetti } from "./Confetti";
@@ -125,6 +126,8 @@ export function ResultScreen({ round, stats, guest, onRetry, onNextLevel, onHome
 
       {round.spec.roundType === "position" && round.layout ? (
         <PositionBoard items={round.items} layout={round.layout} mode="reveal" placedIds={round.recalled.map((r) => r.id)} />
+      ) : round.spec.roundType === "change" && round.table ? (
+        <ChangeBoard table={round.table} mode="reveal" foundIds={round.recalled.map((r) => r.id)} wrongIds={[]} />
       ) : round.spec.roundType === "order" ? (
         <OrderSlots items={round.items} placedIds={round.recalled.map((r) => r.id)} reveal />
       ) : (

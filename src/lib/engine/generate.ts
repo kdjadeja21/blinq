@@ -1,15 +1,18 @@
 import { ITEMS, ITEMS_BY_ID, LOOKALIKES, type Item } from "@/lib/items";
 import { shuffle } from "@/lib/rng";
+import { buildChangeTable, changeCountFor, type ChangeTable } from "@/lib/rounds/change";
 import { buildLayout, type Layout } from "@/lib/rounds/position";
 import type { RoundSpec } from "./types";
 
 export interface GeneratedRound {
-  /** the targets shown during memorize; for order rounds this is the sequence */
+  /** the targets shown during memorize; the sequence for order rounds, the changed items for change rounds */
   items: Item[];
   /** targets mixed with decoys, shuffled */
   choices: Item[];
   /** slot positions, only for position rounds */
   layout: Layout | null;
+  /** before and after tables, only for change rounds */
+  table: ChangeTable | null;
 }
 
 const MAX_THEME_CATEGORIES = 2;
@@ -74,10 +77,14 @@ function pickDecoys(spec: RoundSpec, items: Item[], pool: Item[], random: () => 
 /** Builds the table and the choice grid for a spec. Deterministic for a seeded `random`. */
 export function generateRound(spec: RoundSpec, random: () => number = Math.random): GeneratedRound {
   const { items, pool } = pickTargets(spec, random);
-  if (spec.roundType === "order") return { items, choices: shuffle(items, random), layout: null };
+  if (spec.roundType === "order") return { items, choices: shuffle(items, random), layout: null, table: null };
+  if (spec.roundType === "change") {
+    const table = buildChangeTable(items, changeCountFor(spec.level), spec.lookalikeRatio, random);
+    return { items: table.changed.map((slot) => items[slot]), choices: items, layout: null, table };
+  }
   if (spec.roundType === "position") {
-    return { items, choices: shuffle(items, random), layout: buildLayout(items, spec.choiceCount, random) };
+    return { items, choices: shuffle(items, random), layout: buildLayout(items, spec.choiceCount, random), table: null };
   }
   const decoys = pickDecoys(spec, items, pool, random);
-  return { items, choices: shuffle([...items, ...decoys], random), layout: null };
+  return { items, choices: shuffle([...items, ...decoys], random), layout: null, table: null };
 }

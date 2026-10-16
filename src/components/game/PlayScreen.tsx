@@ -12,6 +12,7 @@ import { isCorrectNext, shownIndex } from "@/lib/rounds/order";
 import { comboMultiplier } from "@/lib/scoring";
 import { Board, type BoardMode } from "./Board";
 import { ChoiceGrid } from "./ChoiceGrid";
+import { ChangeBoard } from "./ChangeBoard";
 import { OrderShowcase, OrderSlots } from "./OrderBoard";
 import { PlaceTray, PositionBoard } from "./PositionBoard";
 import { Lives } from "./Lives";
@@ -85,6 +86,7 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
   const total = round.items.length;
   const layout = round.spec.roundType === "position" ? round.layout : null;
   const ordered = round.spec.roundType === "order";
+  const table = round.spec.roundType === "change" ? round.table : null;
   const orderIndex =
     phase === "memorize"
       ? shownIndex(total, round.spec.memorizeMs, now - (round.phaseEndsAt - round.spec.memorizeMs))
@@ -95,14 +97,18 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
         ? "Remember where each item sits"
         : ordered
           ? "Remember the order"
-          : "Memorize the table"
+          : table
+            ? "Study the table"
+            : "Memorize the table"
       : phase === "hide"
         ? "Get ready..."
         : layout
           ? "Put each item back in its spot"
           : ordered
             ? "Tap them in the order you saw"
-            : "Tap what you saw";
+            : table
+              ? "Tap what changed"
+              : "Tap what you saw";
   const tip = !training
     ? null
     : phase === "memorize"
@@ -155,7 +161,16 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
       {tip && <p className="rounded-xl bg-muted px-3 py-2 text-sm text-muted-foreground">{tip}</p>}
 
       <div className="relative">
-        {layout ? (
+        {table ? (
+          <ChangeBoard
+            table={table}
+            mode={phase === "memorize" ? "memorize" : phase === "hide" ? "hide" : "recall"}
+            foundIds={round.recalled.map((r) => r.id)}
+            wrongIds={round.wrong}
+            disabled={round.lives <= 0}
+            onPick={pick}
+          />
+        ) : layout ? (
           <div className="flex flex-col gap-4">
             <PositionBoard
               items={round.items}
@@ -265,7 +280,9 @@ export function PlayScreen({ round, now, dispatch, onSkipTraining }: PlayScreenP
           {phase === "memorize"
             ? ordered
               ? `Remember all ${total} items and the order they come in.`
-              : layout
+              : table
+                ? `Remember all ${table.before.length} items. ${total === 1 ? "One" : total} will change.`
+                : layout
                 ? `Remember all ${total} items and where they sit.`
                 : `Remember all ${total} items - you'll pick them out of a crowd next.`
             : " "}
