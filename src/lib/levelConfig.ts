@@ -49,7 +49,8 @@ export const BLOCK_SIZE = 10;
 export const GRID_CAP = 24;
 export const MIN_ITEMS = 3;
 export const ITEMS_PER_LEVEL = 2;
-/** The item block ramps gently so beginners reach the cap near level 10. */
+/** The item block adds one item per level up to this level, then ITEMS_PER_LEVEL. */
+export const FIRST_BLOCK_GENTLE_UNTIL_LEVEL = 5;
 export const FIRST_BLOCK_ITEMS_PER_LEVEL = 1;
 export const ITEMS_PER_ADAPTIVE_STEP = 2;
 export const MIN_DISTRACTORS = 6;
@@ -83,13 +84,15 @@ interface BlockDef {
   startItems: number;
   /** items added per level inside the block */
   perLevel: number;
+  /** 0-based block position up to which `perLevel` applies; later levels add ITEMS_PER_LEVEL */
+  gentleUntilPos?: number;
   itemCap: number;
   tip: string;
 }
 
 /** One skill per block. Past the last entry the game loops through "combo". */
 const BLOCKS: readonly BlockDef[] = [
-  { type: "item", startItems: 4, perLevel: FIRST_BLOCK_ITEMS_PER_LEVEL, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
+  { type: "item", startItems: 4, perLevel: FIRST_BLOCK_ITEMS_PER_LEVEL, gentleUntilPos: FIRST_BLOCK_GENTLE_UNTIL_LEVEL - 1, itemCap: 14, tip: "Group items by category (fruits, tools) to remember more." },
   { type: "position", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Picture the table as a room and place each item in a spot." },
   { type: "order", startItems: 4, perLevel: ITEMS_PER_LEVEL, itemCap: 12, tip: "Link items into a silly story, in order." },
   { type: "change", startItems: 5, perLevel: ITEMS_PER_LEVEL, itemCap: 14, tip: "Scan in zones, left to right, so nothing escapes you." },
@@ -121,6 +124,12 @@ const DIFFICULTY_PRESETS: Record<Difficulty, { time: number; lookAlike: number; 
 };
 
 const clamp = (value: number, min: number, max: number) => Math.min(max, Math.max(min, value));
+
+/** Items added by position `pos` of a block. */
+function rampSteps(block: BlockDef, pos: number): number {
+  const gentle = Math.min(pos, block.gentleUntilPos ?? pos);
+  return block.perLevel * gentle + ITEMS_PER_LEVEL * (pos - gentle);
+}
 
 function blocksFor(kids: boolean): readonly BlockDef[] {
   return kids ? KIDS_BLOCKS : BLOCKS;
@@ -198,7 +207,7 @@ export function getLevelConfig(
   const offset = clamp(Math.round(adaptiveOffset), -ADAPTIVE_MAX_OFFSET, ADAPTIVE_MAX_OFFSET);
 
   const rawItems =
-    block.startItems + block.perLevel * pos + preset.itemDelta + offset * ITEMS_PER_ADAPTIVE_STEP;
+    block.startItems + rampSteps(block, pos) + preset.itemDelta + offset * ITEMS_PER_ADAPTIVE_STEP;
   const items = clamp(rawItems, MIN_ITEMS, block.itemCap);
 
   const gridTiles = gridTilesFor(items);
