@@ -35,6 +35,14 @@ describe("change table", () => {
     }
   });
 
+  it("never leaves an empty spot, which would give the change away", () => {
+    for (let seed = 1; seed <= 30; seed++) {
+      const spec = getRoundSpec({ mode: "level", difficulty: "medium", level: 39 });
+      const { table } = generateRound(spec, mulberry32(seed));
+      assert.ok(table!.after.every((item) => item !== null));
+    }
+  });
+
   it("keeps at least one tile unchanged on tiny tables", () => {
     const spec = getRoundSpec({ mode: "level", difficulty: "easy", level: 31 });
     const { table } = generateRound(spec, mulberry32(1));

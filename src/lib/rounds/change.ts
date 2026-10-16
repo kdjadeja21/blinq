@@ -10,7 +10,7 @@ const BLOCK_SIZE = 10;
 /** The table as first shown, as shown again, and which tiles differ. */
 export interface ChangeTable {
   before: Item[];
-  /** same slots as `before`; null means the item is gone */
+  /** same slots as `before`; always filled, since an empty spot would give the answer away */
   after: (Item | null)[];
   /** slot indexes that changed */
   changed: number[];
@@ -46,13 +46,9 @@ export function buildChangeTable(
   const taken = new Set(before.map((item) => item.id));
   const after: (Item | null)[] = [...before];
   for (const slot of changed) {
-    if (random() < 0.5) {
-      after[slot] = null;
-    } else {
-      const replacement = pickReplacement(before[slot], taken, lookAlikeShare, random);
-      taken.add(replacement.id);
-      after[slot] = replacement;
-    }
+    const replacement = pickReplacement(before[slot], taken, lookAlikeShare, random);
+    taken.add(replacement.id);
+    after[slot] = replacement;
   }
   return { before: [...before], after, changed };
 }
