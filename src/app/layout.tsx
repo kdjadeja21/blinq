@@ -1,8 +1,10 @@
 import { ClerkProvider } from "@clerk/nextjs";
 import { shadcn } from "@clerk/ui/themes";
 import { Analytics } from "@vercel/analytics/next";
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Fredoka } from "next/font/google";
+import { InstallPrompt } from "@/components/pwa/install-prompt";
+import { RegisterServiceWorker } from "@/components/pwa/register-sw";
 import "./globals.css";
 
 const fredoka = Fredoka({
@@ -14,6 +16,9 @@ export const metadata: Metadata = {
   title: "Blinq — memory game",
   description: "Memory workout, with fun",
   metadataBase: new URL("https://blinqplay.vercel.app"),
+  applicationName: "Blinq",
+  appleWebApp: { capable: true, title: "Blinq", statusBarStyle: "default" },
+  icons: { apple: "/icons/apple-touch-icon.png" },
   openGraph: {
     title: "Blinq — memory game",
     description: "Memory workout, with fun",
@@ -28,6 +33,14 @@ export const metadata: Metadata = {
     description: "Memory workout, with fun",
     images: ["/og.png"],
   },
+};
+
+export const viewport: Viewport = {
+  viewportFit: "cover",
+  themeColor: [
+    { media: "(prefers-color-scheme: light)", color: "#6E28D9" },
+    { media: "(prefers-color-scheme: dark)", color: "#1a1030" },
+  ],
 };
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
@@ -49,6 +62,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
           <div className="game-bg" aria-hidden />
           {children}
         </ClerkProvider>
+        <InstallPrompt />
+        <RegisterServiceWorker />
         <Analytics />
       </body>
     </html>
