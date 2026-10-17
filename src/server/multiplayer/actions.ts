@@ -5,6 +5,7 @@ import {
   heartbeat,
   joinRoom,
   kickPlayer,
+  peekRoom,
   leaveRoom,
   playAgain,
   startGame,
@@ -17,6 +18,7 @@ import { advancePhase, finishEarly, nextStep, submitGuess, sweep } from "./phase
 export const USER_ACTIONS = [
   "create_room",
   "join_room",
+  "peek_room",
   "create_teams",
   "start_game",
   "play_again",
@@ -49,7 +51,9 @@ export async function runUserAction(action: UserAction, userId: string, body: Bo
     case "create_room":
       return createRoom(userId, body.name, body);
     case "join_room":
-      return joinRoom(userId, body.code, body.name);
+      return joinRoom(userId, body.code, body.name, body.avatar);
+    case "peek_room":
+      return peekRoom(body.code);
     case "create_teams":
       return createTeams(userId, str(body, "roomId"));
     case "start_game":

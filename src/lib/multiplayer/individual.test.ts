@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import { describe, it } from "node:test";
-import { AVATARS } from "./avatars";
-import { MAX_PLAYERS_BY_MODE, maxPlayersFor } from "./config";
+import { AVATARS, PERSONAS, SURPRISE_ADJECTIVES, requestedAvatar, surprisePersona } from "./avatars";
+import { MAX_PLAYERS_BY_MODE, NAME_MAX, NAME_MIN, maxPlayersFor } from "./config";
 import { layoutFor } from "./layout";
 import { cumulativeStandings, duelScores, levelStandings, type BoardPlayer, type RoundScore } from "./leaderboard";
 
@@ -36,6 +36,51 @@ describe("player caps", () => {
 
   it("has an avatar for every seat", () => {
     assert.ok(AVATARS.length > maxPlayersFor("individual"));
+  });
+});
+
+describe("surprisePersona", () => {
+  it("gives every avatar an animal label that fits the name cap", () => {
+    assert.equal(PERSONAS.length, AVATARS.length);
+    for (const persona of PERSONAS) {
+      assert.ok(AVATARS.includes(persona.avatar));
+      for (const adjective of SURPRISE_ADJECTIVES) {
+        const name = `${adjective}${persona.animal}`;
+        assert.ok(name.length >= NAME_MIN);
+        assert.ok(name.length <= NAME_MAX, name);
+      }
+    }
+  });
+
+  it("pairs the rolled name with the matching avatar", () => {
+    for (let personaIndex = 0; personaIndex < PERSONAS.length; personaIndex++) {
+      for (let adjectiveIndex = 0; adjectiveIndex < SURPRISE_ADJECTIVES.length; adjectiveIndex++) {
+        let step = 0;
+        const persona = surprisePersona([], () => {
+          const index = step === 0 ? personaIndex : adjectiveIndex;
+          const size = step === 0 ? PERSONAS.length : SURPRISE_ADJECTIVES.length;
+          step += 1;
+          return (index + 0.5) / size;
+        });
+        const expected = PERSONAS[personaIndex];
+        assert.equal(persona.avatar, expected.avatar);
+        assert.equal(persona.name, `${SURPRISE_ADJECTIVES[adjectiveIndex]}${expected.animal}`);
+      }
+    }
+  });
+
+  it("keeps a requested avatar only when it is free", () => {
+    assert.equal(requestedAvatar("🐼", []), "🐼");
+    assert.equal(requestedAvatar("🐼", ["🐼"]), undefined);
+    assert.equal(requestedAvatar("not-an-avatar", []), undefined);
+  });
+
+  it("skips avatars that are already taken", () => {
+    const taken = PERSONAS.slice(0, -1).map((persona) => persona.avatar);
+    const last = PERSONAS[PERSONAS.length - 1];
+    const persona = surprisePersona(taken, () => 0);
+    assert.equal(persona.avatar, last.avatar);
+    assert.ok(persona.name.endsWith(last.animal));
   });
 });
 

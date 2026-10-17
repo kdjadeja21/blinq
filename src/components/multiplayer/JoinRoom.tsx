@@ -8,16 +8,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
+import { surprisePersona } from "@/lib/multiplayer/avatars";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
 import { ErrorNote, Spinner, TextField } from "./shared";
-
-const ADJECTIVES = ["Swift", "Sneaky", "Brainy", "Lucky", "Fuzzy", "Cosmic", "Zesty", "Mighty", "Clever", "Sunny"];
-const ANIMALS = ["Fox", "Owl", "Panda", "Otter", "Koala", "Tiger", "Falcon", "Gecko", "Lynx", "Whale"];
-
-function randomName(): string {
-  const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
-  return `${pick(ADJECTIVES)}${pick(ANIMALS)}`.slice(0, NAME_MAX);
-}
 
 function cleanCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH);
@@ -126,6 +119,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [editingCode, setEditingCode] = useState(!invited);
   const [name, setName] = useState(defaultName);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +128,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
     setBusy(true);
     setError(null);
     try {
-      const room = await callMp<{ code: string }>("join_room", { code, name });
+      const room = await callMp<{ code: string }>("join_room", { code, name, ...(avatar ? { avatar } : {}) });
       router.push(`/room/${room.code}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not join the room.");
@@ -198,8 +192,29 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
             autoComplete="nickname"
             autoFocus={invited && !editingCode}
             required
+            prefix={avatar ? <span aria-label="Avatar">{avatar}</span> : undefined}
           />
-          <Button type="button" variant="ghost" className="h-11 w-fit rounded-xl px-3" onClick={() => setName(randomName())}>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-11 w-fit rounded-xl px-3"
+            onClick={() => {
+              void (async () => {
+                let taken: string[] = avatar ? [avatar] : [];
+                if (code.length === ROOM_CODE_LENGTH) {
+                  try {
+                    const peek = await callMp<{ avatars: string[] }>("peek_room", { code });
+                    taken = [...taken, ...peek.avatars];
+                  } catch {
+                    // Join still enforces unique avatars if the peek fails.
+                  }
+                }
+                const persona = surprisePersona(taken);
+                setName(persona.name);
+                setAvatar(persona.avatar);
+              })();
+            }}
+          >
             <Dices className="size-4" /> Surprise me
           </Button>
         </div>
