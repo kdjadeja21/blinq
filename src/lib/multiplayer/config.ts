@@ -53,6 +53,11 @@ export function autoResultMs(phase: "duel_result" | "level_result"): number {
   return phase === "duel_result" ? AUTO_DUEL_RESULT_MS : AUTO_LEVEL_RESULT_MS;
 }
 
+export const PACING_INFO: Record<Pacing, { label: string; description: string }> = {
+  manual: { label: "Manual", description: "You tap Next after each result." },
+  auto: { label: "Auto", description: "Results advance on their own." },
+};
+
 export const MODES: Record<RoomMode, { label: string; description: string }> = {
   team: { label: "Team", description: "Two teams, one-on-one duels." },
   individual: { label: "Individual", description: "Everyone plays at once. Top of the leaderboard wins." },
