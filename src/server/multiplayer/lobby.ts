@@ -15,7 +15,7 @@ import {
   autoResultMs,
   maxPlayersFor,
 } from "@/lib/multiplayer/config";
-import { BOT_AVATAR, pickAvatar } from "@/lib/multiplayer/avatars";
+import { BOT_AVATAR, pickAvatar, requestedAvatar } from "@/lib/multiplayer/avatars";
 import { cleanName, normalizeCode } from "@/lib/multiplayer/names";
 import { splitTeams } from "@/lib/multiplayer/pairing";
 import { DEFAULT_ROUND_TYPE, validRoundType, type RoomRoundType } from "@/lib/multiplayer/roundTypes";
@@ -144,7 +144,7 @@ export async function createRoom(
   throw new ApiError(503, "Could not generate a room code. Try again.");
 }
 
-export async function joinRoom(userId: string, rawCode: unknown, rawName: unknown) {
+export async function joinRoom(userId: string, rawCode: unknown, rawName: unknown, rawAvatar?: unknown) {
   const code = normalizeCode(rawCode);
   if (!code) throw new ApiError(400, "Room codes have 6 letters and numbers.");
   const room = await findRoomByCode(code);
@@ -164,7 +164,8 @@ export async function joinRoom(userId: string, rawCode: unknown, rawName: unknow
     if (players.some((p) => p.name.toLowerCase() === name.toLowerCase())) {
       throw new ApiError(409, "That name is taken in this room.");
     }
-    const avatar = pickAvatar(players.map((p) => p.avatar));
+    const taken = players.map((p) => p.avatar);
+    const avatar = requestedAvatar(rawAvatar, taken) ?? pickAvatar(taken);
     const { error } = await db().from("players").insert({ room_id: room.id, user_id: userId, name, avatar });
     // Another player may have grabbed the same avatar or name at the same moment: look again.
     if (isUniqueViolation(error)) continue;

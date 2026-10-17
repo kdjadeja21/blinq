@@ -49,7 +49,7 @@ export async function runUserAction(action: UserAction, userId: string, body: Bo
     case "create_room":
       return createRoom(userId, body.name, body);
     case "join_room":
-      return joinRoom(userId, body.code, body.name);
+      return joinRoom(userId, body.code, body.name, body.avatar);
     case "create_teams":
       return createTeams(userId, str(body, "roomId"));
     case "start_game":

@@ -8,16 +8,9 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
+import { surprisePersona } from "@/lib/multiplayer/avatars";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
 import { ErrorNote, Spinner, TextField } from "./shared";
-
-const ADJECTIVES = ["Swift", "Sneaky", "Brainy", "Lucky", "Fuzzy", "Cosmic", "Zesty", "Mighty", "Clever", "Sunny"];
-const ANIMALS = ["Fox", "Owl", "Panda", "Otter", "Koala", "Tiger", "Falcon", "Gecko", "Lynx", "Whale"];
-
-function randomName(): string {
-  const pick = (list: string[]) => list[Math.floor(Math.random() * list.length)];
-  return `${pick(ADJECTIVES)}${pick(ANIMALS)}`.slice(0, NAME_MAX);
-}
 
 function cleanCode(raw: string): string {
   return raw.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, ROOM_CODE_LENGTH);
@@ -126,6 +119,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
   const [code, setCode] = useState(initialCode.toUpperCase());
   const [editingCode, setEditingCode] = useState(!invited);
   const [name, setName] = useState(defaultName);
+  const [avatar, setAvatar] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -134,7 +128,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
     setBusy(true);
     setError(null);
     try {
-      const room = await callMp<{ code: string }>("join_room", { code, name });
+      const room = await callMp<{ code: string }>("join_room", { code, name, ...(avatar ? { avatar } : {}) });
       router.push(`/room/${room.code}`);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Could not join the room.");
@@ -189,17 +183,38 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <TextField
-            label="Your name"
-            hint="Your player name in this room."
-            value={name}
-            onChange={setName}
-            maxLength={NAME_MAX}
-            autoComplete="nickname"
-            autoFocus={invited && !editingCode}
-            required
-          />
-          <Button type="button" variant="ghost" className="h-11 w-fit rounded-xl px-3" onClick={() => setName(randomName())}>
+          <div className="flex items-end gap-2">
+            {avatar ? (
+              <span
+                aria-label="Avatar"
+                className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-2xl leading-none"
+              >
+                {avatar}
+              </span>
+            ) : null}
+            <div className="min-w-0 flex-1">
+              <TextField
+                label="Your name"
+                hint="Your player name in this room."
+                value={name}
+                onChange={setName}
+                maxLength={NAME_MAX}
+                autoComplete="nickname"
+                autoFocus={invited && !editingCode}
+                required
+              />
+            </div>
+          </div>
+          <Button
+            type="button"
+            variant="ghost"
+            className="h-11 w-fit rounded-xl px-3"
+            onClick={() => {
+              const persona = surprisePersona();
+              setName(persona.name);
+              setAvatar(persona.avatar);
+            }}
+          >
             <Dices className="size-4" /> Surprise me
           </Button>
         </div>
