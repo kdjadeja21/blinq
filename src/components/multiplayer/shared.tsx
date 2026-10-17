@@ -1,7 +1,7 @@
 "use client";
 
 import { cn } from "cn";
-import { useEffect, useState } from "react";
+import { useEffect, useState, type ReactNode } from "react";
 import { SlidingOptions } from "@/components/ui/sliding-options";
 import { avatarFor } from "@/lib/multiplayer/avatars";
 import type { PlayerRow, TeamRow } from "@/lib/multiplayer/types";
@@ -57,6 +57,7 @@ export function TextField({
   hint,
   value,
   onChange,
+  prefix,
   className,
   ...rest
 }: {
@@ -64,7 +65,8 @@ export function TextField({
   hint?: string;
   value: string;
   onChange: (value: string) => void;
-} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange">) {
+  prefix?: ReactNode;
+} & Omit<React.InputHTMLAttributes<HTMLInputElement>, "value" | "onChange" | "prefix">) {
   const id = rest.id ?? rest.name;
   return (
     <div className="flex flex-col gap-1.5">
@@ -72,16 +74,24 @@ export function TextField({
         {label}
       </label>
       {hint ? <p className="text-xs font-normal text-muted-foreground">{hint}</p> : null}
-      <input
-        {...rest}
-        id={id}
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-        className={cn(
-          "h-12 rounded-2xl border-2 bg-card px-4 text-base font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
-          className,
-        )}
-      />
+      <div className="relative">
+        {prefix ? (
+          <span className="pointer-events-none absolute inset-y-0 left-0 flex w-12 items-center justify-center text-xl leading-none">
+            {prefix}
+          </span>
+        ) : null}
+        <input
+          {...rest}
+          id={id}
+          value={value}
+          onChange={(e) => onChange(e.target.value)}
+          className={cn(
+            "h-12 w-full rounded-2xl border-2 bg-card px-4 text-base font-medium outline-none focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50",
+            prefix && "pl-12",
+            className,
+          )}
+        />
+      </div>
     </div>
   );
 }

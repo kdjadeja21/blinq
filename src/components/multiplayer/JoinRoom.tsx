@@ -183,28 +183,17 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
         </div>
 
         <div className="flex flex-col gap-1.5">
-          <div className="flex items-end gap-2">
-            {avatar ? (
-              <span
-                aria-label="Avatar"
-                className="inline-flex size-12 shrink-0 items-center justify-center rounded-full bg-primary/20 text-2xl leading-none"
-              >
-                {avatar}
-              </span>
-            ) : null}
-            <div className="min-w-0 flex-1">
-              <TextField
-                label="Your name"
-                hint="Your player name in this room."
-                value={name}
-                onChange={setName}
-                maxLength={NAME_MAX}
-                autoComplete="nickname"
-                autoFocus={invited && !editingCode}
-                required
-              />
-            </div>
-          </div>
+          <TextField
+            label="Your name"
+            hint="Your player name in this room."
+            value={name}
+            onChange={setName}
+            maxLength={NAME_MAX}
+            autoComplete="nickname"
+            autoFocus={invited && !editingCode}
+            required
+            prefix={avatar ? <span aria-label="Avatar">{avatar}</span> : undefined}
+          />
           <Button
             type="button"
             variant="ghost"
