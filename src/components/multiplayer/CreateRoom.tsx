@@ -17,6 +17,7 @@ import {
   MAX_ROOM_LEVELS,
   MODES,
   NAME_MAX,
+  PACING_INFO,
   TEAM_STYLES_INFO,
   maxPlayersFor,
 } from "@/lib/multiplayer/config";
@@ -40,10 +41,10 @@ const ROUND_TYPE_CHOICES: { value: RoomRoundType; label: string }[] = ROOM_ROUND
   value,
   label: ROUND_TYPE_OPTIONS[value].label,
 }));
-const PACING_OPTIONS: { value: Pacing; label: string }[] = [
-  { value: "manual", label: "Manual" },
-  { value: "auto", label: "Auto" },
-];
+const PACING_OPTIONS: { value: Pacing; label: string }[] = (["manual", "auto"] as const).map((value) => ({
+  value,
+  label: PACING_INFO[value].label,
+}));
 
 export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
   const router = useRouter();
@@ -130,7 +131,7 @@ export function CreateRoom({ defaultName = "" }: { defaultName?: string }) {
         )}
         <Segmented label="Pacing" value={pacing} options={PACING_OPTIONS} onChange={setPacing} />
         <p className="-mt-2 text-xs text-muted-foreground">
-          Manual: you tap Next after each result. Auto: results advance on their own. You can switch any time.
+          {PACING_INFO[pacing].description} You can switch any time.
         </p>
         <ErrorNote message={error} />
         <Button type="submit" variant="game" className="h-14 rounded-3xl text-lg" disabled={busy}>

@@ -26,6 +26,7 @@ export function NextControl({ state, label }: { state: RoomState; label: string 
   const clock = useServerNow(now);
   const { busy, error, run } = useAction();
   if (!room) return null;
+  const auto = room.pacing === "auto";
   const deadline =
     room.phase_started_at && room.phase_duration_ms !== null
       ? Date.parse(room.phase_started_at) + room.phase_duration_ms
@@ -33,12 +34,12 @@ export function NextControl({ state, label }: { state: RoomState; label: string 
   return (
     <div className="flex flex-col gap-3">
       <ErrorNote message={error} />
-      {deadline !== null && (
+      {auto && deadline !== null && (
         <p className="text-center text-sm text-muted-foreground" role="status">
           Auto mode: moving on in <span className="font-bold tabular-nums">{Math.max(0, Math.ceil((deadline - clock) / 1000))}</span>s
         </p>
       )}
-      {isAdmin ? (
+      {!auto && isAdmin ? (
         <Button
           variant="game"
           className="h-14 rounded-3xl text-lg"
@@ -48,6 +49,8 @@ export function NextControl({ state, label }: { state: RoomState; label: string 
           {label}
         </Button>
       ) : (
+        !auto &&
+        !isAdmin &&
         deadline === null && (
           <p className="rounded-2xl bg-muted px-4 py-3 text-center text-muted-foreground" role="status">
             Waiting for the admin...

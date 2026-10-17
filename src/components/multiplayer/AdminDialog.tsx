@@ -4,7 +4,7 @@ import { Dialog } from "@base-ui/react/dialog";
 import { Settings, UserX, X } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
-import { DIFFICULTIES, MAX_ROOM_LEVELS } from "@/lib/multiplayer/config";
+import { DIFFICULTIES, MAX_ROOM_LEVELS, PACING_INFO } from "@/lib/multiplayer/config";
 import { ROOM_ROUND_TYPES, ROUND_TYPE_OPTIONS } from "@/lib/multiplayer/roundTypes";
 import type { Difficulty } from "@/lib/multiplayer/types";
 import { useAction } from "./LobbyView";
@@ -18,10 +18,10 @@ const DIFFICULTY_OPTIONS = (Object.keys(DIFFICULTIES) as Difficulty[]).map((valu
   label: DIFFICULTIES[value].label,
 }));
 
-const PACING_OPTIONS = [
-  { value: "manual", label: "Manual" },
-  { value: "auto", label: "Auto" },
-] as const;
+const PACING_OPTIONS = (["manual", "auto"] as const).map((value) => ({
+  value,
+  label: PACING_INFO[value].label,
+}));
 
 export function AdminDialog({ state }: { state: RoomState }) {
   const { room, players, me, online } = state;
@@ -94,9 +94,12 @@ export function AdminDialog({ state }: { state: RoomState }) {
           <Segmented
             label={room.mode === "individual" ? "Pacing between levels" : "Pacing between duels"}
             value={room.pacing}
-            options={[...PACING_OPTIONS]}
+            options={PACING_OPTIONS}
             onChange={(pacing) => void run("update_settings", { roomId: room.id, pacing })}
           />
+          <p className="-mt-2 text-xs text-muted-foreground">
+            {PACING_INFO[room.pacing].description} You can switch any time.
+          </p>
 
           {preGame && others.length > 0 && (
             <section aria-labelledby="remove-title" className="flex flex-col gap-2">
