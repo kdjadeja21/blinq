@@ -1,10 +1,11 @@
 "use client";
 
 import { Smartphone } from "lucide-react";
-import { useSyncExternalStore } from "react";
+import { useEffect, useState, useSyncExternalStore } from "react";
 import { buttonVariants } from "@/components/ui/button";
 import { shareUrl } from "@/lib/multiplayer/share";
 import { getDisplaySurface, type DisplaySurface } from "@/lib/pwa/display";
+import { queryRelatedPwaInstalled } from "@/lib/pwa/relatedApps";
 
 function noopSubscribe() {
   return () => {};
@@ -12,26 +13,27 @@ function noopSubscribe() {
 
 export function OpenInAppHandoff({ code }: { code: string }) {
   const surface = useSyncExternalStore<DisplaySurface | null>(noopSubscribe, getDisplaySurface, () => null);
-  if (!surface || surface === "standalone") return null;
+  const [installed, setInstalled] = useState(false);
 
-  if (surface === "ios") {
-    return (
-      <section className="rounded-3xl border-2 bg-card p-4 shadow-lg" aria-label="Open Blinq from Home Screen">
-        <p className="text-sm font-bold">Already installed?</p>
-        <p className="mt-1 text-sm text-muted-foreground">
-          iPhone opens this link in Safari. Open Blinq from your Home Screen and enter code{" "}
-          <span className="font-mono font-extrabold tracking-widest text-foreground tabular-nums">{code}</span>.
-        </p>
-      </section>
-    );
-  }
+  useEffect(() => {
+    if (!surface || surface === "standalone") return;
+    let cancelled = false;
+    void queryRelatedPwaInstalled().then((value) => {
+      if (!cancelled) setInstalled(value);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [surface]);
+
+  if (!surface || surface === "standalone" || !installed) return null;
 
   return (
     <section className="flex flex-col gap-3 rounded-3xl border-2 bg-card p-4 shadow-lg" aria-label="Open in Blinq">
       <div>
-        <p className="text-sm font-bold">Have the Blinq app?</p>
+        <p className="text-sm font-bold">Continue in Blinq</p>
         <p className="mt-1 text-sm text-muted-foreground">
-          Open this invite in the installed app instead of the browser.
+          This invite can open in your installed app.
         </p>
       </div>
       <a
