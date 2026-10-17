@@ -1,63 +1,13 @@
 "use client";
 
 import { Download, Share, X } from "lucide-react";
-import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
-import { getDisplaySurface, type DisplaySurface } from "@/lib/pwa/display";
-
-const DISMISS_KEY = "blinq:install-dismissed:v1";
-
-interface BeforeInstallPromptEvent extends Event {
-  prompt: () => Promise<void>;
-  userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
-}
-
-function noopSubscribe() {
-  return () => {};
-}
-
-function readDismissed() {
-  try {
-    return localStorage.getItem(DISMISS_KEY) === "1";
-  } catch {
-    return false;
-  }
-}
+import { usePwaInstall } from "@/components/pwa/use-pwa-install";
 
 export function InstallPrompt() {
-  const platform = useSyncExternalStore<DisplaySurface | null>(noopSubscribe, getDisplaySurface, () => null);
-  const [dismissed, setDismissed] = useState(readDismissed);
-  const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
+  const { platform, isMobile, dismissed, deferred, dismiss, install } = usePwaInstall();
 
-  useEffect(() => {
-    const onPrompt = (event: Event) => {
-      event.preventDefault();
-      setDeferred(event as BeforeInstallPromptEvent);
-    };
-    const onInstalled = () => setDeferred(null);
-    window.addEventListener("beforeinstallprompt", onPrompt);
-    window.addEventListener("appinstalled", onInstalled);
-    return () => {
-      window.removeEventListener("beforeinstallprompt", onPrompt);
-      window.removeEventListener("appinstalled", onInstalled);
-    };
-  }, []);
-
-  const dismiss = () => {
-    setDismissed(true);
-    try {
-      localStorage.setItem(DISMISS_KEY, "1");
-    } catch {}
-  };
-
-  const install = async () => {
-    if (!deferred) return;
-    await deferred.prompt();
-    await deferred.userChoice;
-    setDeferred(null);
-  };
-
-  if (dismissed || platform === null || platform === "standalone") return null;
+  if (dismissed || !isMobile || platform === null || platform === "standalone") return null;
   const showIosHint = platform === "ios";
   if (!showIosHint && !deferred) return null;
 
@@ -79,7 +29,7 @@ export function InstallPrompt() {
         )}
       </div>
       {!showIosHint && (
-        <Button variant="game" size="lg" onClick={install}>
+        <Button variant="game" size="lg" onClick={() => void install()}>
           <Download data-icon="inline-start" />
           Install
         </Button>
