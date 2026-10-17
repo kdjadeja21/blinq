@@ -199,9 +199,20 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
             variant="ghost"
             className="h-11 w-fit rounded-xl px-3"
             onClick={() => {
-              const persona = surprisePersona();
-              setName(persona.name);
-              setAvatar(persona.avatar);
+              void (async () => {
+                let taken: string[] = avatar ? [avatar] : [];
+                if (code.length === ROOM_CODE_LENGTH) {
+                  try {
+                    const peek = await callMp<{ avatars: string[] }>("peek_room", { code });
+                    taken = [...taken, ...peek.avatars];
+                  } catch {
+                    // Join still enforces unique avatars if the peek fails.
+                  }
+                }
+                const persona = surprisePersona(taken);
+                setName(persona.name);
+                setAvatar(persona.avatar);
+              })();
             }}
           >
             <Dices className="size-4" /> Surprise me

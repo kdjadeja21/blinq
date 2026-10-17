@@ -125,7 +125,8 @@ All are `POST /api/mp/<action>` with the user's access token. Code in `src/serve
 | Action | Caller | What it does |
 | --- | --- | --- |
 | `create_room` | Anyone | Room, unique code, admin player. Accepts `mode` and, for team rooms, `teamStyle` (`squad` default, or `duel`). Max 5 rooms per hour per user. |
-| `join_room` | Anyone | Lobby only, max 12, unique name. Existing members rejoin at any time. |
+| `join_room` | Anyone | Lobby only, unique name and unique avatar. Existing members rejoin at any time. |
+| `peek_room` | Anyone signed in | Occupied avatars for a room code, so Surprise me can skip tiles already in use. |
 | `create_teams` | Admin | Shuffle into two teams, add a bot when odd, phase `teams_ready`. |
 | `start_game` | Admin | Build level 1 (pairings, items, timers), phase `duel_intro`. |
 | `submit_guess` | Duel player | Validates and stores a pick (optional `at`: client tap time on the server clock, clamped to the last 5s), updates live progress. Returns `correct`, `points`, `combo`, `correctCount`, `wrongCount`, `deadlineMs`, `ended`. Ends the duel when someone finds every item, or when both players are finished (out of lives, done early, or a bot opponent). |

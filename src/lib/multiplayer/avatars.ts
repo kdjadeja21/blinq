@@ -49,8 +49,14 @@ export function requestedAvatar(raw: unknown, taken: readonly (string | null)[])
   return raw;
 }
 
-export function surprisePersona(random: () => number = Math.random): { name: string; avatar: string } {
-  const persona = PERSONAS[Math.floor(random() * PERSONAS.length)];
+export function surprisePersona(
+  taken: readonly (string | null)[] = [],
+  random: () => number = Math.random,
+): { name: string; avatar: string } {
+  const used = new Set(taken);
+  const free = PERSONAS.filter((persona) => !used.has(persona.avatar));
+  const pool = free.length > 0 ? free : PERSONAS;
+  const persona = pool[Math.floor(random() * pool.length)];
   const adjective = SURPRISE_ADJECTIVES[Math.floor(random() * SURPRISE_ADJECTIVES.length)];
   return { name: `${adjective}${persona.animal}`, avatar: persona.avatar };
 }

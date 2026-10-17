@@ -144,6 +144,15 @@ export async function createRoom(
   throw new ApiError(503, "Could not generate a room code. Try again.");
 }
 
+export async function peekRoom(rawCode: unknown) {
+  const code = normalizeCode(rawCode);
+  if (!code) throw new ApiError(400, "Room codes have 6 letters and numbers.");
+  const room = await findRoomByCode(code);
+  if (!room || Date.parse(room.expires_at) < Date.now()) throw new ApiError(404, "No room with that code.");
+  const players = await listPlayers(room.id);
+  return { avatars: players.flatMap((player) => (player.avatar ? [player.avatar] : [])) };
+}
+
 export async function joinRoom(userId: string, rawCode: unknown, rawName: unknown, rawAvatar?: unknown) {
   const code = normalizeCode(rawCode);
   if (!code) throw new ApiError(400, "Room codes have 6 letters and numbers.");
