@@ -147,6 +147,7 @@ Variants: `default`, `outline`, `secondary`, `ghost`, `destructive`, `link`, plu
 - **Section card:** see Spacing, shape and elevation. Label it with `aria-labelledby`.
 - **Own-entry highlight:** the viewer's row or chip is marked by its style alone. Never add "you" text or a "You" badge. Use `youRowClass(isMe)` for rows (`bg-primary/15 ring-2 ring-primary shadow-md shadow-primary/20`, from `src/components/game/ownRow.ts`). Pill-shaped chips such as `PlayerChip` use `border-primary bg-primary/10 shadow-md shadow-primary/20`. Used by both leaderboards (including the pinned copy of the viewer's row), lobby chips, squad duel rows and the final points list.
 - **Segmented control:** `SlidingOptions` in `src/components/ui/sliding-options.tsx`, used by `Segmented` and `LeaderboardTabs`. Use it for any new tab or option group. The selected pill slides between options over `--duration-base` with `--ease-out-soft`. Reduced motion skips the slide.
+- **Round briefing callout:** a one-off fact the player must not miss (for example the individual multiplayer layout note). `rounded-2xl border-2 border-primary bg-primary/10 px-4 py-3 text-base font-semibold`. Pair it with a reward-badge count (`bg-gold`) and a labeled `Starts in` timer in `text-gold`, so the instruction leads and the countdown is secondary. Used by `RoundIntro` in `src/components/multiplayer/RoundView.tsx`.
 
 ## Adding to the system
 

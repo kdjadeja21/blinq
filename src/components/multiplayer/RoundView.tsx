@@ -12,9 +12,10 @@ import { Button } from "@/components/ui/button";
 import { HIDE_MS, MODIFIER_LABELS } from "@/lib/engine";
 import { layoutFor } from "@/lib/multiplayer/layout";
 import { ITEMS_BY_ID, type Item } from "@/lib/items";
-import { ROUND_TYPE_OPTIONS, changedOriginals } from "@/lib/multiplayer/roundTypes";
+import { ROUND_TYPE_OPTIONS, changedOriginals, type PlayedRoundType } from "@/lib/multiplayer/roundTypes";
 import type { RoundRow } from "@/lib/multiplayer/types";
 import type { ChangeTable } from "@/lib/rounds/change";
+import { roundHowTo } from "@/lib/rounds/intro";
 import { comboMultiplier } from "@/lib/scoring";
 import { Header, Popups, TimesUp, toItems, useTickCue } from "./DuelView";
 import { Avatar, useServerNow } from "./shared";
@@ -23,6 +24,24 @@ import type { RoomState } from "./useRoom";
 
 function isChange(round: RoundRow): boolean {
   return round.rules.roundType === "change";
+}
+
+function playedRoundType(round: RoundRow): PlayedRoundType {
+  const type = round.rules.roundType ?? "item";
+  switch (type) {
+    case "change":
+    case "delayed":
+      return type;
+    case "item":
+    case "position":
+    case "order":
+    case "combo":
+      return "item";
+    default: {
+      const unreachable: never = type;
+      return unreachable;
+    }
+  }
 }
 
 /** The table before the change, and the table after it once the recall choices are known. */
@@ -40,16 +59,45 @@ export function toChangeTable(beforeKeys: string[], afterKeys: string[]): Change
 function RoundIntro({ state, round, seconds }: { state: RoomState; round: RoundRow; seconds: number }) {
   const reduce = useReducedMotion();
   const humans = state.players.filter((p) => !p.is_bot);
+  const type = playedRoundType(round);
+  const how = roundHowTo(type);
+  const title = ROUND_TYPE_OPTIONS[type].description.replace(/\.$/, "");
+  const countLabel = type === "change" ? `${round.item_count} to find` : `${round.item_count} items`;
   return (
-    <section className="flex flex-col items-center gap-4 rounded-3xl border-2 bg-card p-6 text-center shadow-lg" aria-live="polite">
+    <section
+      className="flex flex-col items-center gap-4 rounded-3xl border-2 bg-card p-6 text-center shadow-lg"
+      aria-live="polite"
+      aria-labelledby="round-briefing-title"
+    >
       <p className="rounded-full bg-muted px-3 py-1 text-xs font-bold uppercase tracking-wider text-muted-foreground">
         Level {state.room?.level} of {state.room?.max_levels}
       </p>
-      <h2 className="text-3xl font-extrabold">Everyone plays at once</h2>
-      <p className="text-sm text-muted-foreground">
-        {ROUND_TYPE_OPTIONS[round.rules.roundType === "change" || round.rules.roundType === "delayed" ? round.rules.roundType : "item"].description}{" "}
-        {isChange(round) ? `${round.item_count} to find.` : `${round.item_count} items.`} Same table for all {humans.length} players, but your tiles are laid out your own way.
+      <p className="rounded-full bg-primary/15 px-3 py-1 text-xs font-bold uppercase tracking-wider text-primary">
+        Everyone plays at once
       </p>
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 16, scale: 0.96 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        transition={{ type: "spring", stiffness: 380, damping: 18 }}
+        className="flex flex-col items-center gap-3"
+      >
+        <motion.p
+          className="text-7xl"
+          aria-hidden
+          animate={reduce ? undefined : { y: [0, -10, 0] }}
+          transition={{ duration: 2, repeat: Infinity }}
+        >
+          {how.emoji}
+        </motion.p>
+        <h2 id="round-briefing-title" className="text-3xl font-extrabold">
+          {title}
+        </h2>
+        <p className="rounded-full bg-gold px-3 py-1 text-sm font-bold text-black">{countLabel}</p>
+        <p className="text-lg text-muted-foreground">{how.body}</p>
+        <p className="rounded-2xl border-2 border-primary bg-primary/10 px-4 py-3 text-base font-semibold">
+          Same table for everyone. Your tiles are laid out your own way.
+        </p>
+      </motion.div>
       <ul className="flex max-w-full flex-wrap justify-center gap-1" aria-label="Players">
         {humans.map((p) => (
           <li key={p.id}>
@@ -57,15 +105,27 @@ function RoundIntro({ state, round, seconds }: { state: RoomState; round: RoundR
           </li>
         ))}
       </ul>
-      <motion.p
-        key={seconds}
-        initial={reduce ? false : { scale: 1.6, opacity: 0 }}
-        animate={{ scale: 1, opacity: 1 }}
-        className="text-6xl font-black tabular-nums"
-        role="timer"
+      <motion.div
+        initial={reduce ? false : { opacity: 0, y: 12 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: reduce ? 0 : 0.35 }}
+        className="flex flex-col items-center"
       >
-        {seconds}
-      </motion.p>
+        <p className="text-xs font-semibold uppercase tracking-[0.3em] text-muted-foreground">Starts in</p>
+        <AnimatePresence mode="popLayout">
+          <motion.span
+            key={seconds}
+            initial={reduce ? false : { scale: 1.6, opacity: 0 }}
+            animate={{ scale: 1, opacity: 1 }}
+            exit={reduce ? undefined : { opacity: 0, scale: 0.6 }}
+            transition={{ type: "spring", stiffness: 500, damping: 18 }}
+            className="text-6xl font-black tabular-nums text-gold drop-shadow-[0_0_14px_var(--color-gold)]"
+            role="timer"
+          >
+            {seconds}
+          </motion.span>
+        </AnimatePresence>
+      </motion.div>
     </section>
   );
 }
