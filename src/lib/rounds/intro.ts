@@ -33,6 +33,11 @@ const HOW_TO: Record<RoundType, [IntroCard, IntroCard]> = {
   ],
 };
 
+/** Emoji and memorize how-to for a round type. */
+export function roundHowTo(type: RoundType): IntroCard {
+  return HOW_TO[type][0];
+}
+
 /** The cards of a guided intro: how the round works, then the block's strategy tip. */
 export function introCards(type: RoundType, tip: string | undefined): IntroCard[] {
   const [first, second] = HOW_TO[type];
