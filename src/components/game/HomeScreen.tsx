@@ -1,11 +1,12 @@
 "use client";
 
-import { Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword, Trophy } from "lucide-react";
+import { Download, Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword, Trophy } from "lucide-react";
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
-import { useEffect, useState, type ComponentProps } from "react";
+import { useEffect, useState, useSyncExternalStore, type ComponentProps } from "react";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
+import { getDisplaySurface } from "@/lib/pwa/display";
 import { currentStreak, shareMessage } from "@/lib/progress";
 import { isGuestLocked } from "@/lib/solo/guest";
 import type { Stats } from "@/lib/storage";
@@ -87,9 +88,14 @@ function ClashingSwords({ reduce }: { reduce: boolean }) {
   );
 }
 
+function noopSubscribe() {
+  return () => {};
+}
+
 export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayDaily, onTraining, profiles, levelItems, progress }: HomeScreenProps) {
   const [copied, setCopied] = useState(false);
   const reduce = useReducedMotion();
+  const surface = useSyncExternalStore(noopSubscribe, getDisplaySurface, () => null);
   const countdown = useResetCountdown();
   const playedToday = stats.daily?.date === today ? stats.daily : null;
   const accuracy = stats.totalItems ? Math.round((stats.correctItems / stats.totalItems) * 100) : null;
@@ -271,6 +277,15 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
       >
         <GraduationCap className="size-4" /> {stats.trainingDone ? "Replay training" : "Practice round"}
       </Button>
+      {surface && surface !== "standalone" ? (
+        <Link
+          href="/install"
+          onClick={() => playCue("tap")}
+          className="flex h-11 items-center justify-center gap-1.5 text-sm font-semibold text-muted-foreground hover:text-foreground"
+        >
+          <Download className="size-4" aria-hidden /> Install Blinq
+        </Link>
+      ) : null}
     </div>
   );
 }
