@@ -1,4 +1,5 @@
 import { ensureSession } from "@/lib/supabase/client";
+import { shareUrl as inviteShareUrl } from "@/lib/multiplayer/share";
 
 export class MpError extends Error {
   constructor(
@@ -22,5 +23,5 @@ export async function callMp<T = Record<string, unknown>>(action: string, body: 
 }
 
 export function shareUrl(code: string): string {
-  return `${window.location.origin}/join/${code}`;
+  return inviteShareUrl(code);
 }

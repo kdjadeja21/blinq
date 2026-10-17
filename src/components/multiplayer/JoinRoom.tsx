@@ -10,6 +10,7 @@ import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
 import { AVATARS, surprisePersona } from "@/lib/multiplayer/avatars";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
+import { OpenInAppHandoff } from "./OpenInAppHandoff";
 import { ErrorNote, Spinner, TextField } from "./shared";
 
 function cleanCode(raw: string): string {
@@ -198,6 +199,8 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
           {invited && !editingCode ? "Pick a name and jump into the room." : "Enter the 6-character code from your host."}
         </p>
       </div>
+
+      {code.length === ROOM_CODE_LENGTH ? <OpenInAppHandoff code={code} /> : null}
 
       <form
         onSubmit={submit}

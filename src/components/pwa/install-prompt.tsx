@@ -3,6 +3,7 @@
 import { Download, Share, X } from "lucide-react";
 import { useEffect, useState, useSyncExternalStore } from "react";
 import { Button } from "@/components/ui/button";
+import { getDisplaySurface, type DisplaySurface } from "@/lib/pwa/display";
 
 const DISMISS_KEY = "blinq:install-dismissed:v1";
 
@@ -11,21 +12,8 @@ interface BeforeInstallPromptEvent extends Event {
   userChoice: Promise<{ outcome: "accepted" | "dismissed" }>;
 }
 
-type Platform = "standalone" | "ios" | "other";
-
 function noopSubscribe() {
   return () => {};
-}
-
-function getPlatform(): Platform {
-  const standalone =
-    matchMedia("(display-mode: standalone)").matches ||
-    (navigator as Navigator & { standalone?: boolean }).standalone === true;
-  if (standalone) return "standalone";
-  const ua = navigator.userAgent;
-  const isIos =
-    /iPad|iPhone|iPod/.test(ua) || (ua.includes("Mac") && navigator.maxTouchPoints > 1);
-  return isIos ? "ios" : "other";
 }
 
 function readDismissed() {
@@ -37,7 +25,7 @@ function readDismissed() {
 }
 
 export function InstallPrompt() {
-  const platform = useSyncExternalStore<Platform | null>(noopSubscribe, getPlatform, () => null);
+  const platform = useSyncExternalStore<DisplaySurface | null>(noopSubscribe, getDisplaySurface, () => null);
   const [dismissed, setDismissed] = useState(readDismissed);
   const [deferred, setDeferred] = useState<BeforeInstallPromptEvent | null>(null);
 
