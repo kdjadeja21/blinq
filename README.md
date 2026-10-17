@@ -1,45 +1,45 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# Blinq
 
-## Getting Started
+**Memory workout, with fun.** Blinq is a Next.js memory game: memorize items on a grid, then pick them back out of a crowd under time pressure. Play solo (daily challenge, training, ranked levels), or host a **multiplayer battle** room with friends.
 
-First, run the development server:
+Live app: [blinqplay.vercel.app](https://blinqplay.vercel.app)
+
+## Stack
+
+- [Next.js](https://nextjs.org) (App Router), React 19, TypeScript, Tailwind CSS
+- [Clerk](https://clerk.com) — solo sign-in and profiles
+- [Supabase](https://supabase.com) — multiplayer rooms, realtime, Postgres + RLS
+
+## Quick start
 
 ```bash
+npm install
+cp .env.example .env.local   # fill Supabase + Clerk as needed
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000). Solo modes work with optional Clerk dev keys; multiplayer needs a Supabase project (see below).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+Before opening a PR:
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+npm run lint
+npm run build
+```
 
-## Contributing
+Full command reference: [docs/DEV_COMMANDS.md](docs/DEV_COMMANDS.md).
 
-- Developer commands (npm, Supabase, tests): [docs/DEV_COMMANDS.md](docs/DEV_COMMANDS.md)
-- Branching, commits and releases: [docs/BRANCHING.md](docs/BRANCHING.md)
-- Visual language, tokens and components: [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md)
-- Difficulty engine (items, timers, rules per level): [docs/GAME_ENGINE.md](docs/GAME_ENGINE.md)
-- Multiplayer design and rules: [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md)
-- Connect Supabase (multiplayer backend): [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md)
+## Documentation
 
-## Learn More
+| Topic | Doc |
+| --- | --- |
+| npm, Supabase CLI, tests, CI | [docs/DEV_COMMANDS.md](docs/DEV_COMMANDS.md) |
+| Branches, commits, releases | [docs/BRANCHING.md](docs/BRANCHING.md) |
+| UI tokens and components | [docs/DESIGN_SYSTEM.md](docs/DESIGN_SYSTEM.md) |
+| Difficulty engine (levels, timers, twists) | [docs/GAME_ENGINE.md](docs/GAME_ENGINE.md) |
+| Multiplayer rules and flow | [docs/MULTIPLAYER.md](docs/MULTIPLAYER.md) |
+| Supabase + Clerk setup | [docs/SUPABASE_SETUP.md](docs/SUPABASE_SETUP.md) |
 
-To learn more about Next.js, take a look at the following resources:
+## License
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Private project (`package.json` marks the package as private).
