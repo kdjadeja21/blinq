@@ -8,7 +8,7 @@ import { useRouter } from "next/navigation";
 import { useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { callMp } from "@/lib/multiplayer/api";
-import { surprisePersona } from "@/lib/multiplayer/avatars";
+import { AVATARS, surprisePersona } from "@/lib/multiplayer/avatars";
 import { NAME_MAX, ROOM_CODE_LENGTH } from "@/lib/multiplayer/config";
 import { ErrorNote, Spinner, TextField } from "./shared";
 
@@ -121,7 +121,46 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
   const [name, setName] = useState(defaultName);
   const [avatar, setAvatar] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
+  const [surpriseBusy, setSurpriseBusy] = useState(false);
+  const [previewAvatar, setPreviewAvatar] = useState<string | null>(null);
+  const [surpriseAnnouncement, setSurpriseAnnouncement] = useState("");
   const [error, setError] = useState<string | null>(null);
+
+  async function rollSurprise() {
+    if (surpriseBusy || busy) return;
+
+    const needsPeek = code.length === ROOM_CODE_LENGTH;
+    setSurpriseBusy(true);
+    setSurpriseAnnouncement("");
+
+    let shuffleId: number | undefined;
+    if (needsPeek && !reduce) {
+      shuffleId = window.setInterval(() => {
+        setPreviewAvatar(AVATARS[Math.floor(Math.random() * AVATARS.length)]);
+      }, 90);
+    }
+
+    try {
+      let taken: string[] = avatar ? [avatar] : [];
+      if (needsPeek) {
+        try {
+          const peek = await callMp<{ avatars: string[] }>("peek_room", { code });
+          taken = [...taken, ...peek.avatars];
+        } catch {
+          // Join still enforces unique avatars if the peek fails.
+        }
+      }
+      const persona = surprisePersona(taken);
+      setPreviewAvatar(null);
+      setName(persona.name);
+      setAvatar(persona.avatar);
+      setSurpriseAnnouncement(`New name: ${persona.name}`);
+    } finally {
+      if (shuffleId !== undefined) window.clearInterval(shuffleId);
+      setPreviewAvatar(null);
+      setSurpriseBusy(false);
+    }
+  }
 
   async function submit(event: React.FormEvent) {
     event.preventDefault();
@@ -162,6 +201,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
 
       <form
         onSubmit={submit}
+        aria-busy={busy || surpriseBusy}
         className="flex flex-col gap-5 rounded-3xl border-2 bg-gradient-to-b from-primary/15 to-card p-4 shadow-lg"
       >
         <div className="flex flex-col gap-2">
@@ -182,7 +222,10 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
           )}
         </div>
 
-        <div className="flex flex-col gap-1.5">
+        <div className="flex flex-col gap-1.5" aria-busy={surpriseBusy}>
+          <span className="sr-only" aria-live="polite">
+            {surpriseAnnouncement}
+          </span>
           <TextField
             label="Your name"
             hint="Your player name in this room."
@@ -192,30 +235,42 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
             autoComplete="nickname"
             autoFocus={invited && !editingCode}
             required
-            prefix={avatar ? <span aria-label="Avatar">{avatar}</span> : undefined}
+            readOnly={surpriseBusy}
+            className={surpriseBusy ? "opacity-70" : undefined}
+            prefix={
+              previewAvatar ?? avatar ? (
+                <span aria-label="Avatar">{previewAvatar ?? avatar}</span>
+              ) : undefined
+            }
           />
           <Button
             type="button"
             variant="ghost"
             className="h-11 w-fit rounded-xl px-3"
-            onClick={() => {
-              void (async () => {
-                let taken: string[] = avatar ? [avatar] : [];
-                if (code.length === ROOM_CODE_LENGTH) {
-                  try {
-                    const peek = await callMp<{ avatars: string[] }>("peek_room", { code });
-                    taken = [...taken, ...peek.avatars];
-                  } catch {
-                    // Join still enforces unique avatars if the peek fails.
-                  }
-                }
-                const persona = surprisePersona(taken);
-                setName(persona.name);
-                setAvatar(persona.avatar);
-              })();
-            }}
+            disabled={surpriseBusy || busy}
+            onClick={() => void rollSurprise()}
           >
-            <Dices className="size-4" /> Surprise me
+            {surpriseBusy ? (
+              <>
+                <Spinner className="size-4" /> Rolling...
+              </>
+            ) : (
+              <>
+                {reduce ? (
+                  <Dices className="size-4" />
+                ) : (
+                  <motion.span
+                    aria-hidden
+                    className="inline-flex"
+                    whileTap={{ rotate: 18, scale: 1.08 }}
+                    transition={{ type: "spring", stiffness: 400, damping: 12 }}
+                  >
+                    <Dices className="size-4" />
+                  </motion.span>
+                )}
+                Surprise me
+              </>
+            )}
           </Button>
         </div>
 
@@ -224,7 +279,7 @@ export function JoinRoom({ initialCode = "", defaultName = "" }: { initialCode?:
           type="submit"
           variant="success"
           className="h-14 rounded-3xl text-lg"
-          disabled={busy || code.length !== ROOM_CODE_LENGTH || !name.trim()}
+          disabled={busy || surpriseBusy || code.length !== ROOM_CODE_LENGTH || !name.trim()}
         >
           {busy ? <Spinner /> : <LogIn className="size-5" />} {busy ? "Joining..." : "Join room"}
         </Button>
