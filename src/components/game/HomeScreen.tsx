@@ -4,6 +4,7 @@ import { Download, Flame, GraduationCap, Lock, LogIn, Play, Share2, Sword, Troph
 import Link from "next/link";
 import { motion, useReducedMotion } from "framer-motion";
 import { useEffect, useState, useSyncExternalStore, type ComponentProps } from "react";
+import { LegalFooterLinks } from "@/components/legal/LegalPage";
 import { Button, buttonVariants } from "@/components/ui/button";
 import { playCue } from "@/lib/feedback";
 import { getDisplaySurface } from "@/lib/pwa/display";
@@ -286,6 +287,7 @@ export function HomeScreen({ stats, today, guest, onSignIn, onPlayLevel, onPlayD
           <Download className="size-4" aria-hidden /> Install Blinq
         </Link>
       ) : null}
+      <LegalFooterLinks />
     </div>
   );
 }

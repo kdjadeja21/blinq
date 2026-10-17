@@ -1,0 +1,16 @@
+export const SITE = {
+  name: "Blinq",
+  tagline: "Memory workout, with fun",
+  url: "https://blinqplay.vercel.app",
+  operator: "Krushnasinh Jadeja",
+  operatorCountry: "India",
+  contactEmail: "support@blinqplay.com",
+  governingLaw: "the laws of India",
+  minAge: 13,
+  adultAge: 18,
+  guestMaxLevel: 3,
+  maxNameLength: 16,
+  maxPlayersTeam: 12,
+  maxPlayersIndividual: 21,
+  legalUpdated: "October 17, 2026",
+} as const;
